@@ -243,11 +243,9 @@ function getInitials(name:string){
 
     alt="Kairo"
 
-    className="h-30 w-75 rounded-xl object-contain"
+    className="h-auto w-44 object-contain"
 
   />
-
-  
 
 </div>
 

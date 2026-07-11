@@ -7,10 +7,10 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Kairo | Despacho",
+  title: "Kairo",
   description: "Everything work. One place.",
   icons: {
-    icon: "/icon.png",
+    icon: "/kairo-icon.png",
   },
 };
 

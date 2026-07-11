@@ -41,6 +41,8 @@ export type Invoice = {
   paid_amount: number | null;
   payment_method: string | null;
   payment_reference: string | null;
+  payment_reversed_at: string | null;
+  payment_reversal_reason: string | null;
 
   voided_at?: string | null;
   void_reason?: string | null;
@@ -54,6 +56,8 @@ export type Invoice = {
       name: string;
       email: string;
       contact_type: string | null;
+      is_primary: boolean;
+      is_active: boolean;
     }[];
   } | null;
 };
@@ -66,6 +70,10 @@ export type InvoicePayment = {
   payment_method: string;
   reference_number: string | null;
   created_at: string;
+  status: "completed" | "reversed";
+  reversed_at: string | null;
+  reversal_reason: string | null;
+  reversal_notes: string | null;
 };
 
 export type InvoiceWalletCredit = {
@@ -73,6 +81,9 @@ export type InvoiceWalletCredit = {
   project_id: string;
   hours_delta: number;
   created_at: string;
+  transaction_type: "invoice_credit" | "invoice_credit_reversal";
+  payment_id: string | null;
+  original_transaction_id: string | null;
 };
 
 export type InvoiceItem = {
@@ -109,6 +120,8 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
   async function loadActivityData() {
     const [paymentsResult, walletCreditsResult] = await Promise.all([
       supabase
@@ -120,7 +133,11 @@ export default function InvoiceDetailPage() {
           payment_date,
           payment_method,
           reference_number,
-          created_at
+          created_at,
+          status,
+          reversed_at,
+          reversal_reason,
+          reversal_notes
         `)
         .eq("invoice_id", id)
         .order("created_at", { ascending: true }),
@@ -130,10 +147,13 @@ export default function InvoiceDetailPage() {
           id,
           project_id,
           hours_delta,
-          created_at
+          created_at,
+          transaction_type,
+          payment_id,
+          original_transaction_id
         `)
         .eq("invoice_id", id)
-        .eq("transaction_type", "invoice_credit")
+        .in("transaction_type", ["invoice_credit", "invoice_credit_reversal"])
         .order("created_at", { ascending: true }),
     ]);
 
@@ -188,7 +208,9 @@ export default function InvoiceDetailPage() {
           client_contacts(
             name,
             email,
-            contact_type
+            contact_type,
+            is_primary,
+            is_active
           )
         )
       `)
@@ -267,7 +289,7 @@ export default function InvoiceDetailPage() {
 
             <InvoiceInfoCard invoice={invoice} />
 
-            <PaymentCard invoice={invoice} />
+            <PaymentCard invoice={invoice} payments={payments} />
 
           </div>
 

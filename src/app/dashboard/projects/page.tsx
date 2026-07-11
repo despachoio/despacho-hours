@@ -132,13 +132,17 @@ export default function ProjectsPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
       <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+          <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+          <div className="relative flex items-center justify-between gap-6">
           <div>
-            <h1 className="mt-1 text-4xl font-bold tracking-tight">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">Delivery portfolio</p>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">
               Projects
             </h1>
 
-            <p className="mt-2 text-slate-500">
+            <p className="mt-3 text-slate-300">
               Manage projects and hour banks.
             </p>
           </div>
@@ -149,21 +153,22 @@ export default function ProjectsPage() {
               onClick={() =>
                 router.push("/dashboard/projects/new")
               }
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
             >
               + New Project
             </button>
           )}
+          </div>
         </div>
 
-        <div className="mt-8 flex gap-3">
+        <div className="relative z-10 -mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60 sm:mx-5 sm:flex-row">
           <input
             placeholder="Search projects..."
             value={search}
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm"
+            className="w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
           />
 
           <select
@@ -207,7 +212,7 @@ export default function ProjectsPage() {
   onClick={() =>
     router.push(`/dashboard/projects/${project.id}/wallet`)
   }
-  className="cursor-pointer rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+  className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 border-l-4 border-l-[#153E90] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:border-l-[#153E90] hover:shadow-xl hover:shadow-slate-200/60"
 >
                         <div
                           className={
@@ -220,7 +225,7 @@ export default function ProjectsPage() {
 
   <h3 className="text-lg font-bold text-slate-950">
 
-    [{project.project_code}] {project.name}
+    <span className="text-[#153E90]">[{project.project_code}]</span> {project.name}
 
   </h3>
 

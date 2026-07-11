@@ -655,15 +655,17 @@ export default function ProjectWalletPage() {
           onClick={() =>
             router.push("/dashboard/projects")
           }
-          className="mb-6 text-sm font-semibold text-slate-500 hover:text-slate-950"
+          className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
         >
           ← Back to Projects
         </button>
 
-        <div className="flex items-end justify-between gap-6">
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm font-semibold text-slate-500">
+              <p className="text-sm font-semibold text-blue-200">
                 [{project.project_code || "No Code"}]
               </p>
 
@@ -678,7 +680,7 @@ export default function ProjectWalletPage() {
               </span>
             </div>
 
-            <h1 className="mt-2 text-4xl font-bold text-slate-950">
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white lg:text-5xl">
               {project.name}
             </h1>
 
@@ -691,7 +693,7 @@ export default function ProjectWalletPage() {
                   );
                 }
               }}
-              className="mt-2 text-sm font-semibold text-slate-500 hover:text-slate-950 hover:underline"
+              className="mt-2 text-sm font-semibold text-slate-300 hover:text-white hover:underline"
             >
               Client: {project.clients?.name || "No client"}
             </button>
@@ -705,7 +707,7 @@ export default function ProjectWalletPage() {
                   `/dashboard/projects/${project.id}?action=hours`
                 )
               }
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
             >
               Wallet Adjustment
             </button>
@@ -713,16 +715,17 @@ export default function ProjectWalletPage() {
             <button
               type="button"
               onClick={loadWallet}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white hover:bg-white/15"
             >
               Refresh
             </button>
+          </div>
           </div>
         </div>
 
         {/* SERVICE WALLET */}
 
-        <div className="mt-8 overflow-hidden rounded-3xl bg-slate-950 text-white shadow-sm">
+        <div className="relative z-10 -mt-4 overflow-hidden rounded-3xl bg-gradient-to-br from-[#153E90] to-[#0F172A] text-white shadow-xl shadow-slate-300/50 sm:mx-5">
           <div className="p-8">
             <div className="flex items-start justify-between gap-6">
               <div>

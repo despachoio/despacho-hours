@@ -156,12 +156,23 @@ Regards,
 Despacho Inc.`;
 }
 
+const REVERSAL_REASONS = [
+  "Payment recorded by mistake",
+  "Payment failed or was reversed by bank",
+  "Payment applied to wrong invoice",
+  "Duplicate payment entry",
+  "Refund issued",
+  "Other",
+];
+
 export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Props) {
   const router = useRouter();
   const contacts = useMemo(() => invoice.clients?.client_contacts || [], [invoice.clients]);
   const billingContacts = contacts.filter(
     (contact) =>
-      contact.email && contact.contact_type?.trim().toLowerCase() === "billing"
+      contact.email &&
+      contact.is_active !== false &&
+      contact.contact_type?.trim().toLowerCase() === "billing"
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [to, setTo] = useState<string[]>([]);
@@ -189,6 +200,12 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
   const [duplicateDueDate, setDuplicateDueDate] = useState(todayForInput());
   const [duplicateError, setDuplicateError] = useState("");
   const duplicateRequestInFlight = useRef(false);
+  const [isReversalModalOpen, setIsReversalModalOpen] = useState(false);
+  const [isReversingPayment, setIsReversingPayment] = useState(false);
+  const [reversalReason, setReversalReason] = useState("");
+  const [customReversalReason, setCustomReversalReason] = useState("");
+  const [reversalNotes, setReversalNotes] = useState("");
+  const [reversalError, setReversalError] = useState("");
   const normalizedStatus = invoice.status.trim().toLowerCase();
   const canSendInvoice = !["paid", "void", "cancelled"].includes(
     normalizedStatus
@@ -202,11 +219,15 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
 
   function openSendModal() {
     const billingEmails = billingContacts.map((contact) => contact.email);
-    const fallbackEmails = contacts.length
-      ? [contacts.find((contact) => contact.email)?.email || ""]
-      : (invoice.sent_to || "").split(",");
+    const primaryEmail = contacts.find(
+      (contact) =>
+        contact.email &&
+        contact.is_active !== false &&
+        (contact.is_primary ||
+          contact.contact_type?.trim().toLowerCase() === "primary")
+    )?.email;
 
-    setTo(uniqueEmails(billingEmails.length ? billingEmails : fallbackEmails));
+    setTo(uniqueEmails(billingEmails.length ? billingEmails : [primaryEmail || ""]));
     setCc(["sales@despacho.io"]);
     setToInput("");
     setCcInput("");
@@ -561,6 +582,65 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
     }
   }
 
+  function openReversalModal() {
+    setReversalReason("");
+    setCustomReversalReason("");
+    setReversalNotes("");
+    setReversalError("");
+    setIsReversalModalOpen(true);
+  }
+
+  async function reversePayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isReversingPayment) return;
+
+    const finalReason = reversalReason === "Other"
+      ? customReversalReason.trim()
+      : reversalReason.trim();
+    if (!finalReason) {
+      setReversalError("Select or enter a reversal reason.");
+      return;
+    }
+
+    setIsReversingPayment(true);
+    setReversalError("");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setReversalError("Your session has expired. Please log in again.");
+        window.setTimeout(() => router.push("/login"), 1000);
+        return;
+      }
+
+      const response = await fetch(`/api/invoices/${invoice.id}/reverse-payment`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason: finalReason, notes: reversalNotes }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Payment could not be reversed.");
+      }
+
+      onInvoiceSent(result.invoice as Partial<Invoice>);
+      setIsReversalModalOpen(false);
+      router.refresh();
+      showToast({
+        tone: "success",
+        message: "Payment reversed and Service Wallet hours removed.",
+      });
+    } catch (error) {
+      setReversalError(
+        error instanceof Error ? error.message : "Payment could not be reversed."
+      );
+    } finally {
+      setIsReversingPayment(false);
+    }
+  }
+
   return (
     <>
       {toast ? (
@@ -632,6 +712,17 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
               className="w-full rounded-xl border border-emerald-200 px-4 py-3 text-left font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Record Payment
+            </button>
+          ) : null}
+
+          {isAdmin && normalizedStatus === "paid" ? (
+            <button
+              type="button"
+              onClick={openReversalModal}
+              disabled={isReversingPayment}
+              className="w-full rounded-xl border border-red-300 px-4 py-3 text-left font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Reverse Payment
             </button>
           ) : null}
 
@@ -778,6 +869,70 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
                   {isSending ? "Sending..." : "Send Invoice"}
                 </button>
               )}
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {isReversalModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reverse-payment-title"
+        >
+          <form
+            onSubmit={reversePayment}
+            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
+          >
+            <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
+              <button
+                type="button"
+                onClick={() => setIsReversalModalOpen(false)}
+                disabled={isReversingPayment}
+                aria-label="Close reverse payment"
+                className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              >
+                ×
+              </button>
+              <p className="text-sm font-semibold text-red-700">Payment reversal</p>
+              <h2 id="reverse-payment-title" className="mt-1 text-2xl font-bold text-slate-950">Reverse Payment</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                This will return the invoice to Sent status and remove the hours
+                credited to the linked project wallets. The original payment and
+                wallet entries will remain in the audit history.
+              </p>
+            </div>
+            <div className="space-y-5 px-7 py-6">
+              {reversalError ? (
+                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{reversalError}</div>
+              ) : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Reason</span>
+                <select
+                  required
+                  value={reversalReason}
+                  onChange={(event) => { setReversalReason(event.target.value); setReversalError(""); }}
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                >
+                  <option value="">Select a reason</option>
+                  {REVERSAL_REASONS.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+                </select>
+              </label>
+              {reversalReason === "Other" ? (
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">Custom Reason</span>
+                  <input required value={customReversalReason} onChange={(event) => setCustomReversalReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+                </label>
+              ) : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Notes <span className="font-normal text-slate-400">(optional)</span></span>
+                <textarea rows={4} value={reversalNotes} onChange={(event) => setReversalNotes(event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+              </label>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
+              <button type="button" onClick={() => setIsReversalModalOpen(false)} disabled={isReversingPayment} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60">Cancel</button>
+              <button type="submit" disabled={isReversingPayment} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">{isReversingPayment ? "Reversing..." : "Reverse Payment"}</button>
             </div>
           </form>
         </div>
