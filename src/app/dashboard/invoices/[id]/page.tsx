@@ -107,6 +107,7 @@ export default function InvoiceDetailPage() {
   const [walletCredits, setWalletCredits] = useState<InvoiceWalletCredit[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadActivityData() {
     const [paymentsResult, walletCreditsResult] = await Promise.all([
@@ -165,6 +166,18 @@ export default function InvoiceDetailPage() {
   }
 
   async function loadInvoice() {
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", userData.user.id)
+        .single();
+      setIsAdmin(
+        String(profileData?.role || "").trim().toLowerCase() === "admin"
+      );
+    }
+
     const { data: invoiceData, error } = await supabase
       .from("invoices")
       .select(`
@@ -280,6 +293,7 @@ export default function InvoiceDetailPage() {
 
             <InvoiceActions
               invoice={invoice}
+              isAdmin={isAdmin}
               onInvoiceSent={handleInvoiceSent}
             />
 

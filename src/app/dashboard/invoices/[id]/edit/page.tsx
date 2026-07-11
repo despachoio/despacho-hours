@@ -99,6 +99,7 @@ export default function EditInvoicePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [duplicateSuccess, setDuplicateSuccess] = useState("");
 
   async function loadMetaData() {
     const [clientResult, projectResult] = await Promise.all([
@@ -209,6 +210,11 @@ export default function EditInvoicePage() {
   }
 
   useEffect(() => {
+    const duplicateMessage = window.sessionStorage.getItem("invoiceDuplicateSuccess");
+    if (duplicateMessage) {
+      setDuplicateSuccess(duplicateMessage);
+      window.sessionStorage.removeItem("invoiceDuplicateSuccess");
+    }
     loadMetaData();
     loadInvoice();
   }, [invoiceId]);
@@ -424,6 +430,12 @@ export default function EditInvoicePage() {
             </span>
           }
         />
+
+        {duplicateSuccess ? (
+          <div role="status" className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800 shadow-sm">
+            {duplicateSuccess}
+          </div>
+        ) : null}
 
         <KairoCard className="mt-8 p-8">
           <section>

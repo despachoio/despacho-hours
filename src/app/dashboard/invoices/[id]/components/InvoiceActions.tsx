@@ -1,12 +1,13 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useMemo, useState } from "react";
+import { FormEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Invoice } from "../page";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
   invoice: Invoice;
+  isAdmin: boolean;
   onInvoiceSent: (update: Partial<Invoice>) => void;
 };
 
@@ -118,6 +119,19 @@ function todayForInput() {
   return new Date(today.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function addDays(dateValue: string, days: number) {
+  const date = new Date(`${dateValue}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function invoicePaymentTerms(issueDate: string, dueDate: string) {
+  const milliseconds =
+    new Date(`${dueDate}T00:00:00Z`).getTime() -
+    new Date(`${issueDate}T00:00:00Z`).getTime();
+  return Math.max(0, Math.round(milliseconds / 86_400_000));
+}
+
 function defaultMessage(
   clientName: string,
   invoiceNumber: number,
@@ -142,7 +156,7 @@ Regards,
 Despacho Inc.`;
 }
 
-export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
+export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Props) {
   const router = useRouter();
   const contacts = useMemo(() => invoice.clients?.client_contacts || [], [invoice.clients]);
   const billingContacts = contacts.filter(
@@ -168,6 +182,13 @@ export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentError, setPaymentError] = useState("");
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [duplicateIssueDate, setDuplicateIssueDate] = useState(todayForInput());
+  const [duplicateTerms, setDuplicateTerms] = useState(0);
+  const [duplicateDueDate, setDuplicateDueDate] = useState(todayForInput());
+  const [duplicateError, setDuplicateError] = useState("");
+  const duplicateRequestInFlight = useRef(false);
   const normalizedStatus = invoice.status.trim().toLowerCase();
   const canSendInvoice = !["paid", "void", "cancelled"].includes(
     normalizedStatus
@@ -475,6 +496,71 @@ export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
     }
   }
 
+  function openDuplicateModal() {
+    const issueDate = todayForInput();
+    const paymentTerms = invoicePaymentTerms(invoice.issue_date, invoice.due_date);
+    setDuplicateIssueDate(issueDate);
+    setDuplicateTerms(paymentTerms);
+    setDuplicateDueDate(addDays(issueDate, paymentTerms));
+    setDuplicateError("");
+    setIsDuplicateModalOpen(true);
+  }
+
+  async function duplicateInvoice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (duplicateRequestInFlight.current) return;
+    if (!duplicateIssueDate || !duplicateDueDate) {
+      setDuplicateError("Enter valid issue and due dates.");
+      return;
+    }
+    if (duplicateDueDate < duplicateIssueDate) {
+      setDuplicateError("Due date cannot be earlier than issue date.");
+      return;
+    }
+
+    duplicateRequestInFlight.current = true;
+    setIsDuplicating(true);
+    setDuplicateError("");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setDuplicateError("Your session has expired. Please log in again.");
+        window.setTimeout(() => router.push("/login"), 1000);
+        return;
+      }
+
+      const response = await fetch(`/api/invoices/${invoice.id}/duplicate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          issueDate: duplicateIssueDate,
+          dueDate: duplicateDueDate,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Invoice could not be duplicated.");
+      }
+
+      setIsDuplicateModalOpen(false);
+      window.sessionStorage.setItem(
+        "invoiceDuplicateSuccess",
+        `Invoice duplicated as Draft #${result.invoiceNumber}.`
+      );
+      router.push(`/dashboard/invoices/${result.invoiceId}/edit`);
+    } catch (error) {
+      setDuplicateError(
+        error instanceof Error ? error.message : "Invoice could not be duplicated."
+      );
+    } finally {
+      duplicateRequestInFlight.current = false;
+      setIsDuplicating(false);
+    }
+  }
+
   return (
     <>
       {toast ? (
@@ -527,13 +613,16 @@ export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
             {isDownloading ? "Preparing PDF..." : "Download PDF"}
           </button>
 
-          <button
-            type="button"
-            disabled
-            className="w-full cursor-not-allowed rounded-xl border border-slate-200 px-4 py-3 text-left font-semibold text-slate-400"
-          >
-            Duplicate Invoice
-          </button>
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={openDuplicateModal}
+              disabled={isDuplicating}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-semibold text-slate-800 transition hover:border-blue-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Duplicate Invoice
+            </button>
+          ) : null}
 
           {canRecordPayment ? (
             <button
@@ -689,6 +778,113 @@ export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
                   {isSending ? "Sending..." : "Send Invoice"}
                 </button>
               )}
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {isDuplicateModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="duplicate-invoice-title"
+        >
+          <form
+            onSubmit={duplicateInvoice}
+            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
+          >
+            <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
+              <button
+                type="button"
+                onClick={() => setIsDuplicateModalOpen(false)}
+                disabled={isDuplicating}
+                aria-label="Close duplicate invoice"
+                className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              >
+                ×
+              </button>
+              <p className="text-sm font-semibold text-[#153E90]">Create draft copy</p>
+              <h2 id="duplicate-invoice-title" className="mt-1 text-2xl font-bold text-slate-950">
+                Duplicate Invoice
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                This will create a new draft invoice using the same client,
+                projects, line items, hours, amounts, currency, and payment instructions.
+              </p>
+            </div>
+
+            <div className="space-y-5 px-7 py-6">
+              {duplicateError ? (
+                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {duplicateError}
+                </div>
+              ) : null}
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Issue Date</span>
+                <input
+                  type="date"
+                  required
+                  value={duplicateIssueDate}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setDuplicateIssueDate(value);
+                    if (value) setDuplicateDueDate(addDays(value, duplicateTerms));
+                  }}
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Payment Terms</span>
+                <div className="mt-2 flex items-center overflow-hidden rounded-xl border border-slate-300">
+                  <span className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">Net</span>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={duplicateTerms}
+                    onChange={(event) => {
+                      const value = Math.max(0, Number(event.target.value || 0));
+                      setDuplicateTerms(value);
+                      if (duplicateIssueDate) setDuplicateDueDate(addDays(duplicateIssueDate, value));
+                    }}
+                    className="w-full px-4 py-3 text-sm outline-none"
+                  />
+                  <span className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">Days</span>
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Due Date</span>
+                <input
+                  type="date"
+                  required
+                  value={duplicateDueDate}
+                  min={duplicateIssueDate}
+                  onChange={(event) => setDuplicateDueDate(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
+              <button
+                type="button"
+                onClick={() => setIsDuplicateModalOpen(false)}
+                disabled={isDuplicating}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isDuplicating}
+                className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123578] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDuplicating ? "Duplicating..." : "Duplicate Invoice"}
+              </button>
             </div>
           </form>
         </div>
