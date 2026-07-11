@@ -120,8 +120,6 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const [isAdmin, setIsAdmin] = useState(false);
-
   async function loadActivityData() {
     const [paymentsResult, walletCreditsResult] = await Promise.all([
       supabase
