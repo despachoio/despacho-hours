@@ -54,6 +54,8 @@ export type Invoice = {
       name: string;
       email: string;
       contact_type: string | null;
+      is_primary: boolean;
+      is_active: boolean;
     }[];
   } | null;
 };
@@ -175,7 +177,9 @@ export default function InvoiceDetailPage() {
           client_contacts(
             name,
             email,
-            contact_type
+            contact_type,
+            is_primary,
+            is_active
           )
         )
       `)

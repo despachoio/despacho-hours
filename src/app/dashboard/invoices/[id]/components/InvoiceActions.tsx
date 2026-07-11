@@ -147,7 +147,9 @@ export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
   const contacts = useMemo(() => invoice.clients?.client_contacts || [], [invoice.clients]);
   const billingContacts = contacts.filter(
     (contact) =>
-      contact.email && contact.contact_type?.trim().toLowerCase() === "billing"
+      contact.email &&
+      contact.is_active !== false &&
+      contact.contact_type?.trim().toLowerCase() === "billing"
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [to, setTo] = useState<string[]>([]);
@@ -181,11 +183,15 @@ export default function InvoiceActions({ invoice, onInvoiceSent }: Props) {
 
   function openSendModal() {
     const billingEmails = billingContacts.map((contact) => contact.email);
-    const fallbackEmails = contacts.length
-      ? [contacts.find((contact) => contact.email)?.email || ""]
-      : (invoice.sent_to || "").split(",");
+    const primaryEmail = contacts.find(
+      (contact) =>
+        contact.email &&
+        contact.is_active !== false &&
+        (contact.is_primary ||
+          contact.contact_type?.trim().toLowerCase() === "primary")
+    )?.email;
 
-    setTo(uniqueEmails(billingEmails.length ? billingEmails : fallbackEmails));
+    setTo(uniqueEmails(billingEmails.length ? billingEmails : [primaryEmail || ""]));
     setCc(["sales@despacho.io"]);
     setToInput("");
     setCcInput("");

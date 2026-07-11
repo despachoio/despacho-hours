@@ -25,6 +25,8 @@ type SendInvoiceBody = {
 type ClientContact = {
   email: string;
   contact_type: string | null;
+  is_primary: boolean;
+  is_active: boolean;
 };
 
 function isEmail(value: string) {
@@ -445,7 +447,7 @@ export async function POST(
         clients(
           id,
           name,
-          client_contacts(email, contact_type)
+          client_contacts(email, contact_type, is_primary, is_active)
         )
       `)
       .eq("id", invoiceId)
@@ -460,13 +462,22 @@ export async function POST(
       .filter(
         (contact) =>
           contact.email &&
+          contact.is_active !== false &&
           contact.contact_type?.trim().toLowerCase() === "billing"
       )
       .map((contact) => contact.email.trim());
 
-    if (billingEmails.length === 0) {
+    const primaryEmail = contacts.find(
+      (contact) =>
+        contact.email &&
+        contact.is_active !== false &&
+        (contact.is_primary ||
+          contact.contact_type?.trim().toLowerCase() === "primary")
+    )?.email;
+
+    if (billingEmails.length === 0 && !primaryEmail) {
       return Response.json(
-        { error: "No billing email is configured for this client." },
+        { error: "No billing contact is configured for this client." },
         { status: 400 }
       );
     }

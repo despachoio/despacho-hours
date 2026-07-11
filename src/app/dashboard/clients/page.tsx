@@ -10,6 +10,7 @@ type Contact = {
   email: string;
   role: string | null;
   contact_type: string | null;
+  is_active?: boolean;
 };
 
 type Client = {
@@ -145,9 +146,15 @@ export default function ClientsPage() {
   }
 
   async function deleteContact(id: string) {
-    if (!confirm("Remove this contact?")) return;
+    const { error } = await supabase
+      .from("client_contacts")
+      .update({ is_active: false, is_primary: false })
+      .eq("id", id);
 
-    await supabase.from("client_contacts").delete().eq("id", id);
+    if (error) {
+      console.error("Contact deactivation failed:", error);
+      return;
+    }
     loadClients();
   }
 
@@ -160,6 +167,8 @@ export default function ClientsPage() {
   }
 
   useEffect(() => {
+    // Existing dashboard page performs its initial Supabase load client-side.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadClients();
   }, []);
 
@@ -172,6 +181,7 @@ export default function ClientsPage() {
       const clientMatch = client.name.toLowerCase().includes(q);
 
       const contactMatch = client.client_contacts?.some((contact) => {
+        if (contact.is_active === false) return false;
         return (
           contact.name.toLowerCase().includes(q) ||
           contact.email.toLowerCase().includes(q) ||
@@ -294,7 +304,9 @@ export default function ClientsPage() {
                       </button>
 
                       <p className="text-sm text-slate-500">
-                        {client.client_contacts?.length || 0} contacts
+                        {client.client_contacts?.filter(
+                          (contact) => contact.is_active !== false
+                        ).length || 0} contacts
                       </p>
                     </>
                   )}
@@ -383,8 +395,12 @@ export default function ClientsPage() {
                 </div>
               )}
 
-              {client.client_contacts?.length ? (
-                client.client_contacts.map((contact) => (
+              {client.client_contacts?.some(
+                (contact) => contact.is_active !== false
+              ) ? (
+                client.client_contacts
+                  .filter((contact) => contact.is_active !== false)
+                  .map((contact) => (
                   <div
                     key={contact.id}
                     className="border-b border-slate-200 px-6 py-4 last:border-0"
@@ -487,7 +503,7 @@ export default function ClientsPage() {
                               onClick={() => deleteContact(contact.id)}
                               className="rounded-2xl border border-red-100 px-5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
                             >
-                              Remove
+                              Deactivate
                             </button>
                           </div>
                         )}
