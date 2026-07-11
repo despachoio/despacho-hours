@@ -585,13 +585,16 @@ return(
 <div className="mx-auto max-w-7xl">
 
 
-<div className="flex items-center justify-between">
+<div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+  <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+  <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+  <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
 
-  <h1 className="text-4xl font-bold">
-
-    Reports
-
-  </h1>
+  <div>
+    <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">Operational intelligence</p>
+    <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">Reports</h1>
+    <p className="mt-3 text-sm text-slate-300">Turn delivery data into clear, exportable insights.</p>
+  </div>
 
 
   <div className="flex gap-3">
@@ -601,7 +604,7 @@ return(
 
 onClick={exportClientReport}
 
-className="rounded-2xl border px-6 py-3 font-semibold"
+className="rounded-2xl border border-white/20 bg-white/10 px-6 py-3 font-semibold text-white hover:bg-white/15"
 
 >
 
@@ -615,7 +618,7 @@ Client Report
 
 onClick={exportExcel}
 
-className="rounded-2xl bg-slate-950 px-6 py-3 font-semibold text-white"
+className="rounded-2xl bg-white px-6 py-3 font-bold text-[#0F172A] shadow-lg"
 
 >
 
@@ -625,6 +628,7 @@ Export Excel
 
 
 </div>
+</div>
 
 
 </div>
@@ -632,10 +636,10 @@ Export Excel
 
 
 
-<div className="mt-8 rounded-3xl bg-white p-6 shadow-sm">
+<div className="relative z-10 -mt-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:mx-5">
 
 
-<div className="grid grid-cols-5 gap-4">
+<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
 
 
 <input
@@ -648,7 +652,7 @@ onChange={(e)=>
 setFromDate(e.target.value)
 }
 
-className="rounded-xl border px-4 py-3"
+className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
 
 />
 
@@ -664,7 +668,7 @@ onChange={(e)=>
 setToDate(e.target.value)
 }
 
-className="rounded-xl border px-4 py-3"
+className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
 
 />
 

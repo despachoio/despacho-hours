@@ -74,15 +74,34 @@ export default function InvoiceTimeline({
         : undefined,
       date: payment.payment_date || payment.created_at,
     });
+
+    if (payment.status === "reversed" && payment.reversed_at) {
+      events.push({
+        key: `payment-reversed-${payment.id}`,
+        title: "Payment reversed",
+        description: payment.reversal_reason
+          ? `Reason: ${payment.reversal_reason}`
+          : undefined,
+        detail: payment.reversal_notes || undefined,
+        date: payment.reversed_at,
+      });
+    }
   }
 
-  if (walletCredits.length > 0) {
-    const totalHours = walletCredits.reduce(
+  const originalCredits = walletCredits.filter(
+    (credit) => credit.transaction_type === "invoice_credit"
+  );
+  const reversalCredits = walletCredits.filter(
+    (credit) => credit.transaction_type === "invoice_credit_reversal"
+  );
+
+  if (originalCredits.length > 0) {
+    const totalHours = originalCredits.reduce(
       (total, credit) => total + Number(credit.hours_delta || 0),
       0
     );
     const projectCount = new Set(
-      walletCredits.map((credit) => credit.project_id)
+      originalCredits.map((credit) => credit.project_id)
     ).size;
 
     events.push({
@@ -91,7 +110,26 @@ export default function InvoiceTimeline({
       description: `${totalHours.toFixed(2)} hours across ${projectCount} ${
         projectCount === 1 ? "project" : "projects"
       }`,
-      date: walletCredits[0]?.created_at || null,
+      date: originalCredits[0]?.created_at || null,
+    });
+  }
+
+  if (reversalCredits.length > 0) {
+    const totalHours = reversalCredits.reduce(
+      (total, credit) => total + Math.abs(Number(credit.hours_delta || 0)),
+      0
+    );
+    const projectCount = new Set(
+      reversalCredits.map((credit) => credit.project_id)
+    ).size;
+
+    events.push({
+      key: "wallet-credit-reversal",
+      title: "Service Wallet credit reversed",
+      description: `${totalHours.toFixed(2)} hours removed across ${projectCount} ${
+        projectCount === 1 ? "project" : "projects"
+      }`,
+      date: reversalCredits[0]?.created_at || null,
     });
   }
 

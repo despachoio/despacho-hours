@@ -240,22 +240,24 @@ export default function TeamDetailPage() {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-5xl">
         <button
           onClick={() => router.push("/dashboard/team")}
-          className="mb-6 text-sm font-medium text-slate-500"
+          className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
         >
           ← Back to Team
         </button>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div>
-            <p className="text-sm font-semibold text-slate-500">
+        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
+          <div className="relative -m-8 mb-0 overflow-hidden bg-[#0F172A] p-8 text-white">
+            <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#153E90]/60 blur-3xl" />
+            <div className="relative">
+            <p className="text-sm font-semibold text-blue-200">
               Employee Code: {member.employee_code || "Not set"}
             </p>
 
             <div className="mt-2 flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{member.name}</h1>
+              <h1 className="text-4xl font-bold tracking-tight">{member.name}</h1>
 
               <span
                 className={`
@@ -272,24 +274,25 @@ export default function TeamDetailPage() {
                 {member.status || "active"}
               </span>
             </div>
+            </div>
           </div>
 
           {!action && (
             <div className="mt-8 space-y-6">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="rounded-2xl bg-slate-50 p-5">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
                   <p className="text-sm text-slate-500">Role</p>
                   <p className="mt-2 text-lg font-bold">{member.role || "-"}</p>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 p-5">
+                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
                   <p className="text-sm text-slate-500">Department</p>
                   <p className="mt-2 text-lg font-bold">
                     {member.department || "-"}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 p-5">
+                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
                   <p className="text-sm text-slate-500">Hourly Cost</p>
                   <p className="mt-2 text-lg font-bold">
                     ₹{member.hourly_cost || 0}

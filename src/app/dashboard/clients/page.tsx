@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type Contact = {
   id: string;
@@ -20,25 +20,43 @@ type Client = {
   client_contacts: Contact[];
 };
 
+function clientInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join("");
+}
+
+function contactBadge(contactType: string | null) {
+  switch (contactType?.toLowerCase()) {
+    case "billing":
+      return "bg-blue-50 text-[#153E90] ring-blue-200";
+    case "primary":
+      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+    case "manager":
+      return "bg-violet-50 text-violet-700 ring-violet-200";
+    default:
+      return "bg-slate-100 text-slate-600 ring-slate-200";
+  }
+}
+
 export default function ClientsPage() {
   const router = useRouter();
-
   const [clients, setClients] = useState<Client[]>([]);
   const [role, setRole] = useState("");
   const [search, setSearch] = useState("");
-
   const [showNewClient, setShowNewClient] = useState(false);
   const [clientName, setClientName] = useState("");
-
   const [editingClient, setEditingClient] = useState<string | null>(null);
   const [editClientName, setEditClientName] = useState("");
-
   const [addingContactFor, setAddingContactFor] = useState<string | null>(null);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactRole, setContactRole] = useState("");
   const [contactType, setContactType] = useState("general");
-
+  const [contactMutationError, setContactMutationError] = useState("");
   const [editingContact, setEditingContact] = useState<string | null>(null);
   const [editContactName, setEditContactName] = useState("");
   const [editContactEmail, setEditContactEmail] = useState("");
@@ -54,7 +72,6 @@ export default function ClientsPage() {
         .select("role")
         .eq("user_id", userData.user.id)
         .single();
-
       setRole(profile?.role || "");
     }
 
@@ -76,12 +93,10 @@ export default function ClientsPage() {
 
   async function addClient() {
     if (!clientName.trim()) return;
-
     await supabase.from("clients").insert({
       name: clientName.trim(),
       status: "active",
     });
-
     setClientName("");
     setShowNewClient(false);
     loadClients();
@@ -89,12 +104,10 @@ export default function ClientsPage() {
 
   async function updateClient() {
     if (!editingClient || !editClientName.trim()) return;
-
     await supabase
       .from("clients")
       .update({ name: editClientName.trim() })
       .eq("id", editingClient);
-
     setEditingClient(null);
     setEditClientName("");
     loadClients();
@@ -102,22 +115,80 @@ export default function ClientsPage() {
 
   async function deleteClient(id: string) {
     if (!confirm("Delete this client permanently?")) return;
-
     await supabase.from("clients").delete().eq("id", id);
     loadClients();
   }
 
   async function addContact(clientId: string) {
     if (!contactName.trim() || !contactEmail.trim()) return;
+    setContactMutationError("");
+    const normalizedEmail = contactEmail.trim().toLowerCase();
+    const contactPayload = {
+      p_contact_id: null,
+      p_client_id: clientId,
+      p_first_name: contactName.trim(),
+      p_last_name: null,
+      p_job_title: contactRole.trim() || null,
+      p_email: normalizedEmail,
+      p_phone: null,
+      p_contact_type: contactType,
+      p_is_primary: contactType === "primary",
+    };
+    const { error } = await supabase.rpc(
+      "save_client_contact",
+      contactPayload
+    );
+    if (error) {
+      const { data: inactiveContact, error: lookupError } = await supabase
+        .from("client_contacts")
+        .select("id")
+        .eq("client_id", clientId)
+        .ilike("email", normalizedEmail)
+        .eq("is_active", false)
+        .maybeSingle();
 
-    await supabase.from("client_contacts").insert({
-      client_id: clientId,
-      name: contactName.trim(),
-      email: contactEmail.trim(),
-      role: contactRole.trim() || null,
-      contact_type: contactType,
-    });
+      if (lookupError || !inactiveContact) {
+        console.error("Contact add failed:", error);
+        setContactMutationError(error.message);
+        return;
+      }
 
+      if (contactType === "primary") {
+        const { error: primaryError } = await supabase
+          .from("client_contacts")
+          .update({ is_primary: false })
+          .eq("client_id", clientId)
+          .eq("is_primary", true)
+          .eq("is_active", true);
+
+        if (primaryError) {
+          setContactMutationError(primaryError.message);
+          return;
+        }
+      }
+
+      const { error: reactivateError } = await supabase
+        .from("client_contacts")
+        .update({
+          first_name: contactName.trim(),
+          last_name: null,
+          name: contactName.trim(),
+          email: normalizedEmail,
+          role: contactRole.trim() || null,
+          job_title: contactRole.trim() || null,
+          contact_type: contactType,
+          is_primary: contactType === "primary",
+          is_active: true,
+        })
+        .eq("id", inactiveContact.id)
+        .eq("client_id", clientId);
+
+      if (reactivateError) {
+        console.error("Contact reactivation failed:", reactivateError);
+        setContactMutationError(reactivateError.message);
+        return;
+      }
+    }
     cancelAddContact();
     loadClients();
   }
@@ -125,23 +196,31 @@ export default function ClientsPage() {
   async function updateContact() {
     if (!editingContact || !editContactName.trim() || !editContactEmail.trim())
       return;
+    const clientId = clients.find((client) =>
+      client.client_contacts?.some((contact) => contact.id === editingContact)
+    )?.id;
+    if (!clientId) return;
 
-    await supabase
-      .from("client_contacts")
-      .update({
-        name: editContactName.trim(),
-        email: editContactEmail.trim(),
-        role: editContactRole.trim() || null,
-        contact_type: editContactType,
-      })
-      .eq("id", editingContact);
-
+    const { error } = await supabase.rpc("save_client_contact", {
+      p_contact_id: editingContact,
+      p_client_id: clientId,
+      p_first_name: editContactName.trim(),
+      p_last_name: null,
+      p_job_title: editContactRole.trim() || null,
+      p_email: editContactEmail.trim(),
+      p_phone: null,
+      p_contact_type: editContactType,
+      p_is_primary: editContactType === "primary",
+    });
+    if (error) {
+      console.error("Contact update failed:", error);
+      return;
+    }
     setEditingContact(null);
     setEditContactName("");
     setEditContactEmail("");
     setEditContactRole("");
     setEditContactType("general");
-
     loadClients();
   }
 
@@ -150,7 +229,6 @@ export default function ClientsPage() {
       .from("client_contacts")
       .update({ is_active: false, is_primary: false })
       .eq("id", id);
-
     if (error) {
       console.error("Contact deactivation failed:", error);
       return;
@@ -164,6 +242,7 @@ export default function ClientsPage() {
     setContactEmail("");
     setContactRole("");
     setContactType("general");
+    setContactMutationError("");
   }
 
   useEffect(() => {
@@ -173,352 +252,310 @@ export default function ClientsPage() {
   }, []);
 
   const filteredClients = useMemo(() => {
-    const q = search.toLowerCase().trim();
-
-    if (!q) return clients;
+    const query = search.toLowerCase().trim();
+    if (!query) return clients;
 
     return clients.filter((client) => {
-      const clientMatch = client.name.toLowerCase().includes(q);
-
+      const clientMatch = client.name.toLowerCase().includes(query);
       const contactMatch = client.client_contacts?.some((contact) => {
         if (contact.is_active === false) return false;
         return (
-          contact.name.toLowerCase().includes(q) ||
-          contact.email.toLowerCase().includes(q) ||
-          (contact.role || "").toLowerCase().includes(q) ||
-          (contact.contact_type || "").toLowerCase().includes(q)
+          contact.name.toLowerCase().includes(query) ||
+          contact.email.toLowerCase().includes(query) ||
+          (contact.role || "").toLowerCase().includes(query) ||
+          (contact.contact_type || "").toLowerCase().includes(query)
         );
       });
-
       return clientMatch || contactMatch;
     });
   }, [clients, search]);
 
+  const metrics = useMemo(() => {
+    const activeContacts = clients.flatMap((client) =>
+      (client.client_contacts || []).filter(
+        (contact) => contact.is_active !== false
+      )
+    );
+    return {
+      totalClients: clients.length,
+      activeClients: clients.filter(
+        (client) => client.status?.toLowerCase() === "active"
+      ).length,
+      contacts: activeContacts.length,
+      billingContacts: activeContacts.filter(
+        (contact) => contact.contact_type?.toLowerCase() === "billing"
+      ).length,
+    };
+  }, [clients]);
+
+  const isAdmin = role.toLowerCase() === "admin";
+
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
+    <main className="min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="mt-1 text-4xl font-bold tracking-tight text-slate-950">
-              Clients
-            </h1>
+        <section className="relative flex min-h-[210px] items-center overflow-hidden rounded-[2rem] bg-[#0F172A] px-7 py-8 text-white shadow-xl shadow-slate-300/40 lg:min-h-[230px] lg:px-10 lg:py-10">
+          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#153E90]/50 blur-3xl" />
+          <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+          <div className="relative flex w-full flex-col justify-between gap-8 lg:flex-row lg:items-end">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
+                Clients
+              </h1>
+            </div>
 
-            <p className="mt-2 text-slate-500">
-              Manage companies, contacts and relationships.
-            </p>
-          </div>
-
-          {role === "Admin" && (
-            <button
-              onClick={() => setShowNewClient(true)}
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm"
-            >
-              + New Client
-            </button>
-          )}
-        </div>
-
-        {showNewClient && role === "Admin" && (
-          <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-950">
-              Create client
-            </h2>
-
-            <div className="mt-5 flex gap-3">
-              <input
-                placeholder="Company name"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                className="flex-1 rounded-2xl border border-slate-200 px-5 py-3 outline-none focus:border-slate-950"
-              />
-
+            {isAdmin ? (
               <button
-                onClick={addClient}
-                className="rounded-2xl bg-slate-950 px-6 py-3 font-semibold text-white"
+                type="button"
+                onClick={() => setShowNewClient(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5 hover:bg-blue-50"
               >
-                Save
+                <span className="text-lg leading-none text-[#153E90]">+</span>
+                New Client
               </button>
+            ) : null}
+          </div>
+        </section>
 
+        <section className="relative z-10 -mt-3 grid grid-cols-2 gap-4 px-3 lg:grid-cols-4 lg:px-6">
+          {[
+            ["Total Clients", metrics.totalClients, "Portfolio"],
+            ["Active", metrics.activeClients, "Engaged"],
+            ["Contacts", metrics.contacts, "People"],
+            ["Billing Contacts", metrics.billingContacts, "Invoice ready"],
+          ].map(([label, value, caption]) => (
+            <div
+              key={label}
+              className="rounded-2xl bg-white p-5 shadow-md shadow-slate-200/60 ring-1 ring-slate-200"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                {label}
+              </p>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <p className="text-3xl font-bold text-slate-950">{value}</p>
+                <p className="pb-1 text-xs font-semibold text-slate-400">
+                  {caption}
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {showNewClient && isAdmin ? (
+          <section className="mt-7 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg shadow-blue-100/40">
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+                  New relationship
+                </p>
+                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                  Create a client
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Add the organization now; contacts and projects can follow.
+                </p>
+              </div>
               <button
+                type="button"
                 onClick={() => {
                   setShowNewClient(false);
                   setClientName("");
                 }}
-                className="rounded-2xl border border-slate-200 px-6 py-3 font-semibold"
+                aria-label="Close new client"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <input
+                autoFocus
+                placeholder="Company name"
+                value={clientName}
+                onChange={(event) => setClientName(event.target.value)}
+                className="min-w-0 flex-1 rounded-2xl border border-slate-300 px-5 py-3.5 text-slate-950 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+              />
+              <button
+                type="button"
+                onClick={addClient}
+                className="rounded-2xl bg-[#153E90] px-6 py-3.5 font-bold text-white transition hover:bg-[#123578]"
+              >
+                Create Client
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewClient(false);
+                  setClientName("");
+                }}
+                className="rounded-2xl border border-slate-300 px-6 py-3.5 font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Cancel
               </button>
             </div>
+          </section>
+        ) : null}
+
+        <section className="mt-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+              Client portfolio
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {filteredClients.length} {filteredClients.length === 1 ? "client" : "clients"} shown
+            </p>
           </div>
-        )}
+          <label className="relative block w-full sm:max-w-md">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg text-slate-400">
+              ⌕
+            </span>
+            <input
+              placeholder="Search clients or contacts..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-sm shadow-sm outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+        </section>
 
-        <input
-          placeholder="Search clients or contacts..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="mt-8 w-full max-w-md rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm outline-none focus:border-slate-950"
-        />
-
-        <div className="mt-8 space-y-5">
-          {filteredClients.map((client) => (
-            <div
-              key={client.id}
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-            >
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <div>
-                  {editingClient === client.id ? (
-                    <div className="flex gap-3">
-                      <input
-                        value={editClientName}
-                        onChange={(e) => setEditClientName(e.target.value)}
-                        className="rounded-xl border border-slate-200 px-4 py-2 outline-none focus:border-slate-950"
-                      />
-
-                      <button
-                        onClick={updateClient}
-                        className="rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white"
-                      >
-                        Save
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setEditingClient(null);
-                          setEditClientName("");
-                        }}
-                        className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() =>
-                          router.push(`/dashboard/clients/${client.id}`)
-                        }
-                        className="text-left text-xl font-semibold text-slate-950 hover:underline"
-                      >
-                        {client.name}
-                      </button>
-
-                      <p className="text-sm text-slate-500">
-                        {client.client_contacts?.filter(
-                          (contact) => contact.is_active !== false
-                        ).length || 0} contacts
-                      </p>
-                    </>
-                  )}
-                </div>
-
-                {role === "Admin" && (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setEditingClient(client.id);
-                        setEditClientName(client.name);
-                      }}
-                      className="rounded-2xl border border-slate-200 px-5 py-2 text-sm font-semibold hover:bg-slate-50"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        setAddingContactFor(
-                          addingContactFor === client.id ? null : client.id
-                        )
-                      }
-                      className="rounded-2xl border border-slate-200 px-5 py-2 text-sm font-semibold hover:bg-slate-50"
-                    >
-                      + Add Contact
-                    </button>
-
-                    <button
-                      onClick={() => deleteClient(client.id)}
-                      className="rounded-2xl border border-red-100 px-5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {addingContactFor === client.id && role === "Admin" && (
-                <div className="grid grid-cols-6 gap-3 border-b border-slate-200 p-5">
-                  <input
-                    placeholder="Name"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                  />
-
-                  <input
-                    placeholder="Email"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                  />
-
-                  <input
-                    placeholder="Role"
-                    value={contactRole}
-                    onChange={(e) => setContactRole(e.target.value)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                  />
-
-                  <select
-                    value={contactType}
-                    onChange={(e) => setContactType(e.target.value)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                  >
-                    <option value="general">General</option>
-                    <option value="primary">Primary</option>
-                    <option value="billing">Billing</option>
-                    <option value="manager">Manager</option>
-                  </select>
-
-                  <button
-                    onClick={() => addContact(client.id)}
-                    className="rounded-xl bg-slate-950 font-semibold text-white hover:bg-slate-800"
-                  >
-                    Save
-                  </button>
-
-                  <button
-                    onClick={cancelAddContact}
-                    className="rounded-xl border border-slate-200 font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              {client.client_contacts?.some(
-                (contact) => contact.is_active !== false
-              ) ? (
-                client.client_contacts
-                  .filter((contact) => contact.is_active !== false)
-                  .map((contact) => (
-                  <div
-                    key={contact.id}
-                    className="border-b border-slate-200 px-6 py-4 last:border-0"
-                  >
-                    {editingContact === contact.id && role === "Admin" ? (
-                      <div>
-                        <div className="grid grid-cols-4 gap-3">
-                          <input
-                            value={editContactName}
-                            onChange={(e) =>
-                              setEditContactName(e.target.value)
-                            }
-                            className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                          />
-
-                          <input
-                            value={editContactEmail}
-                            onChange={(e) =>
-                              setEditContactEmail(e.target.value)
-                            }
-                            className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                          />
-
-                          <input
-                            value={editContactRole}
-                            onChange={(e) =>
-                              setEditContactRole(e.target.value)
-                            }
-                            className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                          />
-
-                          <select
-                            value={editContactType}
-                            onChange={(e) =>
-                              setEditContactType(e.target.value)
-                            }
-                            className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"
-                          >
-                            <option value="general">General</option>
-                            <option value="primary">Primary</option>
-                            <option value="billing">Billing</option>
-                            <option value="manager">Manager</option>
-                          </select>
-                        </div>
-
-                        <div className="mt-3 flex gap-3">
-                          <button
-                            onClick={updateContact}
-                            className="rounded-xl bg-green-700 px-5 py-2 text-sm font-semibold text-white hover:bg-green-800"
-                          >
-                            Save
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setEditingContact(null);
-                              setEditContactName("");
-                              setEditContactEmail("");
-                              setEditContactRole("");
-                              setEditContactType("general");
-                            }}
-                            className="rounded-xl border border-slate-200 px-5 py-2 text-sm font-semibold hover:bg-slate-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+        <section className="mt-6 grid gap-6 xl:grid-cols-2">
+          {filteredClients.map((client) => {
+            const activeContacts = (client.client_contacts || []).filter(
+              (contact) => contact.is_active !== false
+            );
+            return (
+              <article
+                key={client.id}
+                className="group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 transition duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/70"
+              >
+                <div className="border-b border-slate-100 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#153E90] text-lg font-bold text-white shadow-md shadow-blue-200">
+                        {clientInitials(client.name)}
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-slate-900">
-                            {contact.name}
-                          </p>
-
-                          <p className="text-sm text-slate-500">
-                            {contact.email}
-                          </p>
-
-                          
-                        </div>
-
-                        {role === "Admin" && (
-                          <div className="flex items-center gap-3">
+                      <div className="min-w-0">
+                        {editingClient === client.id ? (
+                          <div className="flex flex-wrap gap-2">
+                            <input
+                              value={editClientName}
+                              onChange={(event) => setEditClientName(event.target.value)}
+                              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 font-semibold outline-none focus:border-[#153E90]"
+                            />
+                            <button type="button" onClick={updateClient} className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-bold text-white">Save</button>
+                            <button type="button" onClick={() => { setEditingClient(null); setEditClientName(""); }} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold">Cancel</button>
+                          </div>
+                        ) : (
+                          <>
                             <button
-                              onClick={() => {
-                                setEditingContact(contact.id);
-                                setEditContactName(contact.name);
-                                setEditContactEmail(contact.email);
-                                setEditContactRole(contact.role || "");
-                                setEditContactType(
-                                  contact.contact_type || "general"
-                                );
-                              }}
-                              className="rounded-2xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                              type="button"
+                              onClick={() => router.push(`/dashboard/clients/${client.id}`)}
+                              className="block max-w-full truncate text-left text-xl font-bold text-slate-950 transition hover:text-[#153E90]"
                             >
-                              Edit
+                              {client.name}
                             </button>
+                            <p className="mt-1 text-sm text-slate-500">
+                              {activeContacts.length} active {activeContacts.length === 1 ? "contact" : "contacts"}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold capitalize text-emerald-700 ring-1 ring-emerald-200">
+                      {client.status}
+                    </span>
+                  </div>
 
-                            <button
-                              onClick={() => deleteContact(contact.id)}
-                              className="rounded-2xl border border-red-100 px-5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-                            >
-                              Deactivate
-                            </button>
+                  {isAdmin && editingClient !== client.id ? (
+                    <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-5">
+                      <button type="button" onClick={() => router.push(`/dashboard/clients/${client.id}`)} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">View Client</button>
+                      <button type="button" onClick={() => { setEditingClient(client.id); setEditClientName(client.name); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit</button>
+                      <button type="button" onClick={() => { setContactMutationError(""); setAddingContactFor(addingContactFor === client.id ? null : client.id); }} className="rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-semibold text-[#153E90] hover:bg-blue-50">+ Contact</button>
+                      <button type="button" onClick={() => deleteClient(client.id)} className="ml-auto rounded-xl border border-red-100 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">Delete</button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {addingContactFor === client.id && isAdmin ? (
+                  <div className="border-b border-blue-100 bg-blue-50/50 p-5">
+                    <p className="text-sm font-bold text-[#153E90]">Add a contact</p>
+                    {contactMutationError ? (
+                      <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                        {contactMutationError}
+                      </p>
+                    ) : null}
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <input placeholder="Name" value={contactName} onChange={(event) => setContactName(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#153E90]" />
+                      <input placeholder="Email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#153E90]" />
+                      <input placeholder="Role" value={contactRole} onChange={(event) => setContactRole(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#153E90]" />
+                      <select value={contactType} onChange={(event) => setContactType(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#153E90]">
+                        <option value="general">General</option><option value="primary">Primary</option><option value="billing">Billing</option><option value="manager">Manager</option>
+                      </select>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button type="button" onClick={() => addContact(client.id)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white">Save Contact</button>
+                      <button type="button" onClick={cancelAddContact} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Key contacts</p>
+                    <p className="text-xs font-semibold text-slate-400">{activeContacts.length} total</p>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {activeContacts.map((contact) => (
+                      <div key={contact.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        {editingContact === contact.id && isAdmin ? (
+                          <div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <input value={editContactName} onChange={(event) => setEditContactName(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-[#153E90]" />
+                              <input value={editContactEmail} onChange={(event) => setEditContactEmail(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-[#153E90]" />
+                              <input value={editContactRole} onChange={(event) => setEditContactRole(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-[#153E90]" />
+                              <select value={editContactType} onChange={(event) => setEditContactType(event.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-[#153E90]"><option value="general">General</option><option value="primary">Primary</option><option value="billing">Billing</option><option value="manager">Manager</option></select>
+                            </div>
+                            <div className="mt-3 flex gap-2"><button type="button" onClick={updateContact} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white">Save</button><button type="button" onClick={() => { setEditingContact(null); setEditContactName(""); setEditContactEmail(""); setEditContactRole(""); setEditContactType("general"); }} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Cancel</button></div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate font-bold text-slate-900">{contact.name}</p>
+                                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold capitalize ring-1 ${contactBadge(contact.contact_type)}`}>{contact.contact_type || "general"}</span>
+                              </div>
+                              <p className="mt-1 truncate text-sm text-slate-500">{contact.email}</p>
+                              {contact.role ? <p className="mt-0.5 text-xs text-slate-400">{contact.role}</p> : null}
+                            </div>
+                            {isAdmin ? (
+                              <div className="flex shrink-0 gap-2">
+                                <button type="button" onClick={() => { setEditingContact(contact.id); setEditContactName(contact.name); setEditContactEmail(contact.email); setEditContactRole(contact.role || ""); setEditContactType(contact.contact_type || "general"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Edit</button>
+                                <button type="button" onClick={() => deleteContact(contact.id)} className="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">Deactivate</button>
+                              </div>
+                            ) : null}
                           </div>
                         )}
                       </div>
-                    )}
+                    ))}
+                    {activeContacts.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-8 text-center">
+                        <p className="font-semibold text-slate-600">No contacts yet</p>
+                        <p className="mt-1 text-sm text-slate-400">Add a primary or billing contact to complete this relationship.</p>
+                      </div>
+                    ) : null}
                   </div>
-                ))
-              ) : (
-                <div className="px-6 py-6 text-sm text-slate-500">
-                  No contacts added yet.
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              </article>
+            );
+          })}
+        </section>
+
+        {filteredClients.length === 0 ? (
+          <section className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl text-[#153E90]">⌕</div>
+            <h3 className="mt-4 text-lg font-bold text-slate-900">No clients found</h3>
+            <p className="mt-2 text-sm text-slate-500">Try a different client, contact, role, or email.</p>
+          </section>
+        ) : null}
       </div>
     </main>
   );

@@ -239,25 +239,14 @@ function getInitials(name:string){
 
   <img
 
-    src="/icon.png"
+    src="/kairo-logo-full.png"
 
     alt="Kairo"
 
-    className="h-15 w-15 rounded-xl object-contain"
+    className="h-40 w-50 rounded-xl object-contain"
 
   />
 
-  <div>
-
-    <h1 className="text-2xl font-bold text-slate-950">
-
-      Kairo
-
-    </h1>
-
-    
-
-  </div>
 
 </div>
 

@@ -602,7 +602,7 @@ return (
 <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
 
 
-<div className="mx-auto max-w-3xl">
+<div className="mx-auto max-w-5xl">
 
 
 <button
@@ -613,7 +613,7 @@ router.push(
 )
 }
 
-className="mb-6 text-sm text-slate-500"
+className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
 
 >
 
@@ -625,10 +625,14 @@ className="mb-6 text-sm text-slate-500"
 
 
 
-<div className="rounded-3xl bg-white p-8 shadow-sm">
+<div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
+
+<div className="relative -m-8 mb-0 overflow-hidden bg-[#0F172A] p-8 text-white">
+<div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#153E90]/60 blur-3xl" />
+<div className="relative">
 
 
-<p className="text-sm font-semibold text-slate-500">
+<p className="text-sm font-semibold text-blue-200">
 
 Project Code: {project.project_code}
 
@@ -636,7 +640,7 @@ Project Code: {project.project_code}
 
 
 
-<h1 className="mt-2 text-3xl font-bold">
+<h1 className="mt-2 text-4xl font-bold tracking-tight">
 
 {project.name}
 
@@ -658,7 +662,7 @@ router.push(
 
 }
 
-className="mt-3 text-sm font-semibold text-slate-500 underline"
+className="mt-3 text-sm font-semibold text-slate-300 underline decoration-blue-400 underline-offset-4 hover:text-white"
 
 >
 
@@ -667,6 +671,9 @@ Client: {project.clients.name}
 </button>
 
 )}
+
+</div>
+</div>
 
 
 
@@ -678,10 +685,10 @@ Client: {project.clients.name}
 <div className="mt-8 space-y-6">
 
 
-<div className="grid grid-cols-3 gap-4">
+<div className="grid gap-4 sm:grid-cols-3">
 
 
-<div className="rounded-2xl bg-slate-50 p-5">
+<div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
 
 <p className="text-sm text-slate-500">
 Purchased
@@ -698,7 +705,7 @@ Purchased
 
 
 
-<div className="rounded-2xl bg-slate-50 p-5">
+<div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
 
 <p className="text-sm text-slate-500">
 Used
@@ -716,7 +723,7 @@ Used
 
 
 
-<div className="rounded-2xl bg-slate-50 p-5">
+<div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
 
 <p className="text-sm text-slate-500">
 Remaining

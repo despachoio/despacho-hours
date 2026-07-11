@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 
@@ -85,6 +85,10 @@ type TimeEntry = {
 
   id: string;
 
+  employee_id: string;
+
+  project_id: string;
+
   entry_date: string;
 
   started_at: string | null;
@@ -146,6 +150,9 @@ export default function TimePage() {
   const [projectId, setProjectId] =
     useState("");
 
+  const [timerClient, setTimerClient] =
+    useState("");
+
 
   const [description, setDescription] =
     useState("");
@@ -198,6 +205,9 @@ const [manualEmployeeId, setManualEmployeeId] =
 const [manualProjectId, setManualProjectId] =
   useState("");
 
+const [manualClient, setManualClient] =
+  useState("");
+
 
 const [manualDate, setManualDate] =
   useState(
@@ -219,6 +229,21 @@ const [manualDescription, setManualDescription] =
   const [isSavingManual, setIsSavingManual] = useState(false);
 
 const [isSavingEdit, setIsSavingEdit] = useState(false);
+const timerActionsInFlight = useRef(new Set<string>());
+
+const PAGE_SIZE = 50;
+const [filterEmployee, setFilterEmployee] = useState("");
+const [filterClient, setFilterClient] = useState("");
+const [filterProject, setFilterProject] = useState("");
+const [filterDateRange, setFilterDateRange] = useState("");
+const [customFrom, setCustomFrom] = useState("");
+const [customTo, setCustomTo] = useState("");
+const [search, setSearch] = useState("");
+const [debouncedSearch, setDebouncedSearch] = useState("");
+const [entryPage, setEntryPage] = useState(0);
+const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+const [showMobileFilters, setShowMobileFilters] = useState(false);
+const [viewingEntry, setViewingEntry] = useState<TimeEntry | null>(null);
 
 
 
@@ -282,6 +307,15 @@ function calculateElapsed(
 timer:ActiveTimer | LiveTimer
 ){
 
+return calculateWorkedSeconds(timer, Date.now());
+
+}
+
+function calculateWorkedSeconds(
+timer: ActiveTimer | LiveTimer,
+currentTimeMs: number
+){
+
 const start =
 new Date(timer.started_at).getTime();
 
@@ -296,7 +330,7 @@ new Date(timer.paused_at).getTime()
 
 :
 
-Date.now();
+currentTimeMs;
 
 
 const totalSeconds =
@@ -313,6 +347,31 @@ timer.total_paused_seconds || 0
 0
 );
 
+}
+
+async function getLatestTimer(timerId: string) {
+  const { data, error } = await supabase
+    .from("active_timers")
+    .select("*")
+    .eq("id", timerId)
+    .maybeSingle();
+
+  if (error) {
+    alert(error.message);
+    return null;
+  }
+
+  return data as ActiveTimer | null;
+}
+
+function beginTimerAction(timerId: string) {
+  if (timerActionsInFlight.current.has(timerId)) return false;
+  timerActionsInFlight.current.add(timerId);
+  return true;
+}
+
+function finishTimerAction(timerId: string) {
+  timerActionsInFlight.current.delete(timerId);
 }
 
 function buildLocalDateTime(date: string, time: string) {
@@ -371,6 +430,36 @@ e.id===profile?.employee_id
 
 return employee?.name || "";
 
+}
+
+function toDateKey(date: Date) {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function getDateBounds(range: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  const end = new Date(today);
+
+  if (range === "yesterday") {
+    start.setDate(start.getDate() - 1);
+    end.setDate(end.getDate() - 1);
+  } else if (range === "this_week" || range === "last_week") {
+    const mondayOffset = (start.getDay() + 6) % 7;
+    start.setDate(start.getDate() - mondayOffset - (range === "last_week" ? 7 : 0));
+    end.setTime(start.getTime());
+    end.setDate(end.getDate() + 6);
+  } else if (range === "this_month" || range === "last_month") {
+    const monthOffset = range === "last_month" ? -1 : 0;
+    start.setDate(1);
+    start.setMonth(start.getMonth() + monthOffset);
+    end.setTime(start.getTime());
+    end.setMonth(end.getMonth() + 1, 0);
+  }
+
+  return { from: toDateKey(start), to: toDateKey(end) };
 }
 
 
@@ -544,6 +633,8 @@ supabase
 
 .select(`
 id,
+employee_id,
+project_id,
 entry_date,
 started_at,
 stopped_at,
@@ -649,6 +740,8 @@ if (timerData) {
 
     setElapsedSeconds(0);
 
+    setTimerClient("");
+
     setProjectId("");
 
     setDescription("");
@@ -751,397 +844,167 @@ async function startTimer() {
 
 
 async function pauseTimer() {
+  if (!activeTimer || !beginTimerAction(activeTimer.id)) return;
 
+  try {
+    const latestTimer = await getLatestTimer(activeTimer.id);
+    if (!latestTimer || latestTimer.status !== "running") return;
 
-  if (!activeTimer) return;
-
-
-
-  const { error } =
-    await supabase
-
+    const pausedAt = new Date().toISOString();
+    const { error } = await supabase
       .from("active_timers")
-
       .update({
-
         status: "paused",
-
-        paused_at:
-          new Date()
-          .toISOString(),
-
+        paused_at: pausedAt,
       })
+      .eq("id", latestTimer.id)
+      .eq("status", "running");
 
-      .eq(
-        "id",
-        activeTimer.id
-      );
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
-
-
-  if(error){
-
-    alert(error.message);
-
-    return;
-
+    loadData();
+  } finally {
+    finishTimerAction(activeTimer.id);
   }
-
-
-
-  loadData();
-
 }
 
+async function resumeTimer() {
+  if (!activeTimer || !beginTimerAction(activeTimer.id)) return;
 
+  try {
+    const latestTimer = await getLatestTimer(activeTimer.id);
+    if (!latestTimer || latestTimer.status !== "paused" || !latestTimer.paused_at) return;
 
+    const resumedAtMs = Date.now();
+    const pausedDurationSeconds = Math.max(
+      Math.floor((resumedAtMs - new Date(latestTimer.paused_at).getTime()) / 1000),
+      0
+    );
 
-async function resumeTimer(){
+    const { error } = await supabase
+      .from("active_timers")
+      .update({
+        status: "running",
+        paused_at: null,
+        total_paused_seconds:
+          Number(latestTimer.total_paused_seconds || 0) + pausedDurationSeconds,
+      })
+      .eq("id", latestTimer.id)
+      .eq("status", "paused");
 
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
-if(
-!activeTimer ||
-!activeTimer.paused_at
-)
-
-return;
-
-
-
-const pausedSeconds =
-Math.floor(
-
-(
-Date.now() -
-new Date(
-activeTimer.paused_at
-).getTime()
-
-)
-
-/1000
-
-);
-
-
-
-const {error} =
-await supabase
-
-.from("active_timers")
-
-.update({
-
-status:"running",
-
-paused_at:null,
-
-total_paused_seconds:
-
-Number(
-activeTimer.total_paused_seconds || 0
-)
-
-+
-
-pausedSeconds,
-
-
-})
-
-.eq(
-"id",
-activeTimer.id
-);
-
-
-
-if(error){
-
-alert(error.message);
-
-return;
-
+    loadData();
+  } finally {
+    finishTimerAction(activeTimer.id);
+  }
 }
+async function stopTimer() {
+  if (!activeTimer || !beginTimerAction(activeTimer.id)) return;
+  const timerId = activeTimer.id;
 
+  try {
+    const latestTimer = await getLatestTimer(timerId);
+    if (!latestTimer) return;
 
+    const stoppedAtMs = Date.now();
+    const stoppedAt = new Date(stoppedAtMs).toISOString();
+    const workedSeconds = calculateWorkedSeconds(latestTimer, stoppedAtMs);
+    const workedHours = Number((workedSeconds / 3600).toFixed(2));
 
-loadData();
+    if (workedHours <= 0) {
+      alert("Timer is too short to save.");
+      return;
+    }
 
+    const selectedProject = projects.find((project) => project.id === latestTimer.project_id);
+    if (!selectedProject) {
+      alert("Project not found.");
+      return;
+    }
 
+    const { error: insertError } = await supabase
+      .from("time_entries")
+      .insert({
+        employee_id: latestTimer.employee_id,
+        project_id: latestTimer.project_id,
+        entry_date: stoppedAt.slice(0, 10),
+        started_at: latestTimer.started_at,
+        stopped_at: stoppedAt,
+        hours: workedHours,
+        description: latestTimer.description || description || null,
+      });
+
+    if (insertError) {
+      alert(insertError.message);
+      return;
+    }
+
+    await recalculateProjectHours(latestTimer.project_id);
+
+    await supabase
+      .from("active_timers")
+      .delete()
+      .eq("id", latestTimer.id);
+
+    setActiveTimer(null);
+    setElapsedSeconds(0);
+    setTimerClient("");
+    setProjectId("");
+    setDescription("");
+    loadData();
+  } finally {
+    finishTimerAction(timerId);
+  }
 }
+async function adminStopTimer(timer: LiveTimer) {
+  if (!confirm("Stop this timer and save?")) return;
+  if (!beginTimerAction(timer.id)) return;
 
+  try {
+    const latestTimer = await getLatestTimer(timer.id);
+    if (!latestTimer) return;
 
+    const stoppedAtMs = Date.now();
+    const stoppedAt = new Date(stoppedAtMs).toISOString();
+    const workedSeconds = calculateWorkedSeconds(latestTimer, stoppedAtMs);
+    const workedHours = Number((workedSeconds / 3600).toFixed(2));
 
+    const { error: insertError } = await supabase
+      .from("time_entries")
+      .insert({
+        employee_id: latestTimer.employee_id,
+        project_id: latestTimer.project_id,
+        entry_date: stoppedAt.slice(0, 10),
+        started_at: latestTimer.started_at,
+        stopped_at: stoppedAt,
+        hours: workedHours,
+        description: latestTimer.description || null,
+      });
 
-async function stopTimer(){
+    if (insertError) {
+      alert(insertError.message);
+      return;
+    }
 
+    await recalculateProjectHours(latestTimer.project_id);
 
-if(!activeTimer) return;
+    await supabase
+      .from("active_timers")
+      .delete()
+      .eq("id", latestTimer.id);
 
-
-
-const workedSeconds =
-calculateElapsed(activeTimer);
-
-
-
-const workedHours =
-Number(
-(workedSeconds/3600)
-.toFixed(2)
-);
-
-
-
-if(workedHours<=0){
-
-alert(
-"Timer is too short to save."
-);
-
-return;
-
+    loadData();
+  } finally {
+    finishTimerAction(timer.id);
+  }
 }
-
-
-
-const selectedProject =
-projects.find(
-
-(p)=>
-
-p.id===activeTimer.project_id
-
-);
-
-
-
-if(!selectedProject){
-
-alert("Project not found.");
-
-return;
-
-}
-
-
-
-const stoppedAt =
-new Date().toISOString();
-
-
-
-const {error:insertError} =
-await supabase
-
-.from("time_entries")
-
-.insert({
-
-employee_id:
-activeTimer.employee_id,
-
-
-project_id:
-activeTimer.project_id,
-
-
-entry_date:
-stoppedAt.slice(0,10),
-
-
-started_at:
-activeTimer.started_at,
-
-
-stopped_at:
-stoppedAt,
-
-
-hours:
-workedHours,
-
-
-description:
-
-activeTimer.description ||
-description ||
-null,
-
-
-});
-
-
-
-if(insertError){
-
-alert(insertError.message);
-
-return;
-
-}
-
-
-
-
-await recalculateProjectHours(activeTimer.project_id);
-
-
-
-
-await supabase
-
-.from("active_timers")
-
-.delete()
-
-.eq(
-"id",
-activeTimer.id
-);
-
-
-
-
-setActiveTimer(null);
-
-setElapsedSeconds(0);
-
-setProjectId("");
-
-setDescription("");
-
-
-
-loadData();
-
-
-}
-
-
-
-
-
-
-async function adminStopTimer(
-timer:LiveTimer
-){
-
-
-
-if(
-!confirm(
-"Stop this timer and save?"
-)
-)
-
-return;
-
-
-
-const workedSeconds =
-calculateElapsed(timer);
-
-
-
-const workedHours =
-Number(
-(workedSeconds/3600)
-.toFixed(2)
-);
-
-
-
-const {data:project} =
-await supabase
-
-.from("projects")
-
-.select(
-"used_hours,remaining_hours"
-)
-
-.eq(
-"id",
-timer.project_id
-)
-
-.single();
-
-
-
-
-const stoppedAt =
-new Date()
-.toISOString();
-
-
-
-
-await supabase
-
-.from("time_entries")
-
-.insert({
-
-employee_id:
-timer.employee_id,
-
-
-project_id:
-timer.project_id,
-
-
-entry_date:
-stoppedAt.slice(0,10),
-
-
-started_at:
-timer.started_at,
-
-
-stopped_at:
-stoppedAt,
-
-
-hours:
-workedHours,
-
-
-description:
-timer.description || null,
-
-
-});
-
-
-
-
-await recalculateProjectHours(timer.project_id);
-
-
-
-
-await supabase
-
-.from("active_timers")
-
-.delete()
-
-.eq(
-"id",
-timer.id
-);
-
-
-
-
-loadData();
-
-
-}
-
 async function recalculateProjectHours(projectId: string) {
   const { data: project, error: projectError } = await supabase
     .from("projects")
@@ -1281,6 +1144,7 @@ async function saveManualEntry() {
     await recalculateProjectHours(manualProjectId);
 
     setShowManualEntry(false);
+    setManualClient("");
     setManualProjectId("");
     setManualStart("");
     setManualStop("");
@@ -1385,8 +1249,6 @@ async function syncOwnActiveTimer() {
   } else {
     setActiveTimer(null);
     setElapsedSeconds(0);
-    setProjectId("");
-    setDescription("");
   }
 }
 
@@ -1510,868 +1372,466 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, [profile?.role]);
-return (
 
-<main className="min-h-screen bg-[#f8fafc] px-8 py-7">
-
-<div className="mx-auto max-w-7xl">
-
-
-<div className="flex items-center justify-between">
-
-  <div>
-
-    <h1 className="text-4xl font-bold text-slate-950">
-      Time
-    </h1>
-
-
-    <p className="mt-2 text-slate-500">
-      Track work hours using live timers.
-    </p>
-
-  </div>
-
-
-  {profile?.role === "Admin" && (
-
-  <button
-
-    onClick={() => {
-
-      setShowManualEntry(true);
-
-      if (profile?.employee_id) {
-
-        setManualEmployeeId(
-          profile.employee_id
-        );
-
-      }
-
-    }}
-
-    className="rounded-2xl bg-slate-950 px-6 py-3 font-bold text-white hover:bg-slate-800"
-
-  >
-
-    + Add Time
-
-  </button>
-
-)}
-
-
-</div>
-
-
-
-
-{/* TIMER ENTRY */}
-
-
-<div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-
-
-<h2 className="text-xl font-semibold">
-Timer Entry
-</h2>
-
-
-
-<div className="mt-5 grid grid-cols-2 gap-4">
-
-
-<div className="flex items-center gap-4 rounded-2xl bg-slate-50 px-5 py-3">
-
-
-<div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-950 font-bold text-white">
-
-{getInitials(
-getLoggedInEmployeeName()
-)}
-
-</div>
-
-
-<div>
-
-<p className="text-xs font-semibold text-slate-500">
-Logged in as
-</p>
-
-
-<p className="font-bold">
-
-{getLoggedInEmployeeName()}
-
-</p>
-
-</div>
-
-
-</div>
-
-
-
-
-<select
-
-value={projectId}
-
-disabled={!!activeTimer}
-
-onChange={(e)=>
-setProjectId(e.target.value)
-}
-
-className="rounded-2xl border px-5 py-3"
-
->
-
-
-<option value="">
-Select project
-</option>
-
-
-{projects.map(
-(project)=>(
-
-
-<option
-
-key={project.id}
-
-value={project.id}
-
->
-
-[{project.project_code}]
-{" "}
-{project.name}
--
-{project.clients?.name}
-
-</option>
-
-
-)
-
-)}
-
-
-</select>
-
-
-
-
-
-<textarea
-
-placeholder="Work description"
-
-value={description}
-
-disabled={!!activeTimer}
-
-onChange={(e)=>
-setDescription(e.target.value)
-}
-
-className="col-span-2 h-28 rounded-2xl border px-5 py-3"
-
-/>
-
-
-
-</div>
-
-
-
-
-
-<div className="mt-6 rounded-3xl bg-slate-50 p-6 text-center">
-
-
-<p className="text-5xl font-bold">
-
-{formatTimer(
-elapsedSeconds
-)}
-
-</p>
-
-
-
-<div className="mt-5 flex justify-center gap-3">
-
-
-{!activeTimer && (
-
-
-<button
-
-onClick={startTimer}
-
-className="rounded-2xl bg-slate-950 px-6 py-3 font-semibold text-white"
-
->
-
-Start Timer
-
-</button>
-
-
-)}
-
-
-
-
-{activeTimer?.status==="running" && (
-
-<>
-
-<button
-
-onClick={pauseTimer}
-
-className="rounded-2xl border px-6 py-3 font-semibold"
-
->
-
-Pause Timer
-
-</button>
-
-
-
-<button
-
-onClick={stopTimer}
-
-className="rounded-2xl bg-red-600 px-6 py-3 font-semibold text-white"
-
->
-
-Stop Timer
-
-</button>
-
-
-</>
-
-)}
-
-
-
-
-
-{activeTimer?.status==="paused" && (
-
-<>
-
-
-<button
-
-onClick={resumeTimer}
-
-className="rounded-2xl bg-green-600 px-6 py-3 font-semibold text-white"
-
->
-
-Resume Timer
-
-</button>
-
-
-
-<button
-
-onClick={stopTimer}
-
-className="rounded-2xl bg-red-600 px-6 py-3 font-semibold text-white"
-
->
-
-Stop Timer
-
-</button>
-
-
-</>
-
-)}
-
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-{/* CURRENTLY WORKING */}
-
-
-
-{(profile?.role==="Admin" ||
-
-profile?.role==="Manager") &&
-
-liveTimers.length>0 && (
-
-
-
-<div className="mt-8 rounded-3xl border bg-white p-6 shadow-sm">
-
-
-<h2 className="text-xl font-semibold">
-Currently Working
-</h2>
-
-
-
-
-<div className="mt-5">
-
-
-<div className="grid grid-cols-[220px_300px_1fr_140px_160px_220px] rounded-xl bg-slate-950 px-5 py-3 text-xs font-bold uppercase text-white">
-
-<div>
-Employee
-</div>
-
-<div>
-Project / Client
-</div>
-
-<div className="text-left">
-Description
-</div>
-
-<div className="text-left pl-10">
-Started
-</div>
-
-<div className="text-center">
-Duration
-</div>
-
-
-
-
-
-</div>
-
-
-
-
-<div className="mt-3 space-y-3">
-
-
-{liveTimers.map(
-
-(timer)=>(
-
-
-
-<div
-
-key={timer.id}
-
-className="grid grid-cols-[220px_300px_1fr_140px_160px_220px] items-center rounded-2xl bg-slate-50 px-5 py-4"
-
->
-
-
-
-<div className="font-bold">
-
-{timer.employees?.name}
-
-</div>
-
-
-
-<div>
-
-
-<p className="font-semibold">
-
-[{timer.projects?.project_code}]
-{" "}
-{timer.projects?.name}
-
-</p>
-
-
-<p className="text-sm text-slate-500">
-
-{timer.projects?.clients?.name}
-
-</p>
-
-
-</div>
-
-
-
-
-
-<div>
-
-{timer.description || "-"}
-
-</div>
-
-
-
-
-
-<div className="text-center">
-
-<p className="font-semibold text-slate-700">
-
-{formatTime(timer.started_at)}
-
-</p>
-
-</div>
-
-
-<div className="text-center">
-
-<p className="font-bold">
-
-{formatTimer(
-calculateElapsed(timer) + tick * 0
-)}
-
-</p>
-
-  <span
-    className={`mt-2 inline-flex rounded-full px-4 py-1 text-xs font-bold capitalize ${
-      timer.status === "running"
-        ? "bg-green-100 text-green-700"
-        : "bg-yellow-100 text-yellow-700"
-    }`}
-  >
-    {timer.status}
-  </span>
-</div>
-
-
-
-
-
-<div className="flex justify-end gap-3">
-
-
-{profile.role==="Admin" && (
-
-<>
-
-
-
-<button
-
-onClick={async()=>{
-
-
-if(timer.status==="running"){
-
-
-await supabase
-
-.from("active_timers")
-
-.update({
-
-status:"paused",
-
-paused_at:
-new Date()
-.toISOString()
-
-})
-
-.eq(
-"id",
-timer.id
+useEffect(() => {
+  const timeout = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 300);
+  return () => clearTimeout(timeout);
+}, [search]);
+
+useEffect(() => {
+  setEntryPage(0);
+}, [filterEmployee, filterClient, filterProject, filterDateRange, customFrom, customTo, debouncedSearch]);
+
+const clientNames = useMemo(
+  () => Array.from(new Set(projects.map((project) => project.clients?.name).filter(Boolean) as string[])).sort(),
+  [projects]
 );
 
-
-
-}else{
-
-
-await supabase
-
-.from("active_timers")
-
-.update({
-
-status:"running",
-
-paused_at:null
-
-})
-
-.eq(
-"id",
-timer.id
+const timerAssignedProjects = useMemo(
+  () => profile?.employee_id
+    ? projects.filter((project) => project.project_resources?.some((resource) => resource.employee_id === profile.employee_id))
+    : [],
+  [projects, profile?.employee_id]
 );
 
+const timerClients = useMemo(
+  () => Array.from(new Set(timerAssignedProjects.map((project) => project.clients?.name).filter(Boolean) as string[])).sort(),
+  [timerAssignedProjects]
+);
 
+const timerProjects = useMemo(
+  () => timerClient
+    ? timerAssignedProjects.filter((project) => project.clients?.name === timerClient)
+    : [],
+  [timerAssignedProjects, timerClient]
+);
+
+const manualAssignedProjects = useMemo(
+  () => manualEmployeeId
+    ? projects.filter((project) => project.project_resources?.some((resource) => resource.employee_id === manualEmployeeId))
+    : [],
+  [projects, manualEmployeeId]
+);
+
+const manualClients = useMemo(
+  () => Array.from(new Set(manualAssignedProjects.map((project) => project.clients?.name).filter(Boolean) as string[])).sort(),
+  [manualAssignedProjects]
+);
+
+const manualProjects = useMemo(
+  () => manualClient
+    ? manualAssignedProjects.filter((project) => project.clients?.name === manualClient)
+    : [],
+  [manualAssignedProjects, manualClient]
+);
+
+const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
+  let visible: LiveTimer[] = [];
+
+  if (profile?.role === "Admin" || profile?.role === "Manager") {
+    visible = [...liveTimers];
+  } else if (profile?.role === "Employee" && activeTimer) {
+    const timerProject = projects.find((project) => project.id === activeTimer.project_id);
+    visible = [{
+      ...activeTimer,
+      employees: { name: getLoggedInEmployeeName() },
+      projects: timerProject ? {
+        name: timerProject.name,
+        project_code: timerProject.project_code,
+        clients: timerProject.clients,
+      } : null,
+    }];
+  }
+
+  return visible.sort((first, second) => {
+    if (first.status !== second.status) return first.status === "running" ? -1 : 1;
+    return calculateElapsed(second) - calculateElapsed(first);
+  });
+}, [profile?.role, liveTimers, activeTimer, projects, employees, tick]);
+
+const runningLiveTimerCount = visibleLiveTimers.filter((timer) => timer.status === "running").length;
+
+const hasEntryFilters = Boolean(
+  filterEmployee || filterClient || filterProject || filterDateRange || debouncedSearch
+);
+
+const filteredEntries = useMemo(() => {
+  if (!hasEntryFilters) return [];
+  const bounds = filterDateRange && filterDateRange !== "custom" ? getDateBounds(filterDateRange) : null;
+  return entries.filter((entry) => {
+    if (profile?.role !== "Employee" && filterEmployee && entry.employee_id !== filterEmployee) return false;
+    if (filterClient && entry.projects?.clients?.name !== filterClient) return false;
+    if (filterProject && entry.project_id !== filterProject) return false;
+    if (filterDateRange === "custom") {
+      if (customFrom && entry.entry_date < customFrom) return false;
+      if (customTo && entry.entry_date > customTo) return false;
+    } else if (bounds && (entry.entry_date < bounds.from || entry.entry_date > bounds.to)) {
+      return false;
+    }
+    if (debouncedSearch) {
+      const searchable = [
+        entry.employees?.name,
+        entry.projects?.clients?.name,
+        entry.projects?.project_code,
+        entry.projects?.name,
+        entry.description,
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!searchable.includes(debouncedSearch)) return false;
+    }
+    return true;
+  });
+}, [entries, profile?.role, filterEmployee, filterClient, filterProject, filterDateRange, customFrom, customTo, debouncedSearch, hasEntryFilters]);
+
+const paginatedEntries = useMemo(
+  () => filteredEntries.slice(entryPage * PAGE_SIZE, (entryPage + 1) * PAGE_SIZE),
+  [filteredEntries, entryPage]
+);
+
+const groupedEntries = useMemo(
+  () => paginatedEntries.reduce<Record<string, TimeEntry[]>>((groups, entry) => {
+    (groups[entry.entry_date] ||= []).push(entry);
+    return groups;
+  }, {}),
+  [paginatedEntries]
+);
+
+const summary = useMemo(() => {
+  const today = toDateKey(new Date());
+  const week = getDateBounds("this_week");
+  const weekEntries = entries.filter((entry) => entry.entry_date >= week.from && entry.entry_date <= week.to);
+  return {
+    today: entries.filter((entry) => entry.entry_date === today).reduce((total, entry) => total + Number(entry.hours || 0), 0),
+    week: weekEntries.reduce((total, entry) => total + Number(entry.hours || 0), 0),
+    projects: new Set(weekEntries.map((entry) => entry.project_id)).size,
+    running: profile?.role === "Admin" || profile?.role === "Manager" ? liveTimers.length : activeTimer ? 1 : 0,
+  };
+}, [entries, liveTimers.length, activeTimer, profile?.role]);
+
+function resetFilters() {
+  setFilterEmployee("");
+  setFilterClient("");
+  setFilterProject("");
+  setFilterDateRange("");
+  setCustomFrom("");
+  setCustomTo("");
+  setSearch("");
+  setDebouncedSearch("");
 }
 
-
-
-loadData();
-
-
-}}
-
-
-className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-bold text-slate-800 hover:bg-slate-100"
-
->
-
-
-{timer.status==="running"
-?
-"Pause"
-:
-"Resume"
-}
-
-
-</button>
-
-
-
-
-<button
-
-onClick={()=>adminStopTimer(timer)}
-
-className="rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white hover:bg-red-700"
-
->
-
-Stop
-
-</button>
-
-
-
-</>
-
-)}
-
-
-</div>
-
-
-
-
-</div>
-
-
-)
-
-)}
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-)}
-
-
-
-
-
-{/* TIME ENTRIES */}
-
-
-
-<div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-sm">
-
-
-<table className="w-full">
-
-
-<thead className="bg-slate-950 text-sm font-bold text-white">
-
-
-<tr>
-
-<th className="px-6 py-4 text-left">
-Date
-</th>
-
-<th className="px-6 py-4 text-left">
-Team Member
-</th>
-
-<th className="px-6 py-4 text-left">
-Project
-</th>
-
-<th className="px-6 py-4 text-center pl-0">
-Start
-</th>
-
-<th className="px-6 py-4 text-center pl-0">
-Stop
-</th>
-
-<th className="px-6 py-4 text-center pl-2">
-Hours
-</th>
-
-<th className="px-6 py-4 text-left">
-Description
-</th>
-
-{profile?.role === "Admin" && (
-
-  <th className="px-6 py-4 text-center">
-
-    Action
-
-  </th>
-
-)}
-
-
-</tr>
-
-
-</thead>
-
-
-
-
-
-<tbody>
-
-
-{entries.map(
-
-(entry)=>(
-
-
-<tr
-
-  key={entry.id}
-
-  className="border-t hover:bg-slate-50"
-
->
-
-
-<td className="px-6 py-5">
-
-{formatDate(
-entry.entry_date
-)}
-
-</td>
-
-
-
-<td className="px-6 py-5">
-
-{entry.employees?.name}
-
-</td>
-
-
-
-<td className="px-6 py-5">
-
-[{entry.projects?.project_code}]
-{" "}
-{entry.projects?.name}
-
-</td>
-
-
-
-<td className="px-6 py-5">
-
-{formatTime(
-entry.started_at
-)}
-
-</td>
-
-
-
-<td className="px-6 py-5">
-  <div className="flex flex-col items-center gap-1">
-    <span>{formatTime(entry.stopped_at)}</span>
-
-    {entry.started_at &&
-      entry.stopped_at &&
-      new Date(entry.stopped_at).getDate() !==
-        new Date(entry.started_at).getDate() && (
-        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">
-          🌙 Next Day
-        </span>
-      )}
-  </div>
-</td>
-
-
-
-<td className="px-6 py-5 font-bold">
-
-{Number(entry.hours || 0).toFixed(2)}
-
-</td>
-
-
-
-<td className="px-6 py-5">
-
-{entry.description || "-"}
-
-</td>
-
-{profile?.role === "Admin" && (
-
-  <td className="px-6 py-5 text-center">
-
-    <select
-  defaultValue=""
-  onChange={(e) => {
-    const action = e.target.value;
-
-    if (action === "edit") {
-
+function beginEdit(entry: TimeEntry) {
   setEditingEntry(entry);
-
-  setEditProjectId(
-    entry.projects?.id || ""
-  );
-
-  setEditDate(
-    entry.entry_date
-  );
-
-  setEditStart(
-  entry.started_at
-    ? new Date(entry.started_at)
-        .toLocaleTimeString(
-          "en-GB",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        )
-    : ""
-);
-
-
-setEditStop(
-  entry.stopped_at
-    ? new Date(entry.stopped_at)
-        .toLocaleTimeString(
-          "en-GB",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        )
-    : ""
-);
-
-  setEditDescription(
-    entry.description || ""
-  );
-
+  setEditProjectId(entry.projects?.id || "");
+  setEditDate(entry.entry_date);
+  setEditStart(entry.started_at ? new Date(entry.started_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+  setEditStop(entry.stopped_at ? new Date(entry.stopped_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+  setEditDescription(entry.description || "");
 }
 
-    if (action === "delete") {
-      deleteTimeEntry(entry);
+async function toggleTeamTimer(timer: LiveTimer) {
+  if (!beginTimerAction(timer.id)) return;
+
+  try {
+    const latestTimer = await getLatestTimer(timer.id);
+    if (!latestTimer) return;
+
+    if (latestTimer.status === "running") {
+      const pausedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from("active_timers")
+        .update({ status: "paused", paused_at: pausedAt })
+        .eq("id", latestTimer.id)
+        .eq("status", "running");
+      if (error) alert(error.message);
+    } else if (latestTimer.status === "paused" && latestTimer.paused_at) {
+      const resumedAtMs = Date.now();
+      const pausedDurationSeconds = Math.max(
+        Math.floor((resumedAtMs - new Date(latestTimer.paused_at).getTime()) / 1000),
+        0
+      );
+      const { error } = await supabase
+        .from("active_timers")
+        .update({
+          status: "running",
+          paused_at: null,
+          total_paused_seconds:
+            Number(latestTimer.total_paused_seconds || 0) + pausedDurationSeconds,
+        })
+        .eq("id", latestTimer.id)
+        .eq("status", "paused");
+      if (error) alert(error.message);
     }
 
-    e.currentTarget.value = "";
-  }}
+    loadData();
+  } finally {
+    finishTimerAction(timer.id);
+  }
+}
+return (
 
-  className="
-    w-32
-    cursor-pointer
-    rounded-2xl
-    border
-    border-slate-200
-    bg-white
-    px-4
-    py-3
-    text-sm
-    font-bold
-    text-slate-950
-    shadow-sm
-    outline-none
-    hover:bg-slate-50
-  "
->
+<main className="min-h-screen bg-[#f8fafc] px-6 py-7 sm:px-6 lg:px-8">
+  <div className="mx-auto max-w-[1500px]">
+    <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-10 py-12 text-white shadow-xl shadow-slate-300/50 lg:px-14 lg:py-16">
+      <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+      <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+      <div className="relative flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-8xl font-bold tracking-tight lg:text-5xl">Time Tracking</h1>
+        </div>
+        {profile?.role === "Admin" && (
+          <button
+            onClick={() => {
+              setShowManualEntry(true);
+              if (profile.employee_id) setManualEmployeeId(profile.employee_id);
+            }}
+            className="rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+          >
+            + Add Time
+          </button>
+        )}
+      </div>
+    </header>
 
-  <option value="">
-    Actions
-  </option>
+    <section className="relative z-10 -mt-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:mx-4 sm:p-6">
+      {!activeTimer ? (
+        <>
+          <div>
+            <h2 className="mt-1 text-2xl font-bold text-slate-950">Timer</h2>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[250px_0.9fr_1fr_1.35fr_auto]">
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-bold text-white">{getInitials(getLoggedInEmployeeName())}</div>
+              <div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Logged in as</p><p className="truncate font-bold">{getLoggedInEmployeeName()}</p></div>
+            </div>
+            <label className="block">
+              <span className="sr-only">Client</span>
+              <select
+                value={timerClient}
+                onChange={(event) => {
+                  setTimerClient(event.target.value);
+                  setProjectId("");
+                }}
+                className="h-full w-full rounded-xl border border-slate-500 px-4 py-3 outline-none focus:border-blue-500"
+              >
+                <option value="">Select client</option>
+                {timerClients.map((client) => <option key={client} value={client}>{client}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="sr-only">Project</span>
+              <select value={projectId} disabled={!timerClient} onChange={(event) => setProjectId(event.target.value)} className="h-full w-full rounded-xl border border-slate-500 px-4 py-3 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400">
+                <option value="">Select project</option>
+                {timerProjects.map((project) => <option key={project.id} value={project.id}>[{project.project_code}] {project.name}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="sr-only">Description</span>
+              <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What are you working on?" className="h-full w-full rounded-xl border border-slate-500 px-4 py-3 outline-none focus:border-blue-500" />
+            </label>
+            <button onClick={startTimer} className="rounded-xl bg-[#153e90] px-6 py-3 font-bold text-white hover:bg-blue-800">Start</button>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="mt-2 h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_0_5px_rgba(16,185,129,0.12)]" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{activeTimer.status === "paused" ? "Paused" : "Running"}</p>
+              <h2 className="mt-1 text-xl font-bold text-slate-950">
+                [{projects.find((project) => project.id === activeTimer.project_id)?.project_code}] {projects.find((project) => project.id === activeTimer.project_id)?.name}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">{activeTimer.description || "No description"}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="mr-2 font-mono text-3xl font-bold tracking-tight text-[#153e90]">{formatTimer(elapsedSeconds)}</p>
+            {activeTimer.status === "running" ? (
+              <button onClick={pauseTimer} className="rounded-xl border border-slate-300 px-5 py-3 font-bold">Pause</button>
+            ) : (
+              <button onClick={resumeTimer} className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white">Resume</button>
+            )}
+            <button onClick={stopTimer} className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white">Stop</button>
+          </div>
+        </div>
+      )}
+    </section>
 
-  <option value="edit">
-    ✏️ &nbsp; &nbsp; Edit
-  </option>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {[
+        { label: "Today’s Hours", value: summary.today.toFixed(2), note: "Recorded today", accent: "bg-blue-50 text-blue-700" },
+        { label: "This Week’s Hours", value: summary.week.toFixed(2), note: "Recorded this week", accent: "bg-indigo-50 text-indigo-700" },
+        { label: "Running Timers", value: String(summary.running), note: "Live right now", accent: "bg-emerald-50 text-emerald-700" },
+        { label: "Projects Worked", value: String(summary.projects), note: "Worked this week", accent: "bg-violet-50 text-violet-700" },
+      ].map((card) => (
+        <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div><p className="text-sm font-semibold text-slate-500">{card.label}</p><p className="mt-2 text-3xl font-bold tracking-tight text-slate-950">{card.value}</p><p className="mt-1 text-xs text-slate-400">{card.note}</p></div>
+            <span className={"rounded-xl px-3 py-2 text-xs font-bold " + card.accent}>●</span>
+          </div>
+        </article>
+      ))}
+    </section>
 
-  <option value="delete">
-    🗑  &nbsp; &nbsp; Delete
-  </option>
+    {profile?.role !== "Employee" && (
 
-</select>
+    <section className="mt-7">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          &nbsp;
+          <h2 className="text-xl font-bold text-[#153E90]">Live Operations</h2>
+          &nbsp;
+        </div>
+        <div className="flex items-center gap-3 text-sm font-bold text-slate-700">
+          <span>{visibleLiveTimers.length} {visibleLiveTimers.length === 1 ? "Timer" : "Timers"}</span>
+          <span className="text-slate-300">•</span>
+          <span className="text-emerald-600">● {runningLiveTimerCount} Running</span>
+        </div>
+      </div>
+      {visibleLiveTimers.length > 0 ? (
+        <div>
+          <div className="hidden grid-cols-[1.45fr_0.9fr_1.2fr_1.2fr_0.85fr_1fr_0.8fr_1.15fr] gap-4 px-5 pb-3 text-[13px] font-bold uppercase tracking-[0.14em] text-slate-700 xl:grid">
+            <span className="text-left pl-6">Employee</span><span className="text-left pl-3">Client</span><span className="text-left pl-6">Project</span><span>Description</span><span>Started</span><span>Duration</span><span>Status</span>
+          </div>
+          <div className="space-y-3">
+            {visibleLiveTimers.map((timer) => {
+              const isRunning = timer.status === "running";
+              return (
+                <article key={timer.id} className={"grid gap-4 rounded-2xl border border-slate-200 border-l-4 bg-white p-5 shadow-sm transition hover:shadow-md xl:min-h-[116px] xl:grid-cols-[1.45fr_0.9fr_1.2fr_1.2fr_0.85fr_1fr_0.8fr_1.15fr] xl:items-center " + (isRunning ? "border-l-emerald-400" : "border-l-amber-400")}>
+                  <div className="flex items-center gap-3">
+                    <div className={"flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold " + (isRunning ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{getInitials(timer.employees?.name || "")}</div>
+                    <p className="min-w-0 truncate font-bold text-slate-950">{timer.employees?.name || "Unknown employee"}</p>
+                  </div>
+                  <div><p className="font-semibold text-slate-900">{timer.projects?.clients?.name || "—"}</p></div>
+                  <div className="flex items-center gap-2 min-w-0">
 
-  </td>
+  <span className="shrink-0 text-sm font-bold text-[#153E90]">
 
-)}
+    [{timer.projects?.project_code || "—"}]
 
+  </span>
 
+  <span className="truncate font-semibold text-slate-900">
 
+    {timer.projects?.name || "—"}
 
-</tr>
-
-
-)
-
-)}
-
-
-</tbody>
-
-
-</table>
-
+  </span>
 
 </div>
+                  <p className="font-semibold text-slate-900">{timer.description || <span className="text-slate-400">No description</span>}</p>
+                  <div><p className="font-semibold text-slate-900">{formatTime(timer.started_at)}</p></div>
+                  <p className={"font-mono text-xl font-bold tracking-tight " + (isRunning ? "text-emerald-600" : "text-amber-600")}>{formatTimer(calculateElapsed(timer) + tick * 0)}</p>
+                  <span className={"w-fit rounded-full px-3 py-1.5 text-xs font-bold ring-1 " + (isRunning ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-700 ring-amber-200")}>● {isRunning ? "Running" : "Paused"}</span>
+                  <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
+                    <button onClick={() => { if (profile?.role === "Employee") { if (isRunning) void pauseTimer(); else void resumeTimer(); } else { void toggleTeamTimer(timer); } }} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">{isRunning ? "Pause" : "Resume"}</button> &nbsp;
+                    <button onClick={() => { if (profile?.role === "Employee") void stopTimer(); else void adminStopTimer(timer); }} className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700">Stop</button> &nbsp;
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm text-slate-500">No active timers right now.</div>
+      )}
+    </section>
 
+    )}
+    <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between lg:hidden">
+        <p className="font-bold text-slate-950">Filters</p>
+        <button onClick={() => setShowMobileFilters(!showMobileFilters)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold">{showMobileFilters ? "Hide" : "Show"}</button>
+      </div>
+      <div className={(showMobileFilters ? "mt-4 grid" : "hidden") + " gap-3 sm:grid-cols-2 lg:grid lg:grid-cols-5"}>
+        {profile?.role !== "Employee" && (
+          <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
+            <option value="">All Employees</option>
+            {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+          </select>
+        )}
+        <select value={filterDateRange} onChange={(event) => setFilterDateRange(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
+          <option value="">Select Date Range</option>
+          <option value="today">Today</option><option value="yesterday">Yesterday</option><option value="this_week">This Week</option><option value="last_week">Last Week</option><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="custom">Custom Range</option>
+        </select>
+        <select value={filterClient} onChange={(event) => { setFilterClient(event.target.value); setFilterProject(""); }} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
+          <option value="">All Clients</option>
+          {clientNames.map((client) => <option key={client} value={client}>{client}</option>)}
+        </select>
+        <select value={filterProject} onChange={(event) => setFilterProject(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
+          <option value="">All Projects</option>
+          {projects.filter((project) => !filterClient || project.clients?.name === filterClient).map((project) => <option key={project.id} value={project.id}>[{project.project_code}] {project.name}</option>)}
+        </select>
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employee, client, project…" className="rounded-xl border border-slate-500 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
+      </div>
+      {filterDateRange === "custom" && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:w-1/3">
+          <input type="date" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+          <input type="date" value={customTo} onChange={(event) => setCustomTo(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+        </div>
+      )}
+      <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
+        <button onClick={resetFilters} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Reset Filters</button>
+      </div>
+    </section>
+
+    <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-4">
+        <h2 className="text-xl font-bold text-slate-950">Time Entries</h2>
+        <p className="mt-1 text-sm text-slate-500">Completed entries grouped by date.</p>
+      </div>
+      {!hasEntryFilters ? (
+        <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">Select one or more filters to view time entries.</h3><p className="mt-2 text-sm text-slate-500">Choose an employee, date range, client, project, or enter a search term.</p></div>
+      ) : filteredEntries.length === 0 ? (
+        <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">No time entries match your filters.</h3><button onClick={resetFilters} className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">Clear Filters</button></div>
+      ) : (
+        Object.entries(groupedEntries).map(([date, dateEntries]) => {
+          const expanded = !collapsedDates.has(date);
+          const totalHours = dateEntries.reduce((total, entry) => total + Number(entry.hours || 0), 0);
+          return (
+            <div key={date} className="border-b border-slate-100 last:border-0">
+              <button onClick={() => setCollapsedDates((current) => { const next = new Set(current); if (expanded) next.add(date); else next.delete(date); return next; })} className="flex w-full items-center justify-between bg-slate-50/80 px-5 py-3 text-left hover:bg-slate-100">
+                <span className="font-bold text-slate-900">{expanded ? "⌄" : "›"} <span className="ml-2">{formatDate(date)}</span></span>
+                <span className="text-sm font-bold text-[#153e90]">{totalHours.toFixed(2)} Hours</span>
+              </button>
+              {expanded && (
+                <div className="max-h-[560px] overflow-auto">
+                  <table className="w-full min-w-[1050px]">
+                    <thead className="sticky top-0 z-10 bg-slate-950 text-xs uppercase tracking-wide text-white">
+                      <tr><th className="px-5 py-3 text-left">Employee</th><th className="px-5 py-3 text-left">Client</th><th className="px-5 py-3 text-left">Project</th><th className="px-5 py-3 text-left">Description</th><th className="px-5 py-3 text-center">Start</th><th className="px-5 py-3 text-center">End</th><th className="px-5 py-3 text-right">Hours</th><th className="px-5 py-3 text-right">Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {dateEntries.map((entry, index) => (
+                        <tr key={entry.id} className={"border-b border-slate-100 last:border-0 " + (index % 2 ? "bg-slate-50/60" : "bg-white")}>
+                          <td className="px-5 py-4 font-semibold">{entry.employees?.name}</td>
+                          <td className="px-5 py-4 text-slate-600">{entry.projects?.clients?.name || "—"}</td>
+                          <td className="px-5 py-4"><p className="font-semibold">{entry.projects?.name}</p><p className="text-xs text-blue-700">{entry.projects?.project_code}</p></td>
+                          <td className="max-w-xs px-5 py-4 text-sm text-slate-600">{entry.description || "—"}</td>
+                          <td className="px-5 py-4 text-center text-sm">{formatTime(entry.started_at)}</td>
+                          <td className="px-5 py-4 text-center text-sm">{formatTime(entry.stopped_at)}</td>
+                          <td className="px-5 py-4 text-right font-bold">{Number(entry.hours || 0).toFixed(2)}</td>
+                          <td className="px-5 py-4"><div className="flex justify-end gap-1"><button onClick={() => setViewingEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">View</button>{profile?.role === "Admin" && <><button onClick={() => beginEdit(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Edit</button><button onClick={() => deleteTimeEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">Delete</button></>}</div></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+      <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-500">Showing {filteredEntries.length ? entryPage * PAGE_SIZE + 1 : 0}–{Math.min((entryPage + 1) * PAGE_SIZE, filteredEntries.length)} of {filteredEntries.length.toLocaleString()} entries</p>
+        <div className="flex gap-2"><button disabled={entryPage === 0} onClick={() => setEntryPage((page) => Math.max(0, page - 1))} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-40">Previous</button><button disabled={(entryPage + 1) * PAGE_SIZE >= filteredEntries.length} onClick={() => setEntryPage((page) => page + 1)} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Next</button></div>
+      </div>
+    </section>
+
+    {viewingEntry && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onClick={() => setViewingEntry(null)}>
+        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between"><h2 className="text-xl font-bold">Time Entry</h2><button onClick={() => setViewingEntry(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">✕</button></div>
+          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-400">Employee</dt><dd className="mt-1 font-bold">{viewingEntry.employees?.name}</dd></div><div><dt className="text-slate-400">Date</dt><dd className="mt-1 font-bold">{formatDate(viewingEntry.entry_date)}</dd></div><div><dt className="text-slate-400">Client</dt><dd className="mt-1 font-bold">{viewingEntry.projects?.clients?.name}</dd></div><div><dt className="text-slate-400">Project</dt><dd className="mt-1 font-bold">{viewingEntry.projects?.name}</dd></div><div><dt className="text-slate-400">Time</dt><dd className="mt-1 font-bold">{formatTime(viewingEntry.started_at)} – {formatTime(viewingEntry.stopped_at)}</dd></div><div><dt className="text-slate-400">Hours</dt><dd className="mt-1 font-bold">{Number(viewingEntry.hours || 0).toFixed(2)}</dd></div><div className="col-span-2"><dt className="text-slate-400">Description</dt><dd className="mt-1 font-medium">{viewingEntry.description || "—"}</dd></div></dl>
+        </div>
+      </div>
+    )}
 
 {/* MANUAL TIME ENTRY MODAL */}
 
@@ -2389,7 +1849,11 @@ setEditStop(
 
             <select
               value={manualEmployeeId}
-              onChange={(e) => setManualEmployeeId(e.target.value)}
+              onChange={(e) => {
+                setManualEmployeeId(e.target.value);
+                setManualClient("");
+                setManualProjectId("");
+              }}
               className="mt-2 w-full rounded-2xl border px-5 py-3"
             >
               <option value="">Select Employee</option>
@@ -2415,17 +1879,39 @@ setEditStop(
 
         <div>
           <label className="text-sm font-semibold text-slate-500">
+            Client
+          </label>
+
+          <select
+            value={manualClient}
+            disabled={!manualEmployeeId}
+            onChange={(e) => {
+              setManualClient(e.target.value);
+              setManualProjectId("");
+            }}
+            className="mt-2 w-full rounded-2xl border px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+          >
+            <option value="">Select Client</option>
+            {manualClients.map((client) => (
+              <option key={client} value={client}>{client}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-500">
             Project
           </label>
 
           <select
             value={manualProjectId}
+            disabled={!manualClient}
             onChange={(e) => setManualProjectId(e.target.value)}
-            className="mt-2 w-full rounded-2xl border px-5 py-3"
+            className="mt-2 w-full rounded-2xl border px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
           >
             <option value="">Select Project</option>
 
-            {projects.map((project) => (
+            {manualProjects.map((project) => (
               <option key={project.id} value={project.id}>
                 [{project.project_code}] {project.name}
               </option>

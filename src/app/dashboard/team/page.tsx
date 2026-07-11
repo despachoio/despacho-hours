@@ -162,15 +162,18 @@ export default function TeamPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
       <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+          <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+          <div className="relative flex items-center justify-between gap-6">
           <div>
-            <p className="text-sm font-medium text-slate-500">Kairo</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">People and capacity</p>
 
-            <h1 className="mt-1 text-4xl font-bold tracking-tight text-slate-950">
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white lg:text-5xl">
               Team
             </h1>
 
-            <p className="mt-2 text-slate-500">
+            <p className="mt-3 text-slate-300">
               Manage people, roles, departments and internal costs.
             </p>
           </div>
@@ -178,20 +181,21 @@ export default function TeamPage() {
           {userRole === "Admin" && (
             <button
               onClick={() => setShowNewMember(true)}
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
             >
               + New Team Member
             </button>
           )}
+          </div>
         </div>
 
         {showNewMember && userRole === "Admin" && (
-          <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="relative z-10 -mt-4 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl shadow-slate-200/60 sm:mx-5">
             <h2 className="text-xl font-semibold text-slate-950">
               Add team member
             </h2>
 
-            <div className="mt-5 grid grid-cols-3 gap-4">
+            <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <input
                 placeholder="Employee code"
                 value={employeeCode}
@@ -291,10 +295,10 @@ export default function TeamPage() {
           placeholder="Search team..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-8 w-full max-w-md rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm outline-none focus:border-slate-950"
+          className="mt-8 w-full max-w-md rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
         />
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-200/50">
           <table className="w-full table-fixed">
             <colgroup>
               <col className="w-[36%]" />
@@ -304,7 +308,7 @@ export default function TeamPage() {
               {userRole === "Admin" && <col className="w-[22%]" />}
             </colgroup>
 
-            <thead className="bg-slate-50 text-sm font-semibold text-slate-500">
+            <thead className="bg-[#0F172A] text-sm font-semibold text-white">
               <tr>
                 <th className="px-6 py-4 text-left">
                   Team Members ({filteredTeam.length})
@@ -328,7 +332,7 @@ export default function TeamPage() {
 
             <tbody>
               {filteredTeam.map((member) => (
-                <tr key={member.id} className="border-t hover:bg-slate-50">
+                <tr key={member.id} className="border-t border-slate-100 transition hover:bg-blue-50/40">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <span
@@ -341,7 +345,7 @@ export default function TeamPage() {
                         }`}
                       />
 
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-white">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[#153E90] ring-1 ring-blue-100">
                         {member.name
                           .split(" ")
                           .map((n) => n[0])

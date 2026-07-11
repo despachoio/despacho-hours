@@ -283,11 +283,15 @@ function formatDate(date:string){
         
 
 
-        <h1 className="mt-1 text-4xl font-bold">
-
-          Dashboard
-
-        </h1>
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+          <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+          <div className="relative">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">Despacho overview</p>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">Dashboard</h1>
+            <p className="mt-3 text-sm text-slate-300">A clear view of delivery, capacity, and client operations.</p>
+          </div>
+        </div>
 
 
 
@@ -295,7 +299,7 @@ function formatDate(date:string){
 
 {profile?.role === "Employee" ? (
 
-  <div className="mt-8 grid grid-cols-3 gap-6">
+  <div className="relative z-10 -mt-4 grid gap-5 px-4 sm:grid-cols-3 lg:px-6">
 
 
     <Card
@@ -345,7 +349,7 @@ function formatDate(date:string){
 ) : (
 
 
-  <div className="mt-8 grid grid-cols-4 gap-6">
+  <div className="relative z-10 -mt-4 grid gap-5 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
 
 
     <Card
@@ -413,10 +417,10 @@ function formatDate(date:string){
 
 
         {profile?.role !== "Employee" && (
-        <div className="mt-8 grid grid-cols-2 gap-6">
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
 
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
 
 
             <h2 className="font-bold">
@@ -499,7 +503,7 @@ function formatDate(date:string){
 
 
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
 
 
             <h2 className="font-bold">
@@ -602,7 +606,7 @@ function formatDate(date:string){
 
           key={entry.id}
 
-          className="flex items-center justify-between rounded-2xl bg-slate-50 p-4"
+          className="flex items-center justify-between rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50 to-white p-4 transition hover:border-blue-200 hover:shadow-sm"
 
         >
 
@@ -702,9 +706,7 @@ function Card({
 
   p-7
 
-  text-center
-
-  shadow-sm
+  shadow-lg
 
   ring-1
 
@@ -714,7 +716,9 @@ function Card({
 
   hover:-translate-y-1
 
-  hover:shadow-md
+  hover:border-blue-200
+
+  hover:shadow-xl
 
 "
 
@@ -727,7 +731,7 @@ function Card({
 
 </p>
 
-<p className="mt-4 text-5xl font-bold text-slate-950">
+<p className="mt-4 text-4xl font-bold tracking-tight text-[#153E90]">
 
   {value}
 

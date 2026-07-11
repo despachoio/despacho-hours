@@ -1,9 +1,10 @@
 "use client";
 
-import { Invoice } from "../page";
+import { Invoice, InvoicePayment } from "../page";
 
 type Props = {
   invoice: Invoice;
+  payments: InvoicePayment[];
 };
 
 function formatAmount(value: number) {
@@ -27,8 +28,12 @@ function formatPaymentMethod(value: string) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-export default function PaymentCard({ invoice }: Props) {
+export default function PaymentCard({ invoice, payments }: Props) {
   const isPaid = invoice.status.trim().toLowerCase() === "paid";
+  const reversedPayment = [...payments]
+    .reverse()
+    .find((payment) => payment.status === "reversed");
+  const isReversed = Boolean(invoice.payment_reversed_at && reversedPayment);
   const displayAmount = isPaid
     ? Number(invoice.paid_amount ?? invoice.total_amount)
     : Number(invoice.total_amount);
@@ -40,10 +45,10 @@ export default function PaymentCard({ invoice }: Props) {
       <div className="mt-6">
         <p
           className={`text-xs font-semibold uppercase tracking-wide ${
-            isPaid ? "text-emerald-600" : "text-slate-400"
+            isPaid ? "text-emerald-600" : isReversed ? "text-red-600" : "text-slate-400"
           }`}
         >
-          {isPaid ? "Paid" : "Outstanding"}
+          {isPaid ? "Paid" : isReversed ? "Payment Reversed" : "Outstanding"}
         </p>
         <h3
           className={`mt-2 text-3xl font-bold ${
@@ -55,6 +60,43 @@ export default function PaymentCard({ invoice }: Props) {
       </div>
 
       <div className="mt-6 space-y-4 border-t border-slate-200 pt-6">
+        {isReversed && reversedPayment ? (
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <span className="text-sm font-medium text-slate-500">Original Amount</span>
+              <span className="text-right font-semibold text-slate-900">
+                {reversedPayment.currency} {formatAmount(reversedPayment.amount)}
+              </span>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <span className="text-sm font-medium text-slate-500">Payment Method</span>
+              <span className="text-right font-semibold text-slate-900">
+                {formatPaymentMethod(reversedPayment.payment_method)}
+              </span>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <span className="text-sm font-medium text-slate-500">Original Payment Date</span>
+              <span className="text-right font-semibold text-slate-900">
+                {formatDate(reversedPayment.payment_date)}
+              </span>
+            </div>
+            {reversedPayment.reversed_at ? (
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-sm font-medium text-slate-500">Reversed Date</span>
+                <span className="text-right font-semibold text-slate-900">
+                  {formatDate(reversedPayment.reversed_at)}
+                </span>
+              </div>
+            ) : null}
+            <div className="flex items-start justify-between gap-4">
+              <span className="text-sm font-medium text-slate-500">Reason</span>
+              <span className="max-w-[60%] text-right font-semibold text-slate-900">
+                {reversedPayment.reversal_reason || invoice.payment_reversal_reason}
+              </span>
+            </div>
+          </>
+        ) : null}
+
         {isPaid && invoice.paid_at ? (
           <div className="flex items-start justify-between gap-4">
             <span className="text-sm font-medium text-slate-500">Payment Date</span>

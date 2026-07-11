@@ -49,15 +49,13 @@ export default function LoginPage() {
 
         <div className="flex justify-center">
   <img
-    src="/icon.png"
+    src="/kairo-logo-full.png"
     alt="Kairo"
-    className="h-16 w-16 rounded-2xl object-contain"
+    className="h-30 w-60 rounded-2xl object-contain"
   />
 </div>
 
-<h1 className="mt-4 text-center text-4xl font-bold text-slate-950">
-  Kairo
-</h1>
+
 
 
         <p className="mt-2 text-center text-slate-500">
