@@ -37,6 +37,9 @@ export type Invoice = {
   email_body: string | null;
   gmail_message_id: string | null;
   generated_from_recurring: boolean;
+  recurring_schedule_id: string | null;
+  recurring_occurrence_id: string | null;
+  recurring_invoice_schedules: { autopay_enabled: boolean } | null;
   draft_email_to: string | null;
   draft_email_cc: string | null;
   draft_email_subject: string | null;
@@ -155,10 +158,16 @@ export default function InvoiceDetailPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadActivityData() {
-    const [paymentsResult, walletCreditsResult, remindersResult, activitiesResult] = await Promise.all([
+    const [
+      paymentsResult,
+      walletCreditsResult,
+      remindersResult,
+      activitiesResult,
+    ] = await Promise.all([
       supabase
         .from("payments")
-        .select(`
+        .select(
+          `
           id,
           amount,
           currency,
@@ -170,12 +179,14 @@ export default function InvoiceDetailPage() {
           reversed_at,
           reversal_reason,
           reversal_notes
-        `)
+        `,
+        )
         .eq("invoice_id", id)
         .order("created_at", { ascending: true }),
       supabase
         .from("project_hour_transactions")
-        .select(`
+        .select(
+          `
           id,
           project_id,
           hours_delta,
@@ -183,7 +194,8 @@ export default function InvoiceDetailPage() {
           transaction_type,
           payment_id,
           original_transaction_id
-        `)
+        `,
+        )
         .eq("invoice_id", id)
         .in("transaction_type", ["invoice_credit", "invoice_credit_reversal"])
         .order("created_at", { ascending: true }),
@@ -201,21 +213,24 @@ export default function InvoiceDetailPage() {
     ]);
 
     if (paymentsResult.error) {
-      console.error("Invoice payment activity load failed:", paymentsResult.error);
+      console.error(
+        "Invoice payment activity load failed:",
+        paymentsResult.error,
+      );
       setPayments([]);
     } else {
       setPayments(
         (paymentsResult.data || []).map((payment) => ({
           ...payment,
           amount: Number(payment.amount || 0),
-        })) as InvoicePayment[]
+        })) as InvoicePayment[],
       );
     }
 
     if (walletCreditsResult.error) {
       console.error(
         "Invoice wallet-credit activity load failed:",
-        walletCreditsResult.error
+        walletCreditsResult.error,
       );
       setWalletCredits([]);
     } else {
@@ -223,12 +238,20 @@ export default function InvoiceDetailPage() {
         (walletCreditsResult.data || []).map((credit) => ({
           ...credit,
           hours_delta: Number(credit.hours_delta || 0),
-        })) as InvoiceWalletCredit[]
+        })) as InvoiceWalletCredit[],
       );
     }
 
-    setReminders(remindersResult.error ? [] : (remindersResult.data || []) as InvoiceReminder[]);
-    setActivities(activitiesResult.error ? [] : (activitiesResult.data || []) as InvoiceActivity[]);
+    setReminders(
+      remindersResult.error
+        ? []
+        : ((remindersResult.data || []) as InvoiceReminder[]),
+    );
+    setActivities(
+      activitiesResult.error
+        ? []
+        : ((activitiesResult.data || []) as InvoiceActivity[]),
+    );
   }
 
   async function loadInvoice() {
@@ -240,13 +263,16 @@ export default function InvoiceDetailPage() {
         .eq("user_id", userData.user.id)
         .single();
       setIsAdmin(
-        String(profileData?.role || "").trim().toLowerCase() === "admin"
+        String(profileData?.role || "")
+          .trim()
+          .toLowerCase() === "admin",
       );
     }
 
     const { data: invoiceData, error } = await supabase
       .from("invoices")
-      .select(`
+      .select(
+        `
         *,
         clients(
           id,
@@ -259,28 +285,61 @@ export default function InvoiceDetailPage() {
             is_active
           )
         )
-      `)
+      `,
+      )
       .eq("id", id)
       .single();
 
     if (error) {
-      console.error(error);
+      console.error("Invoice detail load failed:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        invoiceId: id,
+      });
       setLoading(false);
       return;
     }
 
-    setInvoice(invoiceData as Invoice);
+    let recurringSchedule: Invoice["recurring_invoice_schedules"] = null;
+    if (invoiceData.recurring_schedule_id) {
+      const { data: scheduleData, error: scheduleError } = await supabase
+        .from("recurring_invoice_schedules")
+        .select("autopay_enabled")
+        .eq("id", invoiceData.recurring_schedule_id)
+        .maybeSingle();
+
+      if (scheduleError) {
+        console.error("Recurring schedule detail load failed:", {
+          message: scheduleError.message,
+          details: scheduleError.details,
+          hint: scheduleError.hint,
+          code: scheduleError.code,
+          scheduleId: invoiceData.recurring_schedule_id,
+        });
+      } else if (scheduleData) {
+        recurringSchedule = scheduleData;
+      }
+    }
+
+    setInvoice({
+      ...invoiceData,
+      recurring_invoice_schedules: recurringSchedule,
+    } as Invoice);
 
     const { data: itemData } = await supabase
       .from("invoice_items")
-      .select(`
+      .select(
+        `
         *,
         projects(
           id,
           name,
           project_code
         )
-      `)
+      `,
+      )
       .eq("invoice_id", id);
 
     setItems((itemData || []) as InvoiceItem[]);
@@ -299,7 +358,7 @@ export default function InvoiceDetailPage() {
 
   function handleInvoiceSent(update: Partial<Invoice>) {
     setInvoice((currentInvoice) =>
-      currentInvoice ? { ...currentInvoice, ...update } : currentInvoice
+      currentInvoice ? { ...currentInvoice, ...update } : currentInvoice,
     );
     void loadActivityData();
   }
@@ -322,43 +381,31 @@ export default function InvoiceDetailPage() {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
-
       <div className="mx-auto max-w-7xl">
-
         <InvoiceHeader invoice={invoice} />
 
         <div className="mt-8 grid grid-cols-12 gap-6">
-
           {/* LEFT */}
 
           <div className="col-span-3 space-y-6">
-
             <InvoiceInfoCard invoice={invoice} />
 
             <PaymentCard invoice={invoice} payments={payments} />
-
           </div>
 
           {/* CENTER */}
 
           <div className="col-span-6 space-y-6">
-
             <InvoiceItems items={items} />
 
-            <InvoiceSummary
-              invoice={invoice}
-            />
+            <InvoiceSummary invoice={invoice} />
 
-            <InvoiceNotes
-              notes={invoice.notes}
-            />
-
+            <InvoiceNotes notes={invoice.notes} />
           </div>
 
           {/* RIGHT */}
 
           <div className="col-span-3 space-y-6">
-
             <InvoiceActions
               invoice={invoice}
               isAdmin={isAdmin}
@@ -372,13 +419,9 @@ export default function InvoiceDetailPage() {
               reminders={reminders}
               activities={activities}
             />
-
           </div>
-
         </div>
-
       </div>
-
     </main>
   );
 }

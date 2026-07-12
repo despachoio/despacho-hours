@@ -293,15 +293,24 @@ export default function ClientsPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <section className="relative flex min-h-[210px] items-center overflow-hidden rounded-[2rem] bg-[#0F172A] px-7 py-8 text-white shadow-xl shadow-slate-300/40 lg:min-h-[230px] lg:px-10 lg:py-10">
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#153E90]/50 blur-3xl" />
-          <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
-          <div className="relative flex w-full flex-col justify-between gap-8 lg:flex-row lg:items-end">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-                Clients
-              </h1>
-            </div>
+        <section className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+  <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+  <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
+
+  <div className="relative flex items-center justify-between gap-6">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">
+        Client portfolio
+      </p>
+
+      <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">
+        Clients
+      </h1>
+
+      <p className="mt-3 text-slate-300">
+        Manage client relationships, contacts, and active projects.
+      </p>
+    </div>
 
             {isAdmin ? (
               <button

@@ -1,13 +1,12 @@
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createElement, type ReactElement } from "react";
-import { readFile } from "fs/promises";
-import path from "path";
 import { InvoicePdfDocument } from "@/components/invoices/InvoicePdfDocument";
+import { getGmailClient, GOOGLE_WORKSPACE_SENDER } from "@/lib/google/gmail";
 import {
-  getGmailClient,
-  GOOGLE_WORKSPACE_SENDER,
-} from "@/lib/google/gmail";
+  loadCompanyLogo,
+  loadCompanySettings,
+} from "@/lib/settings/companySettings";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -46,8 +45,8 @@ function normalizeEmails(value: unknown) {
         .filter((email): email is string => typeof email === "string")
         .map((email) => email.trim())
         .filter(Boolean)
-        .map((email) => [email.toLowerCase(), email])
-    ).values()
+        .map((email) => [email.toLowerCase(), email]),
+    ).values(),
   );
 }
 
@@ -96,10 +95,38 @@ function encodeBase64Url(value: string) {
     .replace(/=+$/, "");
 }
 
-function firstReminderAt(dueDate: string) {
-  const dueAtBusinessMidnight = new Date(`${dueDate}T00:00:00+05:30`);
-  dueAtBusinessMidnight.setDate(dueAtBusinessMidnight.getDate() + 1);
-  return dueAtBusinessMidnight.toISOString();
+function firstReminderAt(
+  dueDate: string,
+  beforeDueDays: number[],
+  afterDueDays: number[],
+) {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const offsets = [
+    ...beforeDueDays.map((days) => -Math.abs(Number(days))),
+    ...afterDueDays.map((days) => Math.abs(Number(days))),
+  ];
+  const candidates = offsets
+    .map((offset) => {
+      const date = new Date(`${dueDate}T00:00:00+05:30`);
+      date.setDate(date.getDate() + offset);
+      return date;
+    })
+    .filter(
+      (date) =>
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(date) >= today,
+    )
+    .sort((first, second) => first.getTime() - second.getTime());
+  return candidates[0]?.toISOString() || null;
 }
 
 async function updateInvoiceStatus({
@@ -132,10 +159,11 @@ async function updateInvoiceStatus({
       updatedInvoice: null,
       errorResponse: Response.json(
         { error: "Unable to initialize invoice reminder schedule" },
-        { status: 500 }
+        { status: 500 },
       ),
     };
   }
+  const companySettings = await loadCompanySettings(adminClient);
 
   const { data: updatedInvoice, error: updateError } = await adminClient
     .from("invoices")
@@ -153,10 +181,16 @@ async function updateInvoiceStatus({
       reminders_stop_reason: null,
       reminder_count: 0,
       last_reminder_sent_at: null,
-      next_reminder_at: firstReminderAt(scheduleInvoice.due_date),
+      next_reminder_at: firstReminderAt(
+        scheduleInvoice.due_date,
+        companySettings.default_reminder_before_due_days,
+        companySettings.default_reminder_after_due_days,
+      ),
     })
     .eq("id", invoiceId)
-    .select("id, status, sent_at, sent_to, sent_cc, gmail_message_id, reminders_enabled, reminder_count, last_reminder_sent_at, next_reminder_at")
+    .select(
+      "id, status, sent_at, sent_to, sent_cc, gmail_message_id, reminders_enabled, reminder_count, last_reminder_sent_at, next_reminder_at",
+    )
     .single();
 
   if (updateError) {
@@ -178,7 +212,7 @@ async function updateInvoiceStatus({
           ccRecipient,
           emailWasSent: true,
         },
-        { status: 500 }
+        { status: 500 },
       ),
     };
   }
@@ -221,12 +255,18 @@ function buildEmailHtml({
   amount,
   dueDate,
   message,
+  companyName,
+  businessEmail,
+  website,
 }: {
   invoiceNumber: number;
   clientName: string;
   amount: string;
   dueDate: string;
   message: string;
+  companyName: string;
+  businessEmail: string;
+  website: string;
 }) {
   const formattedMessage = escapeHtml(message).replaceAll("\n", "<br />");
 
@@ -237,7 +277,7 @@ function buildEmailHtml({
       <tr><td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
           <tr><td style="padding:28px 34px 22px;border-bottom:1px solid #e5e7eb;">
-            <img src="cid:despacho-logo" alt="Despacho" width="180" style="display:block;width:180px;height:auto;" />
+            <img src="cid:despacho-logo" alt="${escapeHtml(companyName)}" width="180" style="display:block;width:180px;height:auto;" />
           </td></tr>
           <tr><td style="padding:30px 34px;">
             <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#153e90;text-transform:uppercase;">Invoice #${invoiceNumber}</div>
@@ -258,8 +298,8 @@ function buildEmailHtml({
           <tr><td style="padding:22px 34px;background:#0f172a;color:#ffffff;">
             <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Questions?</div>
             <div style="font-size:12px;line-height:1.6;color:#cbd5e1;">
-              <a href="mailto:sales@despacho.io" style="color:#ffffff;text-decoration:none;">sales@despacho.io</a><br />
-              <a href="https://www.despacho.io" style="color:#ffffff;text-decoration:none;">www.despacho.io</a>
+              <a href="mailto:${escapeHtml(businessEmail)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(businessEmail)}</a><br />
+              <a href="${escapeHtml(website)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(website)}</a>
             </div>
           </td></tr>
         </table>
@@ -278,6 +318,7 @@ function buildRawMimeMessage({
   pdf,
   pdfFilename,
   logo,
+  companyName,
 }: {
   to: string[];
   cc: string[];
@@ -287,12 +328,13 @@ function buildRawMimeMessage({
   pdf: Buffer;
   pdfFilename: string;
   logo: Buffer;
+  companyName: string;
 }) {
   const mixedBoundary = `mixed_${crypto.randomUUID()}`;
   const relatedBoundary = `related_${crypto.randomUUID()}`;
   const alternativeBoundary = `alternative_${crypto.randomUUID()}`;
   const lines = [
-    `From: Despacho Inc. <${GOOGLE_WORKSPACE_SENDER}>`,
+    `From: ${encodeMimeHeader(companyName)} <${GOOGLE_WORKSPACE_SENDER}>`,
     `To: ${to.join(", ")}`,
     ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []),
     `Subject: ${encodeMimeHeader(subject)}`,
@@ -322,7 +364,7 @@ function buildRawMimeMessage({
     `--${relatedBoundary}`,
     'Content-Type: image/png; name="despacho-logo.png"',
     "Content-Transfer-Encoding: base64",
-    "Content-Disposition: inline; filename=\"despacho-logo.png\"",
+    'Content-Disposition: inline; filename="despacho-logo.png"',
     "Content-ID: <despacho-logo>",
     "",
     wrapBase64(logo),
@@ -345,7 +387,7 @@ function buildRawMimeMessage({
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -373,7 +415,7 @@ export async function POST(
       console.error("Invoice send service-role configuration is missing");
       return Response.json(
         { error: "Invoice email service is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -390,11 +432,15 @@ export async function POST(
       console.error("Invoice send profile lookup failed:", profileError);
       return Response.json(
         { error: "Unable to verify permissions" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    if (String(profile?.role || "").trim().toLowerCase() !== "admin") {
+    if (
+      String(profile?.role || "")
+        .trim()
+        .toLowerCase() !== "admin"
+    ) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -411,7 +457,9 @@ export async function POST(
 
     if (body.repairOnly === true) {
       const gmailMessageId =
-        typeof body.gmailMessageId === "string" ? body.gmailMessageId.trim() : "";
+        typeof body.gmailMessageId === "string"
+          ? body.gmailMessageId.trim()
+          : "";
       const recipient =
         typeof body.recipient === "string" ? body.recipient.trim() : "";
       const repairCc = normalizeEmails(body.cc);
@@ -419,7 +467,7 @@ export async function POST(
       if (!gmailMessageId || !recipient || !subject || !message) {
         return Response.json(
           { error: "Repair details are incomplete" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -460,7 +508,9 @@ export async function POST(
     const to = normalizeEmails(body.to);
     const cc = normalizeEmails(body.cc).filter(
       (email) =>
-        !to.some((recipient) => recipient.toLowerCase() === email.toLowerCase())
+        !to.some(
+          (recipient) => recipient.toLowerCase() === email.toLowerCase(),
+        ),
     );
 
     if (
@@ -472,20 +522,22 @@ export async function POST(
     ) {
       return Response.json(
         { error: "Enter valid recipients, subject, and message" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { data: invoice, error: invoiceError } = await adminClient
       .from("invoices")
-      .select(`
+      .select(
+        `
         *,
         clients(
           id,
           name,
           client_contacts(email, contact_type, is_primary, is_active)
         )
-      `)
+      `,
+      )
       .eq("id", invoiceId)
       .single();
 
@@ -493,13 +545,14 @@ export async function POST(
       return Response.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    const contacts = (invoice.clients?.client_contacts || []) as ClientContact[];
+    const contacts = (invoice.clients?.client_contacts ||
+      []) as ClientContact[];
     const billingEmails = contacts
       .filter(
         (contact) =>
           contact.email &&
           contact.is_active !== false &&
-          contact.contact_type?.trim().toLowerCase() === "billing"
+          contact.contact_type?.trim().toLowerCase() === "billing",
       )
       .map((contact) => contact.email.trim());
 
@@ -508,43 +561,46 @@ export async function POST(
         contact.email &&
         contact.is_active !== false &&
         (contact.is_primary ||
-          contact.contact_type?.trim().toLowerCase() === "primary")
+          contact.contact_type?.trim().toLowerCase() === "primary"),
     )?.email;
 
     if (billingEmails.length === 0 && !primaryEmail) {
       return Response.json(
         { error: "No billing contact is configured for this client." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { data: items, error: itemsError } = await adminClient
       .from("invoice_items")
-      .select(`
+      .select(
+        `
         *,
         projects(id, name, project_code)
-      `)
+      `,
+      )
       .eq("invoice_id", invoiceId);
 
     if (itemsError) {
       console.error("Invoice send item lookup failed:", itemsError);
       return Response.json(
         { error: "Unable to load invoice items" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    const logoPath = path.join(process.cwd(), "public", "despacho-logo-full.png");
-    const logoBuffer = await readFile(logoPath);
-    const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+    const companySettings = await loadCompanySettings(adminClient);
+    const { buffer: logoBuffer, dataUrl: logoSrc } =
+      await loadCompanyLogo(companySettings);
     let pdfBuffer: Buffer;
 
     try {
       const pdfDocument = createElement(InvoicePdfDocument, {
-          invoice,
-          items: items ?? [],
-          logoSrc,
-        }) as unknown as ReactElement<DocumentProps>;
+        invoice,
+        items: items ?? [],
+        logoSrc,
+        companySettings,
+      }) as unknown as ReactElement<DocumentProps>;
 
       pdfBuffer = await renderToBuffer(pdfDocument);
     } catch (error) {
@@ -552,7 +608,7 @@ export async function POST(
       console.error("Invoice PDF generation failed:", message);
       return Response.json(
         { error: `PDF generation failed: ${message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -563,6 +619,9 @@ export async function POST(
       amount: formatMoney(invoice.currency, invoice.total_amount),
       dueDate: formatDate(invoice.due_date),
       message,
+      companyName: companySettings.company_name,
+      businessEmail: companySettings.business_email || GOOGLE_WORKSPACE_SENDER,
+      website: companySettings.website || "https://www.despacho.io",
     });
     const rawMessage = buildRawMimeMessage({
       to,
@@ -573,6 +632,7 @@ export async function POST(
       pdf: pdfBuffer,
       pdfFilename,
       logo: logoBuffer,
+      companyName: companySettings.company_name,
     });
 
     let gmailMessageId: string;
@@ -603,7 +663,7 @@ export async function POST(
             ? "Gmail authentication failed."
             : `Gmail send failed: ${message}`,
         },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -641,7 +701,7 @@ export async function POST(
     console.error("Unexpected invoice send failure:", message);
     return Response.json(
       { error: `Invoice send failed: ${message}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

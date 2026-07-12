@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
+import { DEFAULT_COMPANY_SETTINGS } from "@/lib/settings/companySettingsDefaults";
 
 type ClientSummary = {
   id: string;
@@ -50,6 +51,30 @@ type Props = {
   invoice: InvoicePdfData;
   items: InvoicePdfItem[];
   logoSrc: string;
+  companySettings?: {
+    company_name?: string | null;
+    legal_name?: string | null;
+    address_line_1?: string | null;
+    address_line_2?: string | null;
+    city?: string | null;
+    state_province?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    business_email?: string | null;
+    website?: string | null;
+    phone?: string | null;
+    tax_label?: string | null;
+    tax_registration_number?: string | null;
+    bank_name?: string | null;
+    bank_address?: string | null;
+    institution_number?: string | null;
+    routing_number?: string | null;
+    swift_bic?: string | null;
+    transit_number?: string | null;
+    account_number?: string | null;
+    account_name?: string | null;
+    payment_instructions?: string | null;
+  };
 };
 
 const NAVY = "#0F172A";
@@ -57,7 +82,6 @@ const BLUE = "#153E90";
 const MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
 const LIGHT = "#F8FAFC";
-const FULL_LOGO_PATH = `${process.cwd()}/public/despacho-logo-full.png`;
 
 const styles = StyleSheet.create({
   page: {
@@ -418,9 +442,13 @@ function getPaymentTerms(issueDate: string, dueDate: string) {
     0,
     Math.round(
       (Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate()) -
-        Date.UTC(issue.getUTCFullYear(), issue.getUTCMonth(), issue.getUTCDate())) /
-        millisecondsPerDay
-    )
+        Date.UTC(
+          issue.getUTCFullYear(),
+          issue.getUTCMonth(),
+          issue.getUTCDate(),
+        )) /
+        millisecondsPerDay,
+    ),
   );
 
   return `Net ${days} ${days === 1 ? "Day" : "Days"}`;
@@ -442,35 +470,71 @@ function getStatusStyle(status: string) {
 }
 
 function getInvoiceNotes(notes: string | null) {
-  return notes
-    ?.replace(/bank account details followed:\s*/gi, "")
-    .trim() || null;
+  return (
+    notes?.replace(/bank account details followed:\s*/gi, "").trim() || null
+  );
 }
 
-export function InvoicePdfDocument({ invoice, items }: Props) {
+export function InvoicePdfDocument({
+  invoice,
+  items,
+  logoSrc,
+  companySettings,
+}: Props) {
   const status = invoice.status?.trim() || "Draft";
   const client = invoice.clients;
   const primaryContact = client?.primary_contact || client?.contact_name;
   const discount = invoice.discount_amount || 0;
   const invoiceNotes = getInvoiceNotes(invoice.notes);
+  const settings = { ...DEFAULT_COMPANY_SETTINGS, ...companySettings };
+  const companyName = settings.company_name;
+  const companyLocality = [
+    settings.city,
+    settings.state_province,
+    settings.country,
+    settings.postal_code,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const paymentNotes = invoiceNotes || settings.payment_instructions || null;
+  const bankRows = [
+    ["Bank Name", settings.bank_name],
+    ["Bank Address", settings.bank_address],
+    ["Institution Number", settings.institution_number],
+    ["Routing / ABA", settings.routing_number],
+    ["SWIFT BIC", settings.swift_bic],
+    ["Transit", settings.transit_number],
+    ["Account", settings.account_number],
+    ["Account Name", settings.account_name],
+  ].filter((row) => Boolean(row[1]));
 
   return (
     <Document>
       <Page size="A4" style={styles.page} wrap>
         {status.trim().toLowerCase() === "void" ? (
-          <Text style={styles.voidWatermark} fixed>VOID</Text>
+          <Text style={styles.voidWatermark} fixed>
+            VOID
+          </Text>
         ) : null}
         <View style={styles.header} fixed>
           <View style={styles.brand}>
             {/* @react-pdf/renderer Image does not support the HTML alt prop. */}
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={FULL_LOGO_PATH} style={styles.logo} />
+            <Image src={logoSrc} style={styles.logo} />
             <View style={styles.brandDetails}>
-              <Text>Despacho Inc.</Text>
-              <Text>900, 332 6th Avenue S.W.</Text>
-              <Text>Calgary, Alberta, Canada T2P 0B1</Text>
+              <Text>{companyName}</Text>
+              {settings.legal_name && settings.legal_name !== companyName ? (
+                <Text>{settings.legal_name}</Text>
+              ) : null}
+              <Text>{settings.address_line_1}</Text>
+              {settings.address_line_2 ? (
+                <Text>{settings.address_line_2}</Text>
+              ) : null}
+              <Text>{companyLocality}</Text>
               <Text> </Text>
-              <Text>sales@despacho.io</Text>
+              <Text>{settings.business_email}</Text>
+              {settings.website ? <Text>{settings.website}</Text> : null}
+              {settings.phone ? <Text>{settings.phone}</Text> : null}
             </View>
           </View>
 
@@ -479,11 +543,15 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
             <Text style={styles.invoiceNumber}>#{invoice.invoice_number}</Text>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Issue Date</Text>
-              <Text style={styles.metaValue}>{formatDate(invoice.issue_date)}</Text>
+              <Text style={styles.metaValue}>
+                {formatDate(invoice.issue_date)}
+              </Text>
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Due Date</Text>
-              <Text style={styles.metaValue}>{formatDate(invoice.due_date)}</Text>
+              <Text style={styles.metaValue}>
+                {formatDate(invoice.due_date)}
+              </Text>
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Payment Terms</Text>
@@ -493,7 +561,9 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Status</Text>
-              <Text style={[styles.statusBadge, getStatusStyle(status)]}>{status}</Text>
+              <Text style={[styles.statusBadge, getStatusStyle(status)]}>
+                {status}
+              </Text>
             </View>
           </View>
         </View>
@@ -502,18 +572,32 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
           <Text style={styles.eyebrow}>Bill To</Text>
           <Text style={styles.clientName}>{client?.name || "Client"}</Text>
           {primaryContact ? (
-            <Text style={styles.clientDetail}>Primary Contact: {primaryContact}</Text>
+            <Text style={styles.clientDetail}>
+              Primary Contact: {primaryContact}
+            </Text>
           ) : null}
-          {client?.email ? <Text style={styles.clientDetail}>{client.email}</Text> : null}
-          {client?.address ? <Text style={styles.clientDetail}>{client.address}</Text> : null}
+          {client?.email ? (
+            <Text style={styles.clientDetail}>{client.email}</Text>
+          ) : null}
+          {client?.address ? (
+            <Text style={styles.clientDetail}>{client.address}</Text>
+          ) : null}
         </View>
 
         <View style={styles.table}>
           <View style={styles.tableHeader} fixed>
-            <Text style={[styles.tableHeaderText, styles.projectCell]}>Project</Text>
-            <Text style={[styles.tableHeaderText, styles.descriptionCell]}>Description</Text>
-            <Text style={[styles.tableHeaderText, styles.hoursCell]}>Hours</Text>
-            <Text style={[styles.tableHeaderText, styles.amountCell]}>Amount</Text>
+            <Text style={[styles.tableHeaderText, styles.projectCell]}>
+              Project
+            </Text>
+            <Text style={[styles.tableHeaderText, styles.descriptionCell]}>
+              Description
+            </Text>
+            <Text style={[styles.tableHeaderText, styles.hoursCell]}>
+              Hours
+            </Text>
+            <Text style={[styles.tableHeaderText, styles.amountCell]}>
+              Amount
+            </Text>
           </View>
 
           {items.map((item, index) => {
@@ -556,7 +640,7 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
               </Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Tax</Text>
+              <Text style={styles.totalLabel}>{settings.tax_label}</Text>
               <Text style={styles.totalValue}>
                 {formatMoney(invoice.currency, invoice.tax_amount)}
               </Text>
@@ -578,49 +662,30 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
 
         <View style={styles.paymentCard}>
           <Text style={styles.paymentHeading}>PAYMENT INFORMATION</Text>
-          {invoiceNotes ? (
-            <Text style={styles.paymentNotes}>{invoiceNotes}</Text>
-          ) : null}
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Bank Name</Text>
-            <Text style={styles.bankValue}>Royal Bank of Canada</Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Bank Address</Text>
-            <Text style={styles.bankValue}>
-              P.O. BAG SERVICE 2650, Calgary, Alberta, Canada T2P 2M7
+          {settings.tax_registration_number ? (
+            <Text style={styles.paymentNotes}>
+              Tax Registration: {settings.tax_registration_number}
             </Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Institution Number</Text>
-            <Text style={styles.bankValue}>003</Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Routing / ABA</Text>
-            <Text style={styles.bankValue}>021000021</Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>SWIFT BIC</Text>
-            <Text style={styles.bankValue}>ROYCCAT2</Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Transit</Text>
-            <Text style={styles.bankValue}>01549</Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Account</Text>
-            <Text style={styles.bankValue}>4002036</Text>
-          </View>
-          <View style={styles.bankRow} wrap={false}>
-            <Text style={styles.bankLabel}>Account Name</Text>
-            <Text style={styles.bankValue}>Despacho Inc</Text>
-          </View>
-          <Text style={styles.paymentThanks}>Thank you for choosing Despacho.</Text>
+          ) : null}
+          {paymentNotes ? (
+            <Text style={styles.paymentNotes}>{paymentNotes}</Text>
+          ) : null}
+          {bankRows.map(([label, bankValue]) => (
+            <View key={label} style={styles.bankRow} wrap={false}>
+              <Text style={styles.bankLabel}>{label}</Text>
+              <Text style={styles.bankValue}>{bankValue}</Text>
+            </View>
+          ))}
+          <Text style={styles.paymentThanks}>
+            Thank you for choosing {settings.company_name}.
+          </Text>
         </View>
 
         <View style={styles.footer} fixed>
           <View style={styles.footerLeft}>
-            <Text style={styles.footerThanks}>Thank you for your business.</Text>
+            <Text style={styles.footerThanks}>
+              Thank you for your business.
+            </Text>
           </View>
           <Text
             style={styles.footerPage}
@@ -632,7 +697,8 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
             <Text style={styles.generatedBy}>Generated by</Text>
             <Text style={styles.kairo}>KAIRO</Text>
             <Text style={styles.footerDetail}>
-              Professional Services Automation{"\n"}www.despacho.io
+              Professional Services Automation{"\n"}
+              {settings.website}
             </Text>
           </View>
         </View>

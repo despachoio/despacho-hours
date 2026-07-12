@@ -29,6 +29,14 @@ type LineItem = {
   amount: string;
 };
 
+type InvoiceDefaults = {
+  default_currency: string;
+  default_payment_terms_days: number;
+  default_tax_rate: number;
+  default_invoice_notes: string | null;
+  payment_instructions: string | null;
+};
+
 const emptyLineItem = (): LineItem => ({
   project_id: "",
   description: "",
@@ -58,6 +66,8 @@ export default function NewInvoicePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [clientId, setClientId] = useState("");
   const [currency, setCurrency] = useState("USD");
+  const [paymentTerms, setPaymentTerms] = useState("7");
+  const [taxRate, setTaxRate] = useState("0");
   const [issueDate, setIssueDate] = useState(today);
   const [dueDate, setDueDate] = useState(addDays(today, 7));
   const [notes, setNotes] = useState("");
@@ -68,7 +78,7 @@ export default function NewInvoicePage() {
   async function loadData() {
     setLoading(true);
 
-    const [clientResult, projectResult] = await Promise.all([
+    const [clientResult, projectResult, settingsResult] = await Promise.all([
       supabase
         .from("clients")
         .select("id,name")
@@ -79,6 +89,13 @@ export default function NewInvoicePage() {
         .select("id,name,project_code,client_id")
         .eq("status", "active")
         .order("name"),
+      supabase
+        .from("company_settings")
+        .select(
+          "default_currency,default_payment_terms_days,default_tax_rate,default_invoice_notes,payment_instructions",
+        )
+        .eq("singleton_key", true)
+        .maybeSingle(),
     ]);
 
     if (clientResult.error) {
@@ -93,6 +110,23 @@ export default function NewInvoicePage() {
       setProjects((projectResult.data || []) as Project[]);
     }
 
+    if (settingsResult.data) {
+      const defaults = settingsResult.data as InvoiceDefaults;
+      const terms = Math.max(
+        0,
+        Number(defaults.default_payment_terms_days || 0),
+      );
+      setCurrency(defaults.default_currency || "USD");
+      setPaymentTerms(String(terms));
+      setTaxRate(String(Number(defaults.default_tax_rate || 0)));
+      setDueDate(addDays(today, terms));
+      setNotes(
+        [defaults.default_invoice_notes, defaults.payment_instructions]
+          .filter(Boolean)
+          .join("\n\n"),
+      );
+    }
+
     setLoading(false);
   }
 
@@ -102,36 +136,30 @@ export default function NewInvoicePage() {
 
   const filteredProjects = useMemo(
     () => projects.filter((project) => project.client_id === clientId),
-    [projects, clientId]
+    [projects, clientId],
   );
 
   const totalHours = useMemo(
-    () =>
-      items.reduce(
-        (sum, item) => sum + Number(item.hours || 0),
-        0
-      ),
-    [items]
+    () => items.reduce((sum, item) => sum + Number(item.hours || 0), 0),
+    [items],
   );
 
   const totalAmount = useMemo(
-    () =>
-      items.reduce(
-        (sum, item) => sum + Number(item.amount || 0),
-        0
-      ),
-    [items]
+    () => items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    [items],
   );
 
-  function updateItem(
-    index: number,
-    field: keyof LineItem,
-    value: string
-  ) {
+  const taxAmount = useMemo(
+    () => totalAmount * (Math.max(0, Number(taxRate || 0)) / 100),
+    [taxRate, totalAmount],
+  );
+  const grandTotal = totalAmount + taxAmount;
+
+  function updateItem(index: number, field: keyof LineItem, value: string) {
     setItems((currentItems) =>
       currentItems.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [field]: value } : item
-      )
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
     );
   }
 
@@ -141,20 +169,20 @@ export default function NewInvoicePage() {
 
   function removeItem(index: number) {
     setItems((currentItems) =>
-      currentItems.filter((_, itemIndex) => itemIndex !== index)
+      currentItems.filter((_, itemIndex) => itemIndex !== index),
     );
   }
 
   function handleClientChange(value: string) {
     setClientId(value);
     setItems((currentItems) =>
-      currentItems.map((item) => ({ ...item, project_id: "" }))
+      currentItems.map((item) => ({ ...item, project_id: "" })),
     );
   }
 
   function handleIssueDateChange(value: string) {
     setIssueDate(value);
-    setDueDate(addDays(value, 7));
+    setDueDate(addDays(value, Math.max(0, Number(paymentTerms || 0))));
   }
 
   async function saveDraft() {
@@ -163,12 +191,12 @@ export default function NewInvoicePage() {
         !item.project_id ||
         !item.description.trim() ||
         Number(item.hours || 0) <= 0 ||
-        Number(item.amount || 0) < 0
+        Number(item.amount || 0) < 0,
     );
 
     if (!clientId || !issueDate || !dueDate || hasIncompleteItem) {
       alert(
-        "Please select a client and complete every line item with a project, description, valid hours, and amount."
+        "Please select a client and complete every line item with a project, description, valid hours, and amount.",
       );
       return;
     }
@@ -184,8 +212,8 @@ export default function NewInvoicePage() {
         due_date: dueDate,
         currency,
         subtotal: totalAmount,
-        tax_amount: 0,
-        total_amount: totalAmount,
+        tax_amount: taxAmount,
+        total_amount: grandTotal,
         hours_purchased: totalHours,
         status: "draft",
         notes: notes.trim() || null,
@@ -199,19 +227,17 @@ export default function NewInvoicePage() {
       return;
     }
 
-    const { error: itemError } = await supabase
-      .from("invoice_items")
-      .insert(
-        items.map((item) => ({
-          invoice_id: invoice.id,
-          project_id: item.project_id,
-          description: item.description.trim(),
-          hours: Number(item.hours),
-          quantity: 1,
-          unit_price: Number(item.amount),
-          amount: Number(item.amount),
-        }))
-      );
+    const { error: itemError } = await supabase.from("invoice_items").insert(
+      items.map((item) => ({
+        invoice_id: invoice.id,
+        project_id: item.project_id,
+        description: item.description.trim(),
+        hours: Number(item.hours),
+        quantity: 1,
+        unit_price: Number(item.amount),
+        amount: Number(item.amount),
+      })),
+    );
 
     if (itemError) {
       console.error("Invoice item error:", itemError);
@@ -292,9 +318,7 @@ export default function NewInvoicePage() {
                 label="Issue Date"
                 type="date"
                 value={issueDate}
-                onChange={(event) =>
-                  handleIssueDateChange(event.target.value)
-                }
+                onChange={(event) => handleIssueDateChange(event.target.value)}
               />
 
               <KairoInput
@@ -316,24 +340,42 @@ export default function NewInvoicePage() {
                 <option value="INR">INR</option>
               </KairoSelect>
             </div>
+            <div className="mt-5 grid max-w-xl gap-5 sm:grid-cols-2">
+              <KairoInput
+                label="Payment Terms (days)"
+                type="number"
+                min="0"
+                value={paymentTerms}
+                onChange={(event) => {
+                  const terms = event.target.value;
+                  setPaymentTerms(terms);
+                  setDueDate(
+                    addDays(issueDate, Math.max(0, Number(terms || 0))),
+                  );
+                }}
+              />
+              <KairoInput
+                label="Tax Rate (%)"
+                type="number"
+                min="0"
+                step="0.01"
+                value={taxRate}
+                onChange={(event) => setTaxRate(event.target.value)}
+              />
+            </div>
           </section>
 
           <section className="mt-10 border-t border-slate-200 pt-8">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-950">
-                  Line Items
-                </h2>
+                <h2 className="text-lg font-bold text-slate-950">Line Items</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Choose the project that should receive each hour credit after payment.
+                  Choose the project that should receive each hour credit after
+                  payment.
                 </p>
               </div>
 
-              <KairoButton
-                type="button"
-                variant="secondary"
-                onClick={addItem}
-              >
+              <KairoButton type="button" variant="secondary" onClick={addItem}>
                 + Add Line Item
               </KairoButton>
             </div>
@@ -438,12 +480,26 @@ export default function NewInvoicePage() {
                 </span>
               </div>
 
+              <div className="mt-3 flex items-center justify-between text-sm text-slate-300">
+                <span>Subtotal</span>
+                <span className="font-bold text-white">
+                  {currency} {totalAmount.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between text-sm text-slate-300">
+                <span>Tax ({Number(taxRate || 0).toFixed(2)}%)</span>
+                <span className="font-bold text-white">
+                  {currency} {taxAmount.toFixed(2)}
+                </span>
+              </div>
+
               <div className="mt-4 flex items-end justify-between gap-4 border-t border-slate-700 pt-4">
                 <span className="text-sm font-semibold text-slate-300">
                   Total
                 </span>
                 <span className="text-3xl font-bold tracking-tight">
-                  {currency} {totalAmount.toFixed(2)}
+                  {currency} {grandTotal.toFixed(2)}
                 </span>
               </div>
             </div>

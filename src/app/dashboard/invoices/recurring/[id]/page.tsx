@@ -4,14 +4,166 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type Schedule = { id: string; name: string; status: string; frequency: string; interval_count: number; next_generation_date: string; clients: { name: string } | null };
-type Occurrence = { id: string; scheduled_date: string; status: string; skip_reason: string | null; generated_invoice_id: string | null; invoices: { invoice_number: number; status: string; total_amount: number; currency: string; sent_to: string | null; created_at: string } | null };
-const formatDate = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value));
+type Schedule = {
+  id: string;
+  name: string;
+  status: string;
+  frequency: string;
+  interval_count: number;
+  next_generation_date: string;
+  clients: { name: string } | null;
+};
+type Occurrence = {
+  id: string;
+  scheduled_date: string;
+  status: string;
+  skip_reason: string | null;
+  generated_invoice_id: string | null;
+  invoices: {
+    invoice_number: number;
+    status: string;
+    total_amount: number;
+    currency: string;
+    sent_to: string | null;
+    created_at: string;
+  } | null;
+};
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
 
 export default function RecurringScheduleDetailPage() {
-  const { id } = useParams<{ id: string }>(); const router = useRouter(); const [schedule, setSchedule] = useState<Schedule | null>(null); const [occurrences, setOccurrences] = useState<Occurrence[]>([]); const [loading, setLoading] = useState(true);
-  useEffect(() => { async function load() { const [scheduleResult, occurrenceResult] = await Promise.all([supabase.from("recurring_invoice_schedules").select("id,name,status,frequency,interval_count,next_generation_date,clients(name)").eq("id", id).single(), supabase.from("recurring_invoice_occurrences").select("id,scheduled_date,status,skip_reason,generated_invoice_id,invoices!recurring_invoice_occurrences_generated_invoice_id_fkey(invoice_number,status,total_amount,currency,sent_to,created_at)").eq("recurring_schedule_id", id).order("scheduled_date", { ascending: false })]); setSchedule(scheduleResult.data as unknown as Schedule); setOccurrences((occurrenceResult.data || []) as unknown as Occurrence[]); setLoading(false); } void load(); }, [id]);
-  if (loading) return <main className="py-24 text-center text-slate-500">Loading schedule…</main>;
-  if (!schedule) return <main className="py-24 text-center text-slate-500">Schedule not found.</main>;
-  return <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8"><div className="mx-auto max-w-6xl"><button onClick={() => router.push("/dashboard/invoices/recurring")} className="text-sm font-bold text-slate-500">← Recurring Invoices</button><div className="mt-5 flex flex-col gap-4 rounded-3xl bg-[#0F172A] p-7 text-white sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-blue-200">{schedule.clients?.name}</p><h1 className="mt-2 text-3xl font-bold">{schedule.name}</h1><p className="mt-2 text-sm text-slate-300">Every {schedule.interval_count > 1 ? `${schedule.interval_count} ` : ""}{schedule.frequency} · Next {formatDate(schedule.next_generation_date)}</p></div><button onClick={() => router.push(`/dashboard/invoices/recurring/${id}/edit`)} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#153E90]">Edit Schedule</button></div><section className="mt-7 rounded-3xl border border-slate-200 bg-white p-6"><h2 className="text-xl font-bold">Occurrence History</h2><div className="mt-5 divide-y divide-slate-100">{occurrences.map((occurrence) => <div key={occurrence.id} className="grid gap-3 py-4 sm:grid-cols-[150px_120px_1fr_auto]"><span className="font-semibold">{formatDate(occurrence.scheduled_date)}</span><span className="capitalize text-slate-500">{occurrence.status}</span><div>{occurrence.invoices ? <><p className="font-bold">Invoice #{occurrence.invoices.invoice_number} · {occurrence.invoices.currency} {Number(occurrence.invoices.total_amount).toFixed(2)}</p><p className="text-xs text-slate-500">{occurrence.invoices.status} · {occurrence.invoices.sent_to || "Not sent"}</p></> : <p className="text-sm text-slate-500">{occurrence.skip_reason || "Upcoming occurrence"}</p>}</div>{occurrence.generated_invoice_id ? <button onClick={() => router.push(`/dashboard/invoices/${occurrence.generated_invoice_id}`)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold">Open Invoice</button> : null}</div>)}{!occurrences.length ? <p className="py-10 text-center text-slate-500">No occurrences yet.</p> : null}</div></section></div></main>;
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    async function load() {
+      const [scheduleResult, occurrenceResult] = await Promise.all([
+        supabase
+          .from("recurring_invoice_schedules")
+          .select(
+            "id,name,status,frequency,interval_count,next_generation_date,clients(name)",
+          )
+          .eq("id", id)
+          .single(),
+        supabase
+          .from("recurring_invoice_occurrences")
+          .select(
+            "id,scheduled_date,status,skip_reason,generated_invoice_id,invoices!recurring_invoice_occurrences_generated_invoice_id_fkey(invoice_number,status,total_amount,currency,sent_to,created_at)",
+          )
+          .eq("recurring_schedule_id", id)
+          .order("scheduled_date", { ascending: false }),
+      ]);
+      setSchedule(scheduleResult.data as unknown as Schedule);
+      setOccurrences((occurrenceResult.data || []) as unknown as Occurrence[]);
+      setLoading(false);
+    }
+    void load();
+  }, [id]);
+  if (loading)
+    return (
+      <main className="py-24 text-center text-slate-500">
+        Loading schedule…
+      </main>
+    );
+  if (!schedule)
+    return (
+      <main className="py-24 text-center text-slate-500">
+        Schedule not found.
+      </main>
+    );
+  return (
+    <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
+      <div className="mx-auto max-w-6xl">
+        <button
+          onClick={() => router.push("/dashboard/invoices?tab=recurring")}
+          className="text-sm font-bold text-slate-500"
+        >
+          ← Recurring Invoices
+        </button>
+        <div className="mt-5 flex flex-col gap-4 rounded-3xl bg-[#0F172A] p-7 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-200">
+              {schedule.clients?.name}
+            </p>
+            <h1 className="mt-2 text-3xl font-bold">{schedule.name}</h1>
+            <p className="mt-2 text-sm text-slate-300">
+              Every{" "}
+              {schedule.interval_count > 1 ? `${schedule.interval_count} ` : ""}
+              {schedule.frequency} · Next{" "}
+              {formatDate(schedule.next_generation_date)}
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              router.push(`/dashboard/invoices/recurring/${id}/edit`)
+            }
+            className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#153E90]"
+          >
+            Edit Schedule
+          </button>
+        </div>
+        <section className="mt-7 rounded-3xl border border-slate-200 bg-white p-6">
+          <h2 className="text-xl font-bold">Occurrence History</h2>
+          <div className="mt-5 divide-y divide-slate-100">
+            {occurrences.map((occurrence) => (
+              <div
+                key={occurrence.id}
+                className="grid gap-3 py-4 sm:grid-cols-[150px_120px_1fr_auto]"
+              >
+                <span className="font-semibold">
+                  {formatDate(occurrence.scheduled_date)}
+                </span>
+                <span className="capitalize text-slate-500">
+                  {occurrence.status}
+                </span>
+                <div>
+                  {occurrence.invoices ? (
+                    <>
+                      <p className="font-bold">
+                        Invoice #{occurrence.invoices.invoice_number} ·{" "}
+                        {occurrence.invoices.currency}{" "}
+                        {Number(occurrence.invoices.total_amount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {occurrence.invoices.status} ·{" "}
+                        {occurrence.invoices.sent_to || "Not sent"}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      {occurrence.skip_reason || "Upcoming occurrence"}
+                    </p>
+                  )}
+                </div>
+                {occurrence.generated_invoice_id ? (
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/invoices/${occurrence.generated_invoice_id}`,
+                      )
+                    }
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"
+                  >
+                    Open Invoice
+                  </button>
+                ) : null}
+              </div>
+            ))}
+            {!occurrences.length ? (
+              <p className="py-10 text-center text-slate-500">
+                No occurrences yet.
+              </p>
+            ) : null}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }

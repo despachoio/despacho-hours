@@ -3,6 +3,7 @@
 import {
   FormEvent,
   KeyboardEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -10,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { Invoice } from "../page";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_COMPANY_SETTINGS } from "@/lib/settings/companySettingsDefaults";
 
 type Props = {
   invoice: Invoice;
@@ -37,8 +39,8 @@ function uniqueEmails(emails: string[]) {
       emails
         .map((email) => email.trim())
         .filter(Boolean)
-        .map((email) => [email.toLowerCase(), email])
-    ).values()
+        .map((email) => [email.toLowerCase(), email]),
+    ).values(),
   );
 }
 
@@ -72,7 +74,10 @@ function RecipientField({
 
   return (
     <div>
-      <label className="text-sm font-semibold text-slate-700" htmlFor={`${label}-email`}>
+      <label
+        className="text-sm font-semibold text-slate-700"
+        htmlFor={`${label}-email`}
+      >
         {label}
       </label>
       <div className="mt-2 flex min-h-12 flex-wrap items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 transition focus-within:border-[#153E90] focus-within:ring-4 focus-within:ring-blue-100">
@@ -144,7 +149,8 @@ function defaultMessage(
   invoiceNumber: number,
   currency: string,
   totalAmount: number,
-  dueDate: string
+  dueDate: string,
+  companyName: string,
 ) {
   const formattedAmount = Number(totalAmount || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -160,7 +166,7 @@ The payment due date is ${formatDueDate(dueDate)}.
 Thank you.
 
 Regards,
-Despacho Inc.`;
+${companyName}`;
 }
 
 const REVERSAL_REASONS = [
@@ -187,12 +193,15 @@ export default function InvoiceActions({
   onInvoiceSent,
 }: Props) {
   const router = useRouter();
-  const contacts = useMemo(() => invoice.clients?.client_contacts || [], [invoice.clients]);
+  const contacts = useMemo(
+    () => invoice.clients?.client_contacts || [],
+    [invoice.clients],
+  );
   const billingContacts = contacts.filter(
     (contact) =>
       contact.email &&
       contact.is_active !== false &&
-      contact.contact_type?.trim().toLowerCase() === "billing"
+      contact.contact_type?.trim().toLowerCase() === "billing",
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [to, setTo] = useState<string[]>([]);
@@ -233,15 +242,50 @@ export default function InvoiceActions({
   const [voidNotes, setVoidNotes] = useState("");
   const [voidError, setVoidError] = useState("");
   const voidRequestInFlight = useRef(false);
-  const [isStopRemindersModalOpen, setIsStopRemindersModalOpen] = useState(false);
+  const [isStopRemindersModalOpen, setIsStopRemindersModalOpen] =
+    useState(false);
   const [isUpdatingReminders, setIsUpdatingReminders] = useState(false);
   const [reminderStopReason, setReminderStopReason] = useState("");
   const [reminderError, setReminderError] = useState("");
+  const [isDeleteDraftModalOpen, setIsDeleteDraftModalOpen] = useState(false);
+  const [isDeletingDraft, setIsDeletingDraft] = useState(false);
+  const [deleteDraftError, setDeleteDraftError] = useState("");
+  const [companyIdentity, setCompanyIdentity] = useState({
+    companyName: DEFAULT_COMPANY_SETTINGS.company_name,
+    businessEmail: DEFAULT_COMPANY_SETTINGS.business_email || "",
+  });
   const normalizedStatus = invoice.status.trim().toLowerCase();
+  const recurringSchedule = Array.isArray(invoice.recurring_invoice_schedules)
+    ? invoice.recurring_invoice_schedules[0]
+    : invoice.recurring_invoice_schedules;
+  const canDeleteRecurringDraft =
+    isAdmin &&
+    normalizedStatus === "draft" &&
+    invoice.generated_from_recurring === true &&
+    recurringSchedule?.autopay_enabled !== true;
   const canSendInvoice = !["paid", "void", "cancelled"].includes(
-    normalizedStatus
+    normalizedStatus,
   );
   const canRecordPayment = ["sent", "overdue"].includes(normalizedStatus);
+
+  useEffect(() => {
+    void supabase
+      .from("company_settings")
+      .select("company_name,business_email")
+      .eq("singleton_key", true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data)
+          setCompanyIdentity({
+            companyName:
+              data.company_name || DEFAULT_COMPANY_SETTINGS.company_name,
+            businessEmail:
+              data.business_email ||
+              DEFAULT_COMPANY_SETTINGS.business_email ||
+              "",
+          });
+      });
+  }, []);
 
   function showToast(nextToast: Exclude<Toast, null>) {
     setToast(nextToast);
@@ -255,19 +299,33 @@ export default function InvoiceActions({
         contact.email &&
         contact.is_active !== false &&
         (contact.is_primary ||
-          contact.contact_type?.trim().toLowerCase() === "primary")
+          contact.contact_type?.trim().toLowerCase() === "primary"),
     )?.email;
 
     const storedDraftTo = invoice.draft_email_to?.split(",") || [];
     const storedDraftCc = invoice.draft_email_cc?.split(",") || [];
-    setTo(uniqueEmails(storedDraftTo.length && storedDraftTo.some((email) => email.trim()) ? storedDraftTo : billingEmails.length ? billingEmails : [primaryEmail || ""]));
-    setCc(uniqueEmails(storedDraftCc.length && storedDraftCc.some((email) => email.trim()) ? storedDraftCc : ["sales@despacho.io"]));
+    setTo(
+      uniqueEmails(
+        storedDraftTo.length && storedDraftTo.some((email) => email.trim())
+          ? storedDraftTo
+          : billingEmails.length
+            ? billingEmails
+            : [primaryEmail || ""],
+      ),
+    );
+    setCc(
+      uniqueEmails(
+        storedDraftCc.length && storedDraftCc.some((email) => email.trim())
+          ? storedDraftCc
+          : [companyIdentity.businessEmail],
+      ),
+    );
     setToInput("");
     setCcInput("");
     setSubject(
       invoice.email_subject ||
         invoice.draft_email_subject ||
-        `Invoice #${invoice.invoice_number} from Despacho`
+        `Invoice #${invoice.invoice_number} from ${companyIdentity.companyName}`,
     );
     setMessage(
       invoice.email_body ||
@@ -277,8 +335,9 @@ export default function InvoiceActions({
           invoice.invoice_number,
           invoice.currency,
           invoice.total_amount,
-          invoice.due_date
-        )
+          invoice.due_date,
+          companyIdentity.companyName,
+        ),
     );
     setIdempotencyKey(crypto.randomUUID());
     setIsModalOpen(true);
@@ -350,7 +409,10 @@ export default function InvoiceActions({
 
     const finalTo = uniqueEmails([...to, ...toInput.split(",")]);
     const finalCc = uniqueEmails([...cc, ...ccInput.split(",")]).filter(
-      (email) => !finalTo.some((recipient) => recipient.toLowerCase() === email.toLowerCase())
+      (email) =>
+        !finalTo.some(
+          (recipient) => recipient.toLowerCase() === email.toLowerCase(),
+        ),
     );
 
     if (finalTo.length === 0) {
@@ -466,7 +528,7 @@ export default function InvoiceActions({
         throw new Error(
           result?.databaseError ||
             result?.error ||
-            "Invoice status could not be repaired."
+            "Invoice status could not be repaired.",
         );
       }
 
@@ -476,7 +538,8 @@ export default function InvoiceActions({
       router.refresh();
       showToast({
         tone: "success",
-        message: "Invoice status repaired successfully. The email was not resent.",
+        message:
+          "Invoice status repaired successfully. The email was not resent.",
       });
     } catch (error) {
       showToast({
@@ -530,7 +593,7 @@ export default function InvoiceActions({
             referenceNumber: paymentReference,
             notes: paymentNotes,
           }),
-        }
+        },
       );
       const result = await response.json().catch(() => null);
 
@@ -547,7 +610,9 @@ export default function InvoiceActions({
       });
     } catch (error) {
       setPaymentError(
-        error instanceof Error ? error.message : "Payment could not be recorded."
+        error instanceof Error
+          ? error.message
+          : "Payment could not be recorded.",
       );
     } finally {
       setIsRecordingPayment(false);
@@ -556,7 +621,10 @@ export default function InvoiceActions({
 
   function openDuplicateModal() {
     const issueDate = todayForInput();
-    const paymentTerms = invoicePaymentTerms(invoice.issue_date, invoice.due_date);
+    const paymentTerms = invoicePaymentTerms(
+      invoice.issue_date,
+      invoice.due_date,
+    );
     setDuplicateIssueDate(issueDate);
     setDuplicateTerms(paymentTerms);
     setDuplicateDueDate(addDays(issueDate, paymentTerms));
@@ -606,12 +674,14 @@ export default function InvoiceActions({
       setIsDuplicateModalOpen(false);
       window.sessionStorage.setItem(
         "invoiceDuplicateSuccess",
-        `Invoice duplicated as Draft #${result.invoiceNumber}.`
+        `Invoice duplicated as Draft #${result.invoiceNumber}.`,
       );
       router.push(`/dashboard/invoices/${result.invoiceId}/edit`);
     } catch (error) {
       setDuplicateError(
-        error instanceof Error ? error.message : "Invoice could not be duplicated."
+        error instanceof Error
+          ? error.message
+          : "Invoice could not be duplicated.",
       );
     } finally {
       duplicateRequestInFlight.current = false;
@@ -631,9 +701,10 @@ export default function InvoiceActions({
     event.preventDefault();
     if (isReversingPayment) return;
 
-    const finalReason = reversalReason === "Other"
-      ? customReversalReason.trim()
-      : reversalReason.trim();
+    const finalReason =
+      reversalReason === "Other"
+        ? customReversalReason.trim()
+        : reversalReason.trim();
     if (!finalReason) {
       setReversalError("Select or enter a reversal reason.");
       return;
@@ -649,14 +720,17 @@ export default function InvoiceActions({
         return;
       }
 
-      const response = await fetch(`/api/invoices/${invoice.id}/reverse-payment`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/invoices/${invoice.id}/reverse-payment`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ reason: finalReason, notes: reversalNotes }),
         },
-        body: JSON.stringify({ reason: finalReason, notes: reversalNotes }),
-      });
+      );
       const result = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(result?.error || "Payment could not be reversed.");
@@ -671,7 +745,9 @@ export default function InvoiceActions({
       });
     } catch (error) {
       setReversalError(
-        error instanceof Error ? error.message : "Payment could not be reversed."
+        error instanceof Error
+          ? error.message
+          : "Payment could not be reversed.",
       );
     } finally {
       setIsReversingPayment(false);
@@ -690,9 +766,8 @@ export default function InvoiceActions({
     event.preventDefault();
     if (voidRequestInFlight.current) return;
 
-    const finalReason = voidReason === "Other"
-      ? customVoidReason.trim()
-      : voidReason.trim();
+    const finalReason =
+      voidReason === "Other" ? customVoidReason.trim() : voidReason.trim();
     if (!finalReason) {
       setVoidError("Select or enter a void reason.");
       return;
@@ -727,7 +802,9 @@ export default function InvoiceActions({
       router.refresh();
       showToast({ tone: "success", message: "Invoice voided successfully." });
     } catch (error) {
-      setVoidError(error instanceof Error ? error.message : "Invoice could not be voided.");
+      setVoidError(
+        error instanceof Error ? error.message : "Invoice could not be voided.",
+      );
     } finally {
       voidRequestInFlight.current = false;
       setIsVoiding(false);
@@ -738,22 +815,43 @@ export default function InvoiceActions({
     event.preventDefault();
     if (isUpdatingReminders) return;
     const reason = reminderStopReason.trim();
-    if (!reason) { setReminderError("Reason is required."); return; }
+    if (!reason) {
+      setReminderError("Reason is required.");
+      return;
+    }
     setIsUpdatingReminders(true);
     setReminderError("");
     try {
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Your session has expired. Please log in again.");
-      const response = await fetch(`/api/invoices/${invoice.id}/stop-reminders`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ reason }) });
+      if (!accessToken)
+        throw new Error("Your session has expired. Please log in again.");
+      const response = await fetch(
+        `/api/invoices/${invoice.id}/stop-reminders`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ reason }),
+        },
+      );
       const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(result?.error || "Reminders could not be stopped.");
+      if (!response.ok)
+        throw new Error(result?.error || "Reminders could not be stopped.");
       onInvoiceSent(result.invoice as Partial<Invoice>);
       setIsStopRemindersModalOpen(false);
       router.refresh();
       showToast({ tone: "success", message: "Automatic reminders stopped." });
     } catch (error) {
-      setReminderError(error instanceof Error ? error.message : "Reminders could not be stopped.");
-    } finally { setIsUpdatingReminders(false); }
+      setReminderError(
+        error instanceof Error
+          ? error.message
+          : "Reminders could not be stopped.",
+      );
+    } finally {
+      setIsUpdatingReminders(false);
+    }
   }
 
   async function resumeReminders() {
@@ -761,18 +859,61 @@ export default function InvoiceActions({
     setIsUpdatingReminders(true);
     try {
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Your session has expired. Please log in again.");
-      const response = await fetch(`/api/invoices/${invoice.id}/resume-reminders`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!accessToken)
+        throw new Error("Your session has expired. Please log in again.");
+      const response = await fetch(
+        `/api/invoices/${invoice.id}/resume-reminders`,
+        { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } },
+      );
       const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(result?.error || "Reminders could not be resumed.");
+      if (!response.ok)
+        throw new Error(result?.error || "Reminders could not be resumed.");
       onInvoiceSent(result.invoice as Partial<Invoice>);
       router.refresh();
       showToast({ tone: "success", message: "Automatic reminders resumed." });
     } catch (error) {
-      showToast({ tone: "error", message: error instanceof Error ? error.message : "Reminders could not be resumed." });
-    } finally { setIsUpdatingReminders(false); }
+      showToast({
+        tone: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Reminders could not be resumed.",
+      });
+    } finally {
+      setIsUpdatingReminders(false);
+    }
   }
 
+  async function deleteRecurringDraft() {
+    if (!canDeleteRecurringDraft || isDeletingDraft) return;
+    setIsDeletingDraft(true);
+    setDeleteDraftError("");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken)
+        throw new Error("Your session has expired. Please log in again.");
+      const response = await fetch(
+        `/api/invoices/${invoice.id}/delete-recurring-draft`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new Error(result?.error || "Unable to delete recurring Draft.");
+      router.push("/dashboard/invoices?tab=all");
+      router.refresh();
+    } catch (error) {
+      setDeleteDraftError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete recurring Draft.",
+      );
+    } finally {
+      setIsDeletingDraft(false);
+    }
+  }
 
   return (
     <>
@@ -795,7 +936,9 @@ export default function InvoiceActions({
         <div className="mt-6 space-y-3">
           <button
             type="button"
-            onClick={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}
+            onClick={() =>
+              router.push(`/dashboard/invoices/${invoice.id}/edit`)
+            }
             disabled={invoice.status.toLowerCase() !== "draft"}
             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-semibold transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
           >
@@ -837,10 +980,16 @@ export default function InvoiceActions({
             </button>
           ) : null}
 
-          {isAdmin && ["draft", "sent", "paid"].includes(normalizedStatus) ? (
+          {isAdmin &&
+          !invoice.generated_from_recurring &&
+          ["draft", "sent", "paid"].includes(normalizedStatus) ? (
             <button
               type="button"
-              onClick={() => router.push(`/dashboard/invoices/recurring/new?sourceInvoiceId=${invoice.id}`)}
+              onClick={() =>
+                router.push(
+                  `/dashboard/invoices/recurring/new?sourceInvoiceId=${invoice.id}`,
+                )
+              }
               className="w-full rounded-xl border border-violet-200 px-4 py-3 text-left font-semibold text-violet-700 transition hover:bg-violet-50"
             >
               Make Recurring
@@ -882,30 +1031,95 @@ export default function InvoiceActions({
 
           {isAdmin && ["sent", "overdue"].includes(normalizedStatus) ? (
             invoice.reminders_enabled ? (
-              <button type="button" onClick={() => { setReminderStopReason(""); setReminderError(""); setIsStopRemindersModalOpen(true); }} disabled={isUpdatingReminders} className="w-full rounded-xl border border-amber-300 px-4 py-3 text-left font-semibold text-amber-800 transition hover:bg-amber-50 disabled:opacity-60">
+              <button
+                type="button"
+                onClick={() => {
+                  setReminderStopReason("");
+                  setReminderError("");
+                  setIsStopRemindersModalOpen(true);
+                }}
+                disabled={isUpdatingReminders}
+                className="w-full rounded-xl border border-amber-300 px-4 py-3 text-left font-semibold text-amber-800 transition hover:bg-amber-50 disabled:opacity-60"
+              >
                 Stop Reminders
               </button>
             ) : (
-              <button type="button" onClick={resumeReminders} disabled={isUpdatingReminders} className="w-full rounded-xl border border-blue-200 px-4 py-3 text-left font-semibold text-[#153E90] transition hover:bg-blue-50 disabled:opacity-60">
+              <button
+                type="button"
+                onClick={resumeReminders}
+                disabled={isUpdatingReminders}
+                className="w-full rounded-xl border border-blue-200 px-4 py-3 text-left font-semibold text-[#153E90] transition hover:bg-blue-50 disabled:opacity-60"
+              >
                 {isUpdatingReminders ? "Resuming..." : "Resume Reminders"}
               </button>
             )
           ) : null}
 
-          {invoice.status.toLowerCase() === "draft" ? (
+          {canDeleteRecurringDraft ? (
             <>
               <div className="my-3 border-t border-slate-200" />
               <button
                 type="button"
-                disabled
-                className="w-full cursor-not-allowed rounded-xl border border-red-200 px-4 py-3 text-left font-semibold text-red-400"
+                onClick={() => {
+                  setDeleteDraftError("");
+                  setIsDeleteDraftModalOpen(true);
+                }}
+                className="w-full rounded-xl border border-red-200 px-4 py-3 text-left font-semibold text-red-600 hover:bg-red-50"
               >
-                Delete Draft
+                Delete Recurring Draft
               </button>
             </>
           ) : null}
         </div>
       </div>
+
+      {isDeleteDraftModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-recurring-draft-title"
+        >
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+            <h2
+              id="delete-recurring-draft-title"
+              className="text-xl font-bold text-slate-950"
+            >
+              Delete recurring Draft?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              This removes this Draft invoice only. The recurring schedule and
+              its future occurrences will remain active.
+            </p>
+            {deleteDraftError ? (
+              <div
+                role="alert"
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+              >
+                {deleteDraftError}
+              </div>
+            ) : null}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDeleteDraftModalOpen(false)}
+                disabled={isDeletingDraft}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600"
+              >
+                Keep Draft
+              </button>
+              <button
+                type="button"
+                onClick={() => void deleteRecurringDraft()}
+                disabled={isDeletingDraft}
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {isDeletingDraft ? "Deleting…" : "Delete Draft"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isModalOpen ? (
         <div
@@ -928,8 +1142,13 @@ export default function InvoiceActions({
               >
                 ×
               </button>
-              <p className="text-sm font-semibold text-[#153E90]">Email invoice</p>
-              <h2 id="send-invoice-title" className="mt-1 text-2xl font-bold text-slate-950">
+              <p className="text-sm font-semibold text-[#153E90]">
+                Email invoice
+              </p>
+              <h2
+                id="send-invoice-title"
+                className="mt-1 text-2xl font-bold text-slate-950"
+              >
                 Send Invoice #{invoice.invoice_number}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
@@ -962,7 +1181,9 @@ export default function InvoiceActions({
                 autoFocus
                 onInputChange={setToInput}
                 onAdd={() => {
-                  setTo((current) => uniqueEmails([...current, ...toInput.split(",")]));
+                  setTo((current) =>
+                    uniqueEmails([...current, ...toInput.split(",")]),
+                  );
                   setToInput("");
                 }}
                 onRemove={(email) =>
@@ -977,7 +1198,9 @@ export default function InvoiceActions({
                 placeholder="Optional CC email"
                 onInputChange={setCcInput}
                 onAdd={() => {
-                  setCc((current) => uniqueEmails([...current, ...ccInput.split(",")]));
+                  setCc((current) =>
+                    uniqueEmails([...current, ...ccInput.split(",")]),
+                  );
                   setCcInput("");
                 }}
                 onRemove={(email) =>
@@ -986,7 +1209,9 @@ export default function InvoiceActions({
               />
 
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Subject</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Subject
+                </span>
                 <input
                   type="text"
                   required
@@ -997,7 +1222,9 @@ export default function InvoiceActions({
               </label>
 
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Message</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Message
+                </span>
                 <textarea
                   required
                   rows={10}
@@ -1041,58 +1268,183 @@ export default function InvoiceActions({
       ) : null}
 
       {isStopRemindersModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="stop-reminders-title">
-          <form onSubmit={stopReminders} className="w-full max-w-lg rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="stop-reminders-title"
+        >
+          <form
+            onSubmit={stopReminders}
+            className="w-full max-w-lg rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
+          >
             <div className="border-b border-slate-200 px-7 py-6">
-              <h2 id="stop-reminders-title" className="text-2xl font-bold text-slate-950">Stop Invoice Reminders</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Automatic reminder emails will stop for this invoice. This will not change the invoice status or outstanding balance.</p>
+              <h2
+                id="stop-reminders-title"
+                className="text-2xl font-bold text-slate-950"
+              >
+                Stop Invoice Reminders
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Automatic reminder emails will stop for this invoice. This will
+                not change the invoice status or outstanding balance.
+              </p>
             </div>
             <div className="px-7 py-6">
-              {reminderError ? <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{reminderError}</div> : null}
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Reason</span><textarea required rows={4} value={reminderStopReason} onChange={(event) => setReminderStopReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100" /></label>
+              {reminderError ? (
+                <div
+                  role="alert"
+                  className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                >
+                  {reminderError}
+                </div>
+              ) : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">
+                  Reason
+                </span>
+                <textarea
+                  required
+                  rows={4}
+                  value={reminderStopReason}
+                  onChange={(event) =>
+                    setReminderStopReason(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
             </div>
             <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
-              <button type="button" onClick={() => setIsStopRemindersModalOpen(false)} disabled={isUpdatingReminders} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700">Cancel</button>
-              <button type="submit" disabled={isUpdatingReminders} className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{isUpdatingReminders ? "Stopping..." : "Stop Reminders"}</button>
+              <button
+                type="button"
+                onClick={() => setIsStopRemindersModalOpen(false)}
+                disabled={isUpdatingReminders}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdatingReminders}
+                className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {isUpdatingReminders ? "Stopping..." : "Stop Reminders"}
+              </button>
             </div>
           </form>
         </div>
       ) : null}
 
       {isVoidModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="void-invoice-title">
-          <form onSubmit={voidInvoice} className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="void-invoice-title"
+        >
+          <form
+            onSubmit={voidInvoice}
+            className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
+          >
             <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
-              <button type="button" onClick={() => setIsVoidModalOpen(false)} disabled={isVoiding} aria-label="Close void invoice" className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50">×</button>
-              <p className="text-sm font-semibold text-red-700">Audit-preserving action</p>
-              <h2 id="void-invoice-title" className="mt-1 text-2xl font-bold text-slate-950">Void Invoice</h2>
+              <button
+                type="button"
+                onClick={() => setIsVoidModalOpen(false)}
+                disabled={isVoiding}
+                aria-label="Close void invoice"
+                className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              >
+                ×
+              </button>
+              <p className="text-sm font-semibold text-red-700">
+                Audit-preserving action
+              </p>
+              <h2
+                id="void-invoice-title"
+                className="mt-1 text-2xl font-bold text-slate-950"
+              >
+                Void Invoice
+              </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                This invoice has already been sent. Voiding it will prevent further payment or resending, but the invoice will remain in Kairo for audit purposes.
+                This invoice has already been sent. Voiding it will prevent
+                further payment or resending, but the invoice will remain in
+                Kairo for audit purposes.
               </p>
             </div>
             <div className="space-y-5 px-7 py-6">
-              {voidError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{voidError}</div> : null}
+              {voidError ? (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                >
+                  {voidError}
+                </div>
+              ) : null}
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Reason</span>
-                <select required value={voidReason} onChange={(event) => { setVoidReason(event.target.value); setVoidError(""); }} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100">
+                <span className="text-sm font-semibold text-slate-700">
+                  Reason
+                </span>
+                <select
+                  required
+                  value={voidReason}
+                  onChange={(event) => {
+                    setVoidReason(event.target.value);
+                    setVoidError("");
+                  }}
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                >
                   <option value="">Select a reason</option>
-                  {VOID_REASONS.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+                  {VOID_REASONS.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {reason}
+                    </option>
+                  ))}
                 </select>
               </label>
               {voidReason === "Other" ? (
                 <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">Custom Reason</span>
-                  <input required value={customVoidReason} onChange={(event) => setCustomVoidReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+                  <span className="text-sm font-semibold text-slate-700">
+                    Custom Reason
+                  </span>
+                  <input
+                    required
+                    value={customVoidReason}
+                    onChange={(event) =>
+                      setCustomVoidReason(event.target.value)
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  />
                 </label>
               ) : null}
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Notes <span className="font-normal text-slate-400">(optional)</span></span>
-                <textarea rows={4} value={voidNotes} onChange={(event) => setVoidNotes(event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+                <span className="text-sm font-semibold text-slate-700">
+                  Notes{" "}
+                  <span className="font-normal text-slate-400">(optional)</span>
+                </span>
+                <textarea
+                  rows={4}
+                  value={voidNotes}
+                  onChange={(event) => setVoidNotes(event.target.value)}
+                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                />
               </label>
             </div>
             <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
-              <button type="button" onClick={() => setIsVoidModalOpen(false)} disabled={isVoiding} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60">Cancel</button>
-              <button type="submit" disabled={isVoiding} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">{isVoiding ? "Voiding..." : "Void Invoice"}</button>
+              <button
+                type="button"
+                onClick={() => setIsVoidModalOpen(false)}
+                disabled={isVoiding}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isVoiding}
+                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isVoiding ? "Voiding..." : "Void Invoice"}
+              </button>
             </div>
           </form>
         </div>
@@ -1119,8 +1471,15 @@ export default function InvoiceActions({
               >
                 ×
               </button>
-              <p className="text-sm font-semibold text-red-700">Payment reversal</p>
-              <h2 id="reverse-payment-title" className="mt-1 text-2xl font-bold text-slate-950">Reverse Payment</h2>
+              <p className="text-sm font-semibold text-red-700">
+                Payment reversal
+              </p>
+              <h2
+                id="reverse-payment-title"
+                className="mt-1 text-2xl font-bold text-slate-950"
+              >
+                Reverse Payment
+              </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
                 This will return the invoice to Sent status and remove the hours
                 credited to the linked project wallets. The original payment and
@@ -1129,34 +1488,78 @@ export default function InvoiceActions({
             </div>
             <div className="space-y-5 px-7 py-6">
               {reversalError ? (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{reversalError}</div>
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                >
+                  {reversalError}
+                </div>
               ) : null}
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Reason</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Reason
+                </span>
                 <select
                   required
                   value={reversalReason}
-                  onChange={(event) => { setReversalReason(event.target.value); setReversalError(""); }}
+                  onChange={(event) => {
+                    setReversalReason(event.target.value);
+                    setReversalError("");
+                  }}
                   className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
                 >
                   <option value="">Select a reason</option>
-                  {REVERSAL_REASONS.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+                  {REVERSAL_REASONS.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {reason}
+                    </option>
+                  ))}
                 </select>
               </label>
               {reversalReason === "Other" ? (
                 <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">Custom Reason</span>
-                  <input required value={customReversalReason} onChange={(event) => setCustomReversalReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+                  <span className="text-sm font-semibold text-slate-700">
+                    Custom Reason
+                  </span>
+                  <input
+                    required
+                    value={customReversalReason}
+                    onChange={(event) =>
+                      setCustomReversalReason(event.target.value)
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  />
                 </label>
               ) : null}
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Notes <span className="font-normal text-slate-400">(optional)</span></span>
-                <textarea rows={4} value={reversalNotes} onChange={(event) => setReversalNotes(event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+                <span className="text-sm font-semibold text-slate-700">
+                  Notes{" "}
+                  <span className="font-normal text-slate-400">(optional)</span>
+                </span>
+                <textarea
+                  rows={4}
+                  value={reversalNotes}
+                  onChange={(event) => setReversalNotes(event.target.value)}
+                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                />
               </label>
             </div>
             <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
-              <button type="button" onClick={() => setIsReversalModalOpen(false)} disabled={isReversingPayment} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60">Cancel</button>
-              <button type="submit" disabled={isReversingPayment} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">{isReversingPayment ? "Reversing..." : "Reverse Payment"}</button>
+              <button
+                type="button"
+                onClick={() => setIsReversalModalOpen(false)}
+                disabled={isReversingPayment}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isReversingPayment}
+                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isReversingPayment ? "Reversing..." : "Reverse Payment"}
+              </button>
             </div>
           </form>
         </div>
@@ -1183,25 +1586,36 @@ export default function InvoiceActions({
               >
                 ×
               </button>
-              <p className="text-sm font-semibold text-[#153E90]">Create draft copy</p>
-              <h2 id="duplicate-invoice-title" className="mt-1 text-2xl font-bold text-slate-950">
+              <p className="text-sm font-semibold text-[#153E90]">
+                Create draft copy
+              </p>
+              <h2
+                id="duplicate-invoice-title"
+                className="mt-1 text-2xl font-bold text-slate-950"
+              >
                 Duplicate Invoice
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
                 This will create a new draft invoice using the same client,
-                projects, line items, hours, amounts, currency, and payment instructions.
+                projects, line items, hours, amounts, currency, and payment
+                instructions.
               </p>
             </div>
 
             <div className="space-y-5 px-7 py-6">
               {duplicateError ? (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                >
                   {duplicateError}
                 </div>
               ) : null}
 
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Issue Date</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Issue Date
+                </span>
                 <input
                   type="date"
                   required
@@ -1209,34 +1623,47 @@ export default function InvoiceActions({
                   onChange={(event) => {
                     const value = event.target.value;
                     setDuplicateIssueDate(value);
-                    if (value) setDuplicateDueDate(addDays(value, duplicateTerms));
+                    if (value)
+                      setDuplicateDueDate(addDays(value, duplicateTerms));
                   }}
                   className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Payment Terms</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Payment Terms
+                </span>
                 <div className="mt-2 flex items-center overflow-hidden rounded-xl border border-slate-300">
-                  <span className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">Net</span>
+                  <span className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                    Net
+                  </span>
                   <input
                     type="number"
                     min="0"
                     required
                     value={duplicateTerms}
                     onChange={(event) => {
-                      const value = Math.max(0, Number(event.target.value || 0));
+                      const value = Math.max(
+                        0,
+                        Number(event.target.value || 0),
+                      );
                       setDuplicateTerms(value);
-                      if (duplicateIssueDate) setDuplicateDueDate(addDays(duplicateIssueDate, value));
+                      if (duplicateIssueDate)
+                        setDuplicateDueDate(addDays(duplicateIssueDate, value));
                     }}
                     className="w-full px-4 py-3 text-sm outline-none"
                   />
-                  <span className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">Days</span>
+                  <span className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                    Days
+                  </span>
                 </div>
               </label>
 
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Due Date</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Due Date
+                </span>
                 <input
                   type="date"
                   required
@@ -1365,7 +1792,8 @@ export default function InvoiceActions({
 
               <label className="block">
                 <span className="text-sm font-semibold text-slate-700">
-                  Reference Number <span className="font-normal text-slate-400">(optional)</span>
+                  Reference Number{" "}
+                  <span className="font-normal text-slate-400">(optional)</span>
                 </span>
                 <input
                   type="text"
@@ -1378,7 +1806,8 @@ export default function InvoiceActions({
 
               <label className="block">
                 <span className="text-sm font-semibold text-slate-700">
-                  Notes <span className="font-normal text-slate-400">(optional)</span>
+                  Notes{" "}
+                  <span className="font-normal text-slate-400">(optional)</span>
                 </span>
                 <textarea
                   rows={3}
