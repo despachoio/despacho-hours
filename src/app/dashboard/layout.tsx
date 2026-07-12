@@ -44,7 +44,7 @@ const allMenu: MenuItem[] = [
   {
     name: "Team",
     path: "/dashboard/team",
-    roles: ["Admin", "Manager"],
+    roles: ["Admin", "Manager", "Employee"],
     icon: "team",
   },
   {
@@ -158,10 +158,10 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function checkUser() {
@@ -172,7 +172,6 @@ export default function DashboardLayout({
         return;
       }
 
-      setUserEmail(data.user.email || "");
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, role")
@@ -195,13 +194,39 @@ export default function DashboardLayout({
       router.replace("/dashboard/time");
   }, [pathname, router, userRole]);
 
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (
+        event.target instanceof Element &&
+        !event.target.closest("[data-profile-menu]")
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsProfileMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isProfileMenuOpen]);
+
   async function logout() {
+    setIsProfileMenuOpen(false);
     await supabase.auth.signOut();
     router.replace("/login");
     router.refresh();
   }
 
   function navigate(path: string) {
+    setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
     router.push(path);
   }
@@ -249,7 +274,7 @@ export default function DashboardLayout({
             </svg>
           </button>
         </div>
-        <div className="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
+        <div className="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-800">
           <span className="h-px w-5 bg-[#153E90]" />
           The pulse of Despacho
         </div>
@@ -291,9 +316,15 @@ export default function DashboardLayout({
       </div>
 
       <div className="relative border-t border-slate-100 bg-slate-50/70 p-4">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#153E90] to-[#0F172A] text-sm font-bold text-white shadow-md shadow-blue-900/15">
+        <div className="relative" data-profile-menu>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={isProfileMenuOpen}
+            onClick={() => setIsProfileMenuOpen((open) => !open)}
+            className="flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35"
+          >
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#153E90] to-[#0F172A] text-xs font-bold text-white shadow-md shadow-blue-900/15">
               {getInitials(userName) || "K"}
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
             </div>
@@ -301,33 +332,59 @@ export default function DashboardLayout({
               <p className="truncate text-sm font-bold text-slate-950">
                 {userName || "Kairo User"}
               </p>
-              <p className="mt-0.5 truncate text-xs text-slate-400">
-                {userEmail}
-              </p>
+              <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#153E90]">
+                {userRole || "User"}
+              </span>
             </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#153E90]">
-              {userRole || "User"}
-            </span>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600"
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isProfileMenuOpen ? "rotate-180" : ""}`}
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                className="h-4 w-4"
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          {isProfileMenuOpen ? (
+            <div
+              role="menu"
+              aria-label="Profile menu"
+              className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
+            >
+              {userRole.trim().toLowerCase() === "admin" ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => navigate("/dashboard/settings")}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                >
+                  <NavigationIcon name="settings" />
+                  Settings
+                </button>
+              ) : null}
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void logout()}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none"
               >
-                <path d="M10 17l5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-              </svg>
-              Sign out
-            </button>
-          </div>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5"
+                >
+                  <path d="M10 17l5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                </svg>
+                Sign out
+              </button>
+            </div>
+          ) : null}
         </div>
         <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-slate-400">
           KAIRO · DESPACHO INC.

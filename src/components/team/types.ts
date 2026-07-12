@@ -1,0 +1,71 @@
+export type TeamProfile = { role: string; employee_id: string | null };
+
+export type TeamEmployee = {
+  id: string;
+  employee_code: string | null;
+  name: string;
+  email: string;
+  role: string | null;
+  department: string | null;
+  status: string | null;
+  hourly_cost?: number | null;
+};
+
+export type TeamEntry = {
+  id: string;
+  employee_id: string;
+  project_id: string;
+  entry_date: string;
+  started_at: string | null;
+  stopped_at: string | null;
+  hours: number;
+  description: string | null;
+  projects: {
+    id: string;
+    name: string;
+    project_code: string | null;
+    clients: { id: string; name: string } | null;
+  } | null;
+};
+
+export type TeamTimer = {
+  id: string;
+  employee_id: string;
+  project_id: string;
+  started_at: string;
+  paused_at: string | null;
+  total_paused_seconds: number;
+  status: string;
+  description: string | null;
+  projects: {
+    id: string;
+    name: string;
+    project_code: string | null;
+    clients: { id: string; name: string } | null;
+  } | null;
+};
+
+export type EmployeeAnalytics = {
+  employee: TeamEmployee;
+  entries: TeamEntry[];
+  timer: TeamTimer | null;
+  hours: number;
+  expectedHours: number;
+  utilisation: number;
+  projects: number;
+  clients: number;
+  averageDailyHours: number;
+  averageSession: number;
+  longestSession: number;
+  status: "working" | "paused" | "offline" | "on_leave";
+};
+
+export type TeamFilterValue = {
+  employeeId: string;
+  status: string;
+  department: string;
+  period: string;
+  customFrom: string;
+  customTo: string;
+  search: string;
+};

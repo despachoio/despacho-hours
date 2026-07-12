@@ -81,7 +81,7 @@ export default function ClientsPage() {
         *,
         client_contacts (*)
       `)
-      .order("created_at", { ascending: false });
+      .order("name", { ascending: true });
 
     if (error) {
       console.error(error);
@@ -253,9 +253,7 @@ export default function ClientsPage() {
 
   const filteredClients = useMemo(() => {
     const query = search.toLowerCase().trim();
-    if (!query) return clients;
-
-    return clients.filter((client) => {
+    const matchingClients = query ? clients.filter((client) => {
       const clientMatch = client.name.toLowerCase().includes(query);
       const contactMatch = client.client_contacts?.some((contact) => {
         if (contact.is_active === false) return false;
@@ -267,7 +265,11 @@ export default function ClientsPage() {
         );
       });
       return clientMatch || contactMatch;
-    });
+    }) : clients;
+
+    return [...matchingClients].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
   }, [clients, search]);
 
   const metrics = useMemo(() => {
@@ -426,7 +428,7 @@ export default function ClientsPage() {
           </label>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-2">
+        <section className="mt-6 space-y-4">
           {filteredClients.map((client) => {
             const activeContacts = (client.client_contacts || []).filter(
               (contact) => contact.is_active !== false
@@ -512,7 +514,7 @@ export default function ClientsPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Key contacts</p>
                     <p className="text-xs font-semibold text-slate-400">{activeContacts.length} total</p>
                   </div>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
                     {activeContacts.map((contact) => (
                       <div key={contact.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                         {editingContact === contact.id && isAdmin ? (
