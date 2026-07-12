@@ -4,12 +4,16 @@ import type {
   Invoice,
   InvoicePayment,
   InvoiceWalletCredit,
+  InvoiceReminder,
+  InvoiceActivity,
 } from "../page";
 
 type Props = {
   invoice: Invoice;
   payments: InvoicePayment[];
   walletCredits: InvoiceWalletCredit[];
+  reminders: InvoiceReminder[];
+  activities: InvoiceActivity[];
 };
 
 type TimelineEvent = {
@@ -46,6 +50,8 @@ export default function InvoiceTimeline({
   invoice,
   payments,
   walletCredits,
+  reminders,
+  activities,
 }: Props) {
   const events: TimelineEvent[] = [
     {
@@ -62,6 +68,42 @@ export default function InvoiceTimeline({
       description: invoice.sent_to || undefined,
       date: invoice.sent_at,
     });
+  }
+
+  for (const reminder of reminders) {
+    if (reminder.status === "sent") {
+      events.push({
+        key: `reminder-${reminder.id}`,
+        title: "Automatic reminder sent",
+        description: `Reminder #${reminder.reminder_number}`,
+        detail: `To: ${reminder.sent_to}`,
+        date: reminder.sent_at,
+      });
+    } else if (reminder.status === "failed") {
+      events.push({
+        key: `reminder-failed-${reminder.id}`,
+        title: "Reminder failed",
+        description: reminder.error_message || "Reminder email could not be sent",
+        date: reminder.sent_at,
+      });
+    }
+  }
+
+  for (const activity of activities) {
+    if (activity.event_type === "reminders_stopped") {
+      events.push({
+        key: `activity-${activity.id}`,
+        title: "Automatic reminders stopped",
+        description: activity.description.replace(/^Automatic reminders stopped:\s*/i, "Reason: "),
+        date: activity.created_at,
+      });
+    } else if (activity.event_type === "reminders_resumed") {
+      events.push({
+        key: `activity-${activity.id}`,
+        title: "Automatic reminders resumed",
+        date: activity.created_at,
+      });
+    }
   }
 
   for (const payment of payments) {
@@ -137,7 +179,8 @@ export default function InvoiceTimeline({
     events.push({
       key: "voided",
       title: "Invoice voided",
-      description: invoice.void_reason || undefined,
+      description: invoice.void_reason ? `Reason: ${invoice.void_reason}` : undefined,
+      detail: invoice.void_notes || undefined,
       date: invoice.voided_at || null,
     });
   }

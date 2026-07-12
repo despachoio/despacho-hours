@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import type { Invoice } from "../page";
 import { supabase } from "@/lib/supabase";
@@ -19,6 +25,7 @@ type Toast = {
 type RepairState = {
   gmailMessageId: string;
   recipient: string;
+  cc: string[];
   subject: string;
   message: string;
   databaseError: string | null;
@@ -165,7 +172,20 @@ const REVERSAL_REASONS = [
   "Other",
 ];
 
-export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Props) {
+const VOID_REASONS = [
+  "Sent by mistake",
+  "Duplicate invoice",
+  "Client requested cancellation",
+  "Replaced by another invoice",
+  "Incorrect amount or hours",
+  "Other",
+];
+
+export default function InvoiceActions({
+  invoice,
+  isAdmin,
+  onInvoiceSent,
+}: Props) {
   const router = useRouter();
   const contacts = useMemo(() => invoice.clients?.client_contacts || [], [invoice.clients]);
   const billingContacts = contacts.filter(
@@ -206,6 +226,17 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
   const [customReversalReason, setCustomReversalReason] = useState("");
   const [reversalNotes, setReversalNotes] = useState("");
   const [reversalError, setReversalError] = useState("");
+  const [isVoidModalOpen, setIsVoidModalOpen] = useState(false);
+  const [isVoiding, setIsVoiding] = useState(false);
+  const [voidReason, setVoidReason] = useState("");
+  const [customVoidReason, setCustomVoidReason] = useState("");
+  const [voidNotes, setVoidNotes] = useState("");
+  const [voidError, setVoidError] = useState("");
+  const voidRequestInFlight = useRef(false);
+  const [isStopRemindersModalOpen, setIsStopRemindersModalOpen] = useState(false);
+  const [isUpdatingReminders, setIsUpdatingReminders] = useState(false);
+  const [reminderStopReason, setReminderStopReason] = useState("");
+  const [reminderError, setReminderError] = useState("");
   const normalizedStatus = invoice.status.trim().toLowerCase();
   const canSendInvoice = !["paid", "void", "cancelled"].includes(
     normalizedStatus
@@ -227,16 +258,20 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
           contact.contact_type?.trim().toLowerCase() === "primary")
     )?.email;
 
-    setTo(uniqueEmails(billingEmails.length ? billingEmails : [primaryEmail || ""]));
-    setCc(["sales@despacho.io"]);
+    const storedDraftTo = invoice.draft_email_to?.split(",") || [];
+    const storedDraftCc = invoice.draft_email_cc?.split(",") || [];
+    setTo(uniqueEmails(storedDraftTo.length && storedDraftTo.some((email) => email.trim()) ? storedDraftTo : billingEmails.length ? billingEmails : [primaryEmail || ""]));
+    setCc(uniqueEmails(storedDraftCc.length && storedDraftCc.some((email) => email.trim()) ? storedDraftCc : ["sales@despacho.io"]));
     setToInput("");
     setCcInput("");
     setSubject(
       invoice.email_subject ||
+        invoice.draft_email_subject ||
         `Invoice #${invoice.invoice_number} from Despacho`
     );
     setMessage(
       invoice.email_body ||
+        invoice.draft_email_body ||
         defaultMessage(
           invoice.clients?.name || "Client",
           invoice.invoice_number,
@@ -358,6 +393,7 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
           setRepairState({
             gmailMessageId: result.gmailMessageId,
             recipient: finalTo.join(", "),
+            cc: finalCc,
             subject,
             message,
             databaseError: result.databaseError || null,
@@ -419,6 +455,7 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
           repairOnly: true,
           gmailMessageId: repairState.gmailMessageId,
           recipient: repairState.recipient,
+          cc: repairState.cc,
           subject: repairState.subject,
           message: repairState.message,
         }),
@@ -641,6 +678,102 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
     }
   }
 
+  function openVoidModal() {
+    setVoidReason("");
+    setCustomVoidReason("");
+    setVoidNotes("");
+    setVoidError("");
+    setIsVoidModalOpen(true);
+  }
+
+  async function voidInvoice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (voidRequestInFlight.current) return;
+
+    const finalReason = voidReason === "Other"
+      ? customVoidReason.trim()
+      : voidReason.trim();
+    if (!finalReason) {
+      setVoidError("Select or enter a void reason.");
+      return;
+    }
+
+    voidRequestInFlight.current = true;
+    setIsVoiding(true);
+    setVoidError("");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setVoidError("Your session has expired. Please log in again.");
+        window.setTimeout(() => router.push("/login"), 1000);
+        return;
+      }
+
+      const response = await fetch(`/api/invoices/${invoice.id}/void`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason: finalReason, notes: voidNotes }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Invoice could not be voided.");
+      }
+
+      onInvoiceSent(result.invoice as Partial<Invoice>);
+      setIsVoidModalOpen(false);
+      router.refresh();
+      showToast({ tone: "success", message: "Invoice voided successfully." });
+    } catch (error) {
+      setVoidError(error instanceof Error ? error.message : "Invoice could not be voided.");
+    } finally {
+      voidRequestInFlight.current = false;
+      setIsVoiding(false);
+    }
+  }
+
+  async function stopReminders(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isUpdatingReminders) return;
+    const reason = reminderStopReason.trim();
+    if (!reason) { setReminderError("Reason is required."); return; }
+    setIsUpdatingReminders(true);
+    setReminderError("");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("Your session has expired. Please log in again.");
+      const response = await fetch(`/api/invoices/${invoice.id}/stop-reminders`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ reason }) });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Reminders could not be stopped.");
+      onInvoiceSent(result.invoice as Partial<Invoice>);
+      setIsStopRemindersModalOpen(false);
+      router.refresh();
+      showToast({ tone: "success", message: "Automatic reminders stopped." });
+    } catch (error) {
+      setReminderError(error instanceof Error ? error.message : "Reminders could not be stopped.");
+    } finally { setIsUpdatingReminders(false); }
+  }
+
+  async function resumeReminders() {
+    if (isUpdatingReminders) return;
+    setIsUpdatingReminders(true);
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("Your session has expired. Please log in again.");
+      const response = await fetch(`/api/invoices/${invoice.id}/resume-reminders`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Reminders could not be resumed.");
+      onInvoiceSent(result.invoice as Partial<Invoice>);
+      router.refresh();
+      showToast({ tone: "success", message: "Automatic reminders resumed." });
+    } catch (error) {
+      showToast({ tone: "error", message: error instanceof Error ? error.message : "Reminders could not be resumed." });
+    } finally { setIsUpdatingReminders(false); }
+  }
+
+
   return (
     <>
       {toast ? (
@@ -704,6 +837,16 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
             </button>
           ) : null}
 
+          {isAdmin && ["draft", "sent", "paid"].includes(normalizedStatus) ? (
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/invoices/recurring/new?sourceInvoiceId=${invoice.id}`)}
+              className="w-full rounded-xl border border-violet-200 px-4 py-3 text-left font-semibold text-violet-700 transition hover:bg-violet-50"
+            >
+              Make Recurring
+            </button>
+          ) : null}
+
           {canRecordPayment ? (
             <button
               type="button"
@@ -724,6 +867,29 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
             >
               Reverse Payment
             </button>
+          ) : null}
+
+          {isAdmin && ["sent", "overdue"].includes(normalizedStatus) ? (
+            <button
+              type="button"
+              onClick={openVoidModal}
+              disabled={isVoiding}
+              className="w-full rounded-xl border border-red-300 px-4 py-3 text-left font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Void Invoice
+            </button>
+          ) : null}
+
+          {isAdmin && ["sent", "overdue"].includes(normalizedStatus) ? (
+            invoice.reminders_enabled ? (
+              <button type="button" onClick={() => { setReminderStopReason(""); setReminderError(""); setIsStopRemindersModalOpen(true); }} disabled={isUpdatingReminders} className="w-full rounded-xl border border-amber-300 px-4 py-3 text-left font-semibold text-amber-800 transition hover:bg-amber-50 disabled:opacity-60">
+                Stop Reminders
+              </button>
+            ) : (
+              <button type="button" onClick={resumeReminders} disabled={isUpdatingReminders} className="w-full rounded-xl border border-blue-200 px-4 py-3 text-left font-semibold text-[#153E90] transition hover:bg-blue-50 disabled:opacity-60">
+                {isUpdatingReminders ? "Resuming..." : "Resume Reminders"}
+              </button>
+            )
           ) : null}
 
           {invoice.status.toLowerCase() === "draft" ? (
@@ -869,6 +1035,64 @@ export default function InvoiceActions({ invoice, isAdmin, onInvoiceSent }: Prop
                   {isSending ? "Sending..." : "Send Invoice"}
                 </button>
               )}
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {isStopRemindersModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="stop-reminders-title">
+          <form onSubmit={stopReminders} className="w-full max-w-lg rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+            <div className="border-b border-slate-200 px-7 py-6">
+              <h2 id="stop-reminders-title" className="text-2xl font-bold text-slate-950">Stop Invoice Reminders</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Automatic reminder emails will stop for this invoice. This will not change the invoice status or outstanding balance.</p>
+            </div>
+            <div className="px-7 py-6">
+              {reminderError ? <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{reminderError}</div> : null}
+              <label className="block"><span className="text-sm font-semibold text-slate-700">Reason</span><textarea required rows={4} value={reminderStopReason} onChange={(event) => setReminderStopReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100" /></label>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
+              <button type="button" onClick={() => setIsStopRemindersModalOpen(false)} disabled={isUpdatingReminders} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700">Cancel</button>
+              <button type="submit" disabled={isUpdatingReminders} className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{isUpdatingReminders ? "Stopping..." : "Stop Reminders"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {isVoidModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="void-invoice-title">
+          <form onSubmit={voidInvoice} className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+            <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
+              <button type="button" onClick={() => setIsVoidModalOpen(false)} disabled={isVoiding} aria-label="Close void invoice" className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50">×</button>
+              <p className="text-sm font-semibold text-red-700">Audit-preserving action</p>
+              <h2 id="void-invoice-title" className="mt-1 text-2xl font-bold text-slate-950">Void Invoice</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                This invoice has already been sent. Voiding it will prevent further payment or resending, but the invoice will remain in Kairo for audit purposes.
+              </p>
+            </div>
+            <div className="space-y-5 px-7 py-6">
+              {voidError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{voidError}</div> : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Reason</span>
+                <select required value={voidReason} onChange={(event) => { setVoidReason(event.target.value); setVoidError(""); }} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100">
+                  <option value="">Select a reason</option>
+                  {VOID_REASONS.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+                </select>
+              </label>
+              {voidReason === "Other" ? (
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">Custom Reason</span>
+                  <input required value={customVoidReason} onChange={(event) => setCustomVoidReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+                </label>
+              ) : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Notes <span className="font-normal text-slate-400">(optional)</span></span>
+                <textarea rows={4} value={voidNotes} onChange={(event) => setVoidNotes(event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+              </label>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
+              <button type="button" onClick={() => setIsVoidModalOpen(false)} disabled={isVoiding} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60">Cancel</button>
+              <button type="submit" disabled={isVoiding} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">{isVoiding ? "Voiding..." : "Void Invoice"}</button>
             </div>
           </form>
         </div>

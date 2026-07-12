@@ -18,6 +18,7 @@ export default function InvoiceHeader({
     paid: "bg-green-100 text-green-700",
     overdue: "bg-red-100 text-red-700",
     cancelled: "bg-slate-200 text-slate-700",
+    void: "bg-red-100 text-red-700",
   };
 
   return (

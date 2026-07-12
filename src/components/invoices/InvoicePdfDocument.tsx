@@ -70,6 +70,17 @@ const styles = StyleSheet.create({
     color: NAVY,
     backgroundColor: "#FFFFFF",
   },
+  voidWatermark: {
+    position: "absolute",
+    top: 330,
+    left: 105,
+    fontSize: 88,
+    fontWeight: "bold",
+    letterSpacing: 12,
+    color: "#DC2626",
+    opacity: 0.1,
+    transform: "rotate(-35deg)",
+  },
   header: {
     position: "absolute",
     top: 34,
@@ -423,6 +434,8 @@ function getStatusStyle(status: string) {
       return { backgroundColor: "#DCFCE7", color: "#15803D" };
     case "overdue":
       return { backgroundColor: "#FEE2E2", color: "#B91C1C" };
+    case "void":
+      return { backgroundColor: "#FEE2E2", color: "#B91C1C" };
     default:
       return { backgroundColor: "#E2E8F0", color: "#475569" };
   }
@@ -444,6 +457,9 @@ export function InvoicePdfDocument({ invoice, items }: Props) {
   return (
     <Document>
       <Page size="A4" style={styles.page} wrap>
+        {status.trim().toLowerCase() === "void" ? (
+          <Text style={styles.voidWatermark} fixed>VOID</Text>
+        ) : null}
         <View style={styles.header} fixed>
           <View style={styles.brand}>
             {/* @react-pdf/renderer Image does not support the HTML alt prop. */}

@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Invoice reminder scheduler
+
+Vercel calls `/api/cron/invoice-reminders` daily at `03:00 UTC`, which is
+`08:30` in the `Asia/Kolkata` business timezone. Configure a secure
+`CRON_SECRET` in every deployment environment; the scheduler must send it as
+`Authorization: Bearer <CRON_SECRET>`. Non-Vercel schedulers can call the same
+platform-neutral route once per day with that header.

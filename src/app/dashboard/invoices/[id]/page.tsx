@@ -36,6 +36,20 @@ export type Invoice = {
   email_subject: string | null;
   email_body: string | null;
   gmail_message_id: string | null;
+  generated_from_recurring: boolean;
+  draft_email_to: string | null;
+  draft_email_cc: string | null;
+  draft_email_subject: string | null;
+  draft_email_body: string | null;
+  sent_cc: string | null;
+
+  reminders_enabled: boolean;
+  reminders_stopped_at: string | null;
+  reminders_stopped_by: string | null;
+  reminders_stop_reason: string | null;
+  last_reminder_sent_at: string | null;
+  next_reminder_at: string | null;
+  reminder_count: number;
 
   paid_at: string | null;
   paid_amount: number | null;
@@ -45,7 +59,9 @@ export type Invoice = {
   payment_reversal_reason: string | null;
 
   voided_at?: string | null;
+  voided_by?: string | null;
   void_reason?: string | null;
+  void_notes?: string | null;
 
   notes: string | null;
 
@@ -86,6 +102,22 @@ export type InvoiceWalletCredit = {
   original_transaction_id: string | null;
 };
 
+export type InvoiceReminder = {
+  id: string;
+  sent_to: string;
+  reminder_number: number;
+  sent_at: string;
+  status: "sent" | "failed" | "skipped";
+  error_message: string | null;
+};
+
+export type InvoiceActivity = {
+  id: string;
+  event_type: string;
+  description: string;
+  created_at: string;
+};
+
 export type InvoiceItem = {
   id: string;
 
@@ -116,12 +148,14 @@ export default function InvoiceDetailPage() {
   const [payments, setPayments] = useState<InvoicePayment[]>([]);
 
   const [walletCredits, setWalletCredits] = useState<InvoiceWalletCredit[]>([]);
+  const [reminders, setReminders] = useState<InvoiceReminder[]>([]);
+  const [activities, setActivities] = useState<InvoiceActivity[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadActivityData() {
-    const [paymentsResult, walletCreditsResult] = await Promise.all([
+    const [paymentsResult, walletCreditsResult, remindersResult, activitiesResult] = await Promise.all([
       supabase
         .from("payments")
         .select(`
@@ -153,6 +187,17 @@ export default function InvoiceDetailPage() {
         .eq("invoice_id", id)
         .in("transaction_type", ["invoice_credit", "invoice_credit_reversal"])
         .order("created_at", { ascending: true }),
+      supabase
+        .from("invoice_reminders")
+        .select("id,sent_to,reminder_number,sent_at,status,error_message")
+        .eq("invoice_id", id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("invoice_activities")
+        .select("id,event_type,description,created_at")
+        .eq("invoice_id", id)
+        .in("event_type", ["reminders_stopped", "reminders_resumed"])
+        .order("created_at", { ascending: true }),
     ]);
 
     if (paymentsResult.error) {
@@ -181,6 +226,9 @@ export default function InvoiceDetailPage() {
         })) as InvoiceWalletCredit[]
       );
     }
+
+    setReminders(remindersResult.error ? [] : (remindersResult.data || []) as InvoiceReminder[]);
+    setActivities(activitiesResult.error ? [] : (activitiesResult.data || []) as InvoiceActivity[]);
   }
 
   async function loadInvoice() {
@@ -321,6 +369,8 @@ export default function InvoiceDetailPage() {
               invoice={invoice}
               payments={payments}
               walletCredits={walletCredits}
+              reminders={reminders}
+              activities={activities}
             />
 
           </div>

@@ -96,10 +96,17 @@ function encodeBase64Url(value: string) {
     .replace(/=+$/, "");
 }
 
+function firstReminderAt(dueDate: string) {
+  const dueAtBusinessMidnight = new Date(`${dueDate}T00:00:00+05:30`);
+  dueAtBusinessMidnight.setDate(dueAtBusinessMidnight.getDate() + 1);
+  return dueAtBusinessMidnight.toISOString();
+}
+
 async function updateInvoiceStatus({
   adminClient,
   invoiceId,
   recipient,
+  ccRecipient,
   subject,
   message,
   gmailMessageId,
@@ -107,23 +114,49 @@ async function updateInvoiceStatus({
   adminClient: SupabaseClient;
   invoiceId: string;
   recipient: string;
+  ccRecipient: string | null;
   subject: string;
   message: string;
   gmailMessageId: string | null;
 }) {
   const sentAt = new Date().toISOString();
+  const { data: scheduleInvoice, error: scheduleError } = await adminClient
+    .from("invoices")
+    .select("due_date")
+    .eq("id", invoiceId)
+    .single();
+
+  if (scheduleError || !scheduleInvoice) {
+    console.error("Invoice reminder schedule lookup failed:", scheduleError);
+    return {
+      updatedInvoice: null,
+      errorResponse: Response.json(
+        { error: "Unable to initialize invoice reminder schedule" },
+        { status: 500 }
+      ),
+    };
+  }
+
   const { data: updatedInvoice, error: updateError } = await adminClient
     .from("invoices")
     .update({
       status: "sent",
       sent_at: sentAt,
       sent_to: recipient,
+      sent_cc: ccRecipient,
       email_subject: subject,
       email_body: message,
       gmail_message_id: gmailMessageId,
+      reminders_enabled: true,
+      reminders_stopped_at: null,
+      reminders_stopped_by: null,
+      reminders_stop_reason: null,
+      reminder_count: 0,
+      last_reminder_sent_at: null,
+      next_reminder_at: firstReminderAt(scheduleInvoice.due_date),
     })
     .eq("id", invoiceId)
-    .select("id, status, sent_at, sent_to, gmail_message_id")
+    .select("id, status, sent_at, sent_to, sent_cc, gmail_message_id, reminders_enabled, reminder_count, last_reminder_sent_at, next_reminder_at")
     .single();
 
   if (updateError) {
@@ -142,6 +175,7 @@ async function updateInvoiceStatus({
           error: "Email sent, but invoice status could not be updated",
           databaseError: updateError.message,
           gmailMessageId,
+          ccRecipient,
           emailWasSent: true,
         },
         { status: 500 }
@@ -380,6 +414,7 @@ export async function POST(
         typeof body.gmailMessageId === "string" ? body.gmailMessageId.trim() : "";
       const recipient =
         typeof body.recipient === "string" ? body.recipient.trim() : "";
+      const repairCc = normalizeEmails(body.cc);
 
       if (!gmailMessageId || !recipient || !subject || !message) {
         return Response.json(
@@ -392,6 +427,7 @@ export async function POST(
         adminClient,
         invoiceId,
         recipient,
+        ccRecipient: repairCc.length ? repairCc.join(", ") : null,
         subject,
         message,
         gmailMessageId,
@@ -576,6 +612,7 @@ export async function POST(
       adminClient,
       invoiceId,
       recipient: sentTo,
+      ccRecipient: cc.length ? cc.join(", ") : null,
       subject,
       message,
       gmailMessageId,

@@ -13,6 +13,7 @@ type Invoice = {
   currency: string;
   total_amount: number;
   status: string;
+  generated_from_recurring: boolean;
 
   clients: {
     name: string;
@@ -46,6 +47,7 @@ async function loadInvoices() {
       currency,
       total_amount,
       status,
+      generated_from_recurring,
       clients(
         name
       )
@@ -315,6 +317,7 @@ className="group cursor-pointer border-t border-slate-100 transition-colors dura
   <span className="font-bold text-slate-900 transition-colors group-hover:text-blue-600">
     #{invoice.invoice_number}
   </span>
+  {invoice.generated_from_recurring ? <span className="ml-2 rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold uppercase text-violet-700">Recurring</span> : null}
 </td>
 
 

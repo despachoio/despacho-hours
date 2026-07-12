@@ -28,6 +28,9 @@ function paymentTerms(issue: string, due: string) {
 export default function InvoiceInfoCard({
   invoice,
 }: Props) {
+  const reminderTerminal = ["paid", "void", "cancelled"].includes(
+    invoice.status.trim().toLowerCase()
+  );
   return (
     <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
 
@@ -66,6 +69,53 @@ export default function InvoiceInfoCard({
             <p className="mt-1 break-words text-sm font-semibold text-slate-900">
               {invoice.sent_to}
             </p>
+          </div>
+        ) : null}
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reminders</p>
+          <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${invoice.reminders_enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+            {invoice.reminders_enabled ? "Active" : "Stopped"}
+          </span>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Last Reminder</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">
+            {invoice.last_reminder_sent_at ? formatDate(invoice.last_reminder_sent_at) : "Never"}
+          </p>
+        </div>
+
+        {invoice.reminders_enabled && !reminderTerminal && invoice.next_reminder_at ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Next Reminder</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(invoice.next_reminder_at)}</p>
+          </div>
+        ) : null}
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reminder Count</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{Number(invoice.reminder_count || 0)}</p>
+        </div>
+
+        {invoice.voided_at ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-500">Voided Date</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(invoice.voided_at)}</p>
+          </div>
+        ) : null}
+
+        {invoice.void_reason ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-500">Void Reason</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">{invoice.void_reason}</p>
+          </div>
+        ) : null}
+
+        {invoice.void_notes ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Void Notes</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{invoice.void_notes}</p>
           </div>
         ) : null}
 

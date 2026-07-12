@@ -31,10 +31,16 @@ type Invoice = {
   currency: string;
   subtotal: number;
   tax_amount: number;
+  discount_amount: number | null;
   total_amount: number;
   hours_purchased: number;
   status: string;
   notes: string | null;
+  generated_from_recurring: boolean;
+  draft_email_to: string | null;
+  draft_email_cc: string | null;
+  draft_email_subject: string | null;
+  draft_email_body: string | null;
 };
 
 type InvoiceItem = {
@@ -57,6 +63,8 @@ type LineItem = {
   project_id: string;
   description: string;
   hours: string;
+  quantity: string;
+  unit_price: string;
   amount: string;
 };
 
@@ -64,6 +72,8 @@ const emptyLineItem = (): LineItem => ({
   project_id: "",
   description: "",
   hours: "",
+  quantity: "1",
+  unit_price: "",
   amount: "",
 });
 
@@ -95,6 +105,12 @@ export default function EditInvoicePage() {
   const [issueDate, setIssueDate] = useState(today);
   const [dueDate, setDueDate] = useState(addDays(today, 7));
   const [notes, setNotes] = useState("");
+  const [taxAmount, setTaxAmount] = useState("0");
+  const [discountAmount, setDiscountAmount] = useState("0");
+  const [draftEmailTo, setDraftEmailTo] = useState("");
+  const [draftEmailCc, setDraftEmailCc] = useState("");
+  const [draftEmailSubject, setDraftEmailSubject] = useState("");
+  const [draftEmailBody, setDraftEmailBody] = useState("");
   const [items, setItems] = useState<LineItem[]>([emptyLineItem()]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,10 +161,16 @@ export default function EditInvoicePage() {
         currency,
         subtotal,
         tax_amount,
+        discount_amount,
         total_amount,
         hours_purchased,
         status,
-        notes
+        notes,
+        generated_from_recurring,
+        draft_email_to,
+        draft_email_cc,
+        draft_email_subject,
+        draft_email_body
       `)
       .eq("id", invoiceId)
       .single();
@@ -167,6 +189,12 @@ export default function EditInvoicePage() {
     setIssueDate(invoiceRecord.issue_date || today);
     setDueDate(invoiceRecord.due_date || addDays(today, 7));
     setNotes(invoiceRecord.notes || "");
+    setTaxAmount(String(invoiceRecord.tax_amount || 0));
+    setDiscountAmount(String(invoiceRecord.discount_amount || 0));
+    setDraftEmailTo(invoiceRecord.draft_email_to || "");
+    setDraftEmailCc(invoiceRecord.draft_email_cc || "");
+    setDraftEmailSubject(invoiceRecord.draft_email_subject || "");
+    setDraftEmailBody(invoiceRecord.draft_email_body || "");
 
     const { data: itemData, error: itemError } = await supabase
       .from("invoice_items")
@@ -198,6 +226,8 @@ export default function EditInvoicePage() {
             project_id: item.project_id,
             description: item.description,
             hours: String(item.hours ?? ""),
+            quantity: String(item.quantity ?? 1),
+            unit_price: String(item.unit_price ?? ""),
             amount: String(item.amount ?? ""),
           }))
         );
@@ -230,10 +260,15 @@ export default function EditInvoicePage() {
     [items]
   );
 
-  const totalAmount = useMemo(
+  const subtotalAmount = useMemo(
     () =>
       items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
     [items]
+  );
+
+  const totalAmount = Math.max(
+    0,
+    subtotalAmount + Number(taxAmount || 0) - Number(discountAmount || 0)
   );
 
   function updateItem(index: number, field: keyof LineItem, value: string) {
@@ -278,6 +313,8 @@ export default function EditInvoicePage() {
         !item.project_id ||
         !item.description.trim() ||
         Number(item.hours || 0) <= 0 ||
+        Number(item.quantity || 0) <= 0 ||
+        Number(item.unit_price || 0) < 0 ||
         Number(item.amount || 0) < 0
     );
 
@@ -298,11 +335,16 @@ export default function EditInvoicePage() {
         issue_date: issueDate,
         due_date: dueDate,
         currency,
-        subtotal: totalAmount,
-        tax_amount: 0,
+        subtotal: subtotalAmount,
+        tax_amount: Number(taxAmount || 0),
+        discount_amount: Number(discountAmount || 0),
         total_amount: totalAmount,
         hours_purchased: totalHours,
         notes: notes.trim() || null,
+        draft_email_to: draftEmailTo.trim() || null,
+        draft_email_cc: draftEmailCc.trim() || null,
+        draft_email_subject: draftEmailSubject.trim() || null,
+        draft_email_body: draftEmailBody.trim() || null,
       })
       .eq("id", invoiceId)
       .eq("status", "draft")
@@ -336,8 +378,8 @@ export default function EditInvoicePage() {
         project_id: item.project_id,
         description: item.description.trim(),
         hours: Number(item.hours),
-        quantity: 1,
-        unit_price: Number(item.amount),
+        quantity: Number(item.quantity || 1),
+        unit_price: Number(item.unit_price || 0),
         amount: Number(item.amount),
       }))
     );
@@ -350,8 +392,8 @@ export default function EditInvoicePage() {
           project_id: item.project_id,
           description: item.description.trim(),
           hours: Number(item.hours),
-          quantity: 1,
-          unit_price: Number(item.amount),
+          quantity: Number(item.quantity || 1),
+          unit_price: Number(item.unit_price || 0),
           amount: Number(item.amount),
         }))
       );
@@ -529,7 +571,7 @@ export default function EditInvoicePage() {
                       </KairoSelect>
                     </div>
 
-                    <div className="xl:col-span-4">
+                    <div className="xl:col-span-3">
                       <KairoInput
                         label="Description"
                         value={item.description}
@@ -538,7 +580,7 @@ export default function EditInvoicePage() {
                       />
                     </div>
 
-                    <div className="xl:col-span-2">
+                    <div className="xl:col-span-1">
                       <KairoInput
                         label="Hours"
                         type="number"
@@ -550,7 +592,29 @@ export default function EditInvoicePage() {
                       />
                     </div>
 
-                    <div className="xl:col-span-3">
+                    <div className="xl:col-span-1">
+                      <KairoInput
+                        label="Quantity"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.quantity}
+                        onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                      />
+                    </div>
+
+                    <div className="xl:col-span-2">
+                      <KairoInput
+                        label={`Unit Price (${currency})`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={(event) => updateItem(index, "unit_price", event.target.value)}
+                      />
+                    </div>
+
+                    <div className="xl:col-span-2">
                       <KairoInput
                         label={`Amount (${currency})`}
                         type="number"
@@ -576,6 +640,26 @@ export default function EditInvoicePage() {
               ))}
             </div>
           </section>
+
+          <section className="mt-8 border-t border-slate-200 pt-8">
+            <div className="grid gap-5 md:grid-cols-2">
+              <KairoInput label="Tax" type="number" min="0" step="0.01" value={taxAmount} onChange={(event) => setTaxAmount(event.target.value)} />
+              <KairoInput label="Discount" type="number" min="0" step="0.01" value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} />
+            </div>
+          </section>
+
+          {invoice.generated_from_recurring ? (
+            <section className="mt-8 border-t border-slate-200 pt-8">
+              <h2 className="text-lg font-bold text-slate-950">Draft Email</h2>
+              <p className="mt-1 text-sm text-slate-500">Recipients remain editable before sending, including when Autopay is enabled on the source schedule.</p>
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                <KairoInput label="Email To" value={draftEmailTo} onChange={(event) => setDraftEmailTo(event.target.value)} />
+                <KairoInput label="Email CC" value={draftEmailCc} onChange={(event) => setDraftEmailCc(event.target.value)} />
+                <div className="md:col-span-2"><KairoInput label="Email Subject" value={draftEmailSubject} onChange={(event) => setDraftEmailSubject(event.target.value)} /></div>
+              </div>
+              <div className="mt-5"><KairoTextarea label="Email Body" rows={6} value={draftEmailBody} onChange={(event) => setDraftEmailBody(event.target.value)} /></div>
+            </section>
+          ) : null}
 
           <section className="mt-8 border-t border-slate-200 pt-8">
             <KairoTextarea

@@ -58,9 +58,9 @@ export default function LoginPage() {
 
 
 
-        <p className="mt-2 text-center text-slate-500">
+        <p className="mt-2 text-center text-slate-500 font-bold uppercase">
 
-          Everything work. One place.
+          The Pulse of Despacho
 
         </p>
 
