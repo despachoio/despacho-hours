@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import EmployeeHeader from "@/components/team/EmployeeHeader";
@@ -20,7 +20,7 @@ import type {
 } from "@/components/team/types";
 import { dateRange, employeeAnalytics } from "@/components/team/utils";
 
-export default function TeamDetailPage() {
+function TeamDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const action = useSearchParams().get("action");
@@ -373,6 +373,14 @@ export default function TeamDetailPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function TeamDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <TeamDetailPageContent />
+    </Suspense>
   );
 }
 

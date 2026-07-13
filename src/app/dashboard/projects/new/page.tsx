@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -14,7 +14,7 @@ type Employee = {
   name: string;
 };
 
-export default function NewProjectPage() {
+function NewProjectPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 const clientFromUrl = searchParams.get("client");
@@ -405,5 +405,13 @@ if (noteError) {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function NewProjectPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewProjectPageContent />
+    </Suspense>
   );
 }

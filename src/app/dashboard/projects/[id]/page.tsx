@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   useParams,
@@ -88,7 +88,7 @@ type Project = {
 
 
 
-export default function ProjectDetailPage() {
+function ProjectDetailPageContent() {
 
 
 const params =
@@ -171,9 +171,6 @@ year:"numeric",
 .replace(/ /g,"-");
 
 }
-
-
-
 
 function todayFormatted(){
 
@@ -1289,4 +1286,12 @@ No activity yet.
 );
 
 
+}
+
+export default function ProjectDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProjectDetailPageContent />
+    </Suspense>
+  );
 }
