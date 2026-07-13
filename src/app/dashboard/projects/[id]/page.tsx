@@ -144,10 +144,6 @@ const [purchasedHours,setPurchasedHours] =
 useState("");
 
 
-const [description,setDescription] =
-useState("");
-
-
 const [extraHours,setExtraHours] =
 useState("");
 
@@ -276,10 +272,6 @@ data.purchased_hours || 0
 )
 );
 
-
-setDescription(
-data.description || ""
-);
 
 }
 
@@ -582,11 +574,14 @@ router.push(
 useEffect(()=>{
 
 
-loadProject();
+// Existing detail page performs its initial Supabase loads client-side.
+// eslint-disable-next-line react-hooks/set-state-in-effect
+void loadProject();
 
-loadTeam();
+void loadTeam();
 
 
+// eslint-disable-next-line react-hooks/exhaustive-deps
 },[]);
 
 
@@ -1222,6 +1217,58 @@ No activity yet.
 
 </div>
 
+)}
+
+{action === "archive" && (
+  <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6">
+    <h2 className="text-lg font-bold text-slate-950">Deactivate project?</h2>
+    <p className="mt-2 text-sm text-slate-600">
+      The project and its existing time and wallet history will remain available
+      under Archived projects.
+    </p>
+    <div className="mt-5 flex gap-3">
+      <button
+        type="button"
+        onClick={archiveProject}
+        className="rounded-xl bg-amber-600 px-5 py-2.5 font-bold text-white"
+      >
+        Deactivate
+      </button>
+      <button
+        type="button"
+        onClick={() => router.push("/dashboard/projects")}
+        className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 font-bold text-slate-700"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
+{action === "unarchive" && (
+  <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+    <h2 className="text-lg font-bold text-slate-950">Activate project?</h2>
+    <p className="mt-2 text-sm text-slate-600">
+      The project will return to the Active projects view with its existing
+      team, time, and wallet history intact.
+    </p>
+    <div className="mt-5 flex gap-3">
+      <button
+        type="button"
+        onClick={unarchiveProject}
+        className="rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white"
+      >
+        Activate
+      </button>
+      <button
+        type="button"
+        onClick={() => router.push("/dashboard/projects")}
+        className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 font-bold text-slate-700"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
 )}
 
 

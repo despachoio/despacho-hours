@@ -103,6 +103,26 @@ export default function InvoiceTimeline({
         title: "Automatic reminders resumed",
         date: activity.created_at,
       });
+    } else {
+      const titles: Record<string, string> = {
+        stripe_payment_processing: "Stripe payment processing",
+        stripe_payment_failed: "Stripe payment failed",
+        stripe_payment_succeeded: "Stripe payment succeeded",
+        stripe_payment_canceled: "Stripe payment canceled",
+        payment_page_viewed: "Payment page viewed",
+        autopay_enabled: "Autopay enabled",
+        autopay_disabled: "Autopay disabled",
+        autopay_attempted: "Autopay payment attempted",
+        autopay_action_required: "Autopay action required",
+      };
+      events.push({
+        key: `activity-${activity.id}`,
+        title: titles[activity.event_type] || activity.description,
+        description: titles[activity.event_type]
+          ? activity.description
+          : undefined,
+        date: activity.created_at,
+      });
     }
   }
 

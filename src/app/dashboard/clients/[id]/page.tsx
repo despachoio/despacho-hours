@@ -92,9 +92,12 @@ export default function ClientDetailPage() {
   const [role, setRole] = useState("");
   const [editingClient, setEditingClient] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
+  const [clientError, setClientError] = useState("");
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [contactForm, setContactForm] = useState<ContactForm>(EMPTY_CONTACT_FORM);
+  const [contactForm, setContactForm] =
+    useState<ContactForm>(EMPTY_CONTACT_FORM);
   const [contactError, setContactError] = useState("");
   const [savingContact, setSavingContact] = useState(false);
   const isAdmin = role.trim().toLowerCase() === "admin";
@@ -112,7 +115,8 @@ export default function ClientDetailPage() {
 
     const { data, error } = await supabase
       .from("clients")
-      .select(`
+      .select(
+        `
         *,
         client_contacts (*),
         projects (
@@ -125,7 +129,8 @@ export default function ClientDetailPage() {
           remaining_hours,
           project_resources (id, employee_id)
         )
-      `)
+      `,
+      )
       .eq("id", clientId)
       .single();
 
@@ -153,14 +158,28 @@ export default function ClientDetailPage() {
     await loadClient();
   }
 
-  async function deleteClient() {
-    if (!confirm("Delete this client permanently?")) return;
-    const { error } = await supabase.from("clients").delete().eq("id", clientId);
+  async function updateClientStatus(nextStatus: "active" | "archived") {
+    if (updatingClientStatus) return;
+    const isActivating = nextStatus === "active";
+    const confirmation = isActivating
+      ? "Activate this client? Their existing contacts and historical records will remain attached."
+      : "Deactivate this client? The client and all historical records will remain available in the Archived tab.";
+    if (!confirm(confirmation)) return;
+
+    setUpdatingClientStatus(true);
+    setClientError("");
+    const { error } = await supabase
+      .from("clients")
+      .update({ status: nextStatus })
+      .eq("id", clientId);
     if (error) {
-      console.error("Client delete failed:", error);
+      console.error("Client status update failed:", error);
+      setClientError(error.message);
+      setUpdatingClientStatus(false);
       return;
     }
     router.push("/dashboard/clients");
+    router.refresh();
   }
 
   function openAddContact() {
@@ -250,11 +269,11 @@ export default function ClientDetailPage() {
       teamCount: teamIds.size,
       purchasedHours: projects.reduce(
         (total, project) => total + Number(project.purchased_hours || 0),
-        0
+        0,
       ),
       remainingHours: projects.reduce(
         (total, project) => total + Number(project.remaining_hours || 0),
-        0
+        0,
       ),
     };
   }, [client]);
@@ -268,8 +287,13 @@ export default function ClientDetailPage() {
 
   if (!client) return null;
 
+  const isArchived =
+    String(client.status || "")
+      .trim()
+      .toLowerCase() === "archived";
+
   const activeContacts = (client.client_contacts || []).filter(
-    (contact) => contact.is_active !== false
+    (contact) => contact.is_active !== false,
   );
 
   return (
@@ -288,74 +312,96 @@ export default function ClientDetailPage() {
             <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
             <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
             <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row">
-            <div>
-              {editingClient ? (
-                <input
-                  value={clientName}
-                  onChange={(event) => setClientName(event.target.value)}
-                  className="w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-3xl font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-400/20"
-                />
-              ) : (
-                <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-                  {client.name}
-                </h1>
-              )}
-              <span className="mt-4 inline-flex rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-bold capitalize text-emerald-200 ring-1 ring-emerald-300/20">
-                {client.status}
-              </span>
-            </div>
-
-            {isAdmin ? (
-              <div className="flex flex-wrap justify-end gap-3">
+              <div>
                 {editingClient ? (
-                  <>
+                  <input
+                    value={clientName}
+                    onChange={(event) => setClientName(event.target.value)}
+                    className="w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-3xl font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-400/20"
+                  />
+                ) : (
+                  <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
+                    {client.name}
+                  </h1>
+                )}
+                <span
+                  className={`mt-4 inline-flex rounded-full px-3 py-1.5 text-xs font-bold capitalize ring-1 ${isArchived ? "bg-slate-400/15 text-slate-200 ring-slate-300/20" : "bg-emerald-400/15 text-emerald-200 ring-emerald-300/20"}`}
+                >
+                  {client.status}
+                </span>
+              </div>
+
+              {isAdmin ? (
+                <div className="flex flex-wrap justify-end gap-3">
+                  {editingClient ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={updateClient}
+                        className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingClient(false);
+                          setClientName(client.name);
+                        }}
+                        className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={updateClient}
-                      className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingClient(false);
-                        setClientName(client.name);
-                      }}
+                      onClick={() => setEditingClient(true)}
                       className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15"
                     >
-                      Cancel
+                      Edit Client
                     </button>
-                  </>
-                ) : (
+                  )}
                   <button
                     type="button"
-                    onClick={() => setEditingClient(true)}
-                    className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15"
+                    onClick={() =>
+                      router.push(`/dashboard/projects/new?client=${client.id}`)
+                    }
+                    className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
                   >
-                    Edit Client
+                    + Project
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() =>
-                    router.push(`/dashboard/projects/new?client=${client.id}`)
-                  }
-                  className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
-                >
-                  + Project
-                </button>
-                <button
-                  type="button"
-                  onClick={deleteClient}
-                  className="rounded-2xl border border-red-300/30 bg-red-400/10 px-5 py-3 text-sm font-semibold text-red-200 hover:bg-red-400/20"
-                >
-                  Delete
-                </button>
-              </div>
-            ) : null}
+                  <button
+                    type="button"
+                    disabled={updatingClientStatus}
+                    onClick={() =>
+                      void updateClientStatus(
+                        isArchived ? "active" : "archived",
+                      )
+                    }
+                    className={`rounded-2xl border px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${isArchived ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/20" : "border-amber-300/30 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"}`}
+                  >
+                    {updatingClientStatus
+                      ? isArchived
+                        ? "Activating..."
+                        : "Deactivating..."
+                      : isArchived
+                        ? "Activate"
+                        : "Deactivate"}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
+
+          {clientError ? (
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+            >
+              Unable to update client status: {clientError}
+            </div>
+          ) : null}
 
           <div className="relative z-10 -mt-9 grid grid-cols-2 gap-4 px-4 md:grid-cols-4 lg:px-6">
             {[
@@ -364,9 +410,16 @@ export default function ClientDetailPage() {
               ["Purchased", stats.purchasedHours],
               ["Remaining", stats.remainingHours],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl bg-white p-5 shadow-lg shadow-slate-200/60 ring-1 ring-slate-200">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{label}</p>
-                <p className="mt-3 text-3xl font-bold text-slate-950">{value}</p>
+              <div
+                key={label}
+                className="rounded-2xl bg-white p-5 shadow-lg shadow-slate-200/60 ring-1 ring-slate-200"
+              >
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                  {label}
+                </p>
+                <p className="mt-3 text-3xl font-bold text-slate-950">
+                  {value}
+                </p>
               </div>
             ))}
           </div>
@@ -374,9 +427,15 @@ export default function ClientDetailPage() {
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:p-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">People</p>
-                <h2 className="mt-1 text-2xl font-bold text-slate-950">Client Contacts</h2>
-                <p className="mt-1 text-sm text-slate-500">The people behind this relationship.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+                  People
+                </p>
+                <h2 className="mt-1 text-2xl font-bold text-slate-950">
+                  Client Contacts
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  The people behind this relationship.
+                </p>
               </div>
               {isAdmin ? (
                 <button
@@ -413,7 +472,9 @@ export default function ClientDetailPage() {
                       ) : null}
                     </div>
                     <div className="flex flex-wrap justify-end gap-2">
-                      <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ring-1 ${contactBadge(contact.contact_type)}`}>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold capitalize ring-1 ${contactBadge(contact.contact_type)}`}
+                      >
                         {contact.contact_type}
                       </span>
                       {contact.is_primary ? (
@@ -465,53 +526,92 @@ export default function ClientDetailPage() {
 
             {activeContacts.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                <p className="font-semibold text-slate-700">No active contacts yet</p>
-                <p className="mt-1 text-sm text-slate-500">Add a primary or billing contact to strengthen this relationship.</p>
+                <p className="font-semibold text-slate-700">
+                  No active contacts yet
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Add a primary or billing contact to strengthen this
+                  relationship.
+                </p>
               </div>
             ) : null}
           </section>
 
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">Delivery Portfolio</p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-950">Projects</h2>
-              <p className="mt-1 text-sm text-slate-500">Service engagements and wallet health at a glance.</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+                Delivery Portfolio
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-slate-950">
+                Projects
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Service engagements and wallet health at a glance.
+              </p>
             </div>
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {(client.projects || []).map((project) => (
-                <div key={project.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 transition hover:border-blue-200 hover:shadow-lg hover:shadow-slate-200/60">
+                <div
+                  key={project.id}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 transition hover:border-blue-200 hover:shadow-lg hover:shadow-slate-200/60"
+                >
                   <div className="p-5">
-                  <div className="flex justify-between gap-4">
-                    <div>
-                      <p className="text-lg font-bold text-slate-950">
-                        {project.project_code ? `[${project.project_code}] ` : ""}
-                        {project.name}
-                      </p>
-                      <span
-                        className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${
-                          project.status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : project.status === "archived"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                        }`}
+                    <div className="flex justify-between gap-4">
+                      <div>
+                        <p className="text-lg font-bold text-slate-950">
+                          {project.project_code
+                            ? `[${project.project_code}] `
+                            : ""}
+                          {project.name}
+                        </p>
+                        <span
+                          className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${
+                            project.status === "active"
+                              ? "bg-green-100 text-green-700"
+                              : project.status === "archived"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {project.status}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/dashboard/projects/${project.id}`)
+                        }
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-[#153E90] hover:text-[#153E90]"
                       >
-                        {project.status}
-                      </span>
+                        View
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/dashboard/projects/${project.id}`)}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-[#153E90] hover:text-[#153E90]"
-                    >
-                      View
-                    </button>
-                  </div>
                   </div>
                   <div className="grid grid-cols-3 border-t border-slate-200 bg-white text-center">
-                    <div className="p-4"><span className="text-xs font-semibold text-slate-400">Purchased</span><b className="mt-1 block text-lg text-slate-900">{project.purchased_hours}</b></div>
-                    <div className="border-x border-slate-200 p-4"><span className="text-xs font-semibold text-slate-400">Used</span><b className="mt-1 block text-lg text-slate-900">{project.used_hours}</b></div>
-                    <div className="p-4"><span className="text-xs font-semibold text-slate-400">Remaining</span><b className="mt-1 block text-lg text-[#153E90]">{project.remaining_hours}</b></div>
+                    <div className="p-4">
+                      <span className="text-xs font-semibold text-slate-400">
+                        Purchased
+                      </span>
+                      <b className="mt-1 block text-lg text-slate-900">
+                        {project.purchased_hours}
+                      </b>
+                    </div>
+                    <div className="border-x border-slate-200 p-4">
+                      <span className="text-xs font-semibold text-slate-400">
+                        Used
+                      </span>
+                      <b className="mt-1 block text-lg text-slate-900">
+                        {project.used_hours}
+                      </b>
+                    </div>
+                    <div className="p-4">
+                      <span className="text-xs font-semibold text-slate-400">
+                        Remaining
+                      </span>
+                      <b className="mt-1 block text-lg text-[#153E90]">
+                        {project.remaining_hours}
+                      </b>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -575,8 +675,13 @@ function ContactModal({
           >
             ×
           </button>
-          <p className="relative text-xs font-bold uppercase tracking-[0.18em] text-blue-200">Client contact</p>
-          <h2 id="contact-modal-title" className="relative mt-2 text-2xl font-bold">
+          <p className="relative text-xs font-bold uppercase tracking-[0.18em] text-blue-200">
+            Client contact
+          </p>
+          <h2
+            id="contact-modal-title"
+            className="relative mt-2 text-2xl font-bold"
+          >
             {editing ? "Edit Contact" : "Add Contact"}
           </h2>
         </div>
@@ -588,16 +693,41 @@ function ContactModal({
             </p>
           ) : null}
 
-          <ContactInput label="First Name" value={form.firstName} onChange={(value) => update("firstName", value)} />
-          <ContactInput label="Last Name" value={form.lastName} onChange={(value) => update("lastName", value)} />
+          <ContactInput
+            label="First Name"
+            value={form.firstName}
+            onChange={(value) => update("firstName", value)}
+          />
+          <ContactInput
+            label="Last Name"
+            value={form.lastName}
+            onChange={(value) => update("lastName", value)}
+          />
           <div className="md:col-span-2">
-            <ContactInput label="Job Title" value={form.jobTitle} onChange={(value) => update("jobTitle", value)} />
+            <ContactInput
+              label="Job Title"
+              value={form.jobTitle}
+              onChange={(value) => update("jobTitle", value)}
+            />
           </div>
-          <ContactInput label="Email" type="email" required value={form.email} onChange={(value) => update("email", value)} />
-          <ContactInput label="Phone" type="tel" value={form.phone} onChange={(value) => update("phone", value)} />
+          <ContactInput
+            label="Email"
+            type="email"
+            required
+            value={form.email}
+            onChange={(value) => update("email", value)}
+          />
+          <ContactInput
+            label="Phone"
+            type="tel"
+            value={form.phone}
+            onChange={(value) => update("phone", value)}
+          />
 
           <label className="block">
-            <span className="text-sm font-semibold text-slate-700">Contact Type</span>
+            <span className="text-sm font-semibold text-slate-700">
+              Contact Type
+            </span>
             <select
               value={form.contactType}
               onChange={(event) => {
@@ -624,15 +754,27 @@ function ContactModal({
               onChange={(event) => update("isPrimary", event.target.checked)}
               className="h-4 w-4 rounded border-slate-300"
             />
-            <span className="text-sm font-semibold text-slate-700">Set as Primary</span>
+            <span className="text-sm font-semibold text-slate-700">
+              Set as Primary
+            </span>
           </label>
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
-          <button type="button" onClick={onClose} disabled={saving} className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+          >
             Cancel
           </button>
-          <button type="button" onClick={onSave} disabled={saving} className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#123578] disabled:opacity-60">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#123578] disabled:opacity-60"
+          >
             {saving ? "Saving..." : "Save Contact"}
           </button>
         </div>

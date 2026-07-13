@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 
 
 export default function LoginPage() {
@@ -11,9 +13,18 @@ export default function LoginPage() {
 
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const loginLockRef = useRef(false);
 
 
-  async function login(){
+  async function login(event: React.FormEvent<HTMLFormElement>){
+
+    event.preventDefault();
+
+    if (loginLockRef.current) return;
+
+    loginLockRef.current = true;
+    setIsLoggingIn(true);
 
     const { error } =
       await supabase.auth.signInWithPassword({
@@ -27,6 +38,8 @@ export default function LoginPage() {
     if(error){
 
       alert(error.message);
+      loginLockRef.current = false;
+      setIsLoggingIn(false);
       return;
 
     }
@@ -48,9 +61,12 @@ export default function LoginPage() {
 
 
         <div className="flex justify-center">
-  <img
+  <Image
     src="/kairo-logo-full.png"
     alt="Kairo"
+    width={240}
+    height={120}
+    priority
     className="h-30 w-60 rounded-2xl object-contain"
   />
 </div>
@@ -68,12 +84,22 @@ export default function LoginPage() {
 
 
 
-        <div className="mt-8 space-y-4">
+        <form
+          onSubmit={login}
+          aria-busy={isLoggingIn}
+          className="mt-8 space-y-4"
+        >
 
 
           <input
 
             placeholder="Email"
+
+            name="email"
+
+            aria-label="Email"
+
+            autoComplete="email"
 
             value={email}
 
@@ -83,14 +109,17 @@ export default function LoginPage() {
 
           />
 
-
-
-
           <input
 
             type="password"
 
             placeholder="Password"
+
+            name="password"
+
+            aria-label="Password"
+
+            autoComplete="current-password"
 
             value={password}
 
@@ -100,24 +129,35 @@ export default function LoginPage() {
 
           />
 
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-[#153E90] transition hover:underline"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
 
 
 
           <button
 
-            onClick={login}
+            type="submit"
 
-            className="w-full rounded-2xl bg-slate-950 py-3 font-semibold text-white"
+            disabled={isLoggingIn}
+
+            className="w-full rounded-2xl bg-slate-950 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
 
           >
 
-            Login
+            {isLoggingIn ? "Logging in…" : "Login"}
 
           </button>
 
 
 
-        </div>
+        </form>
 
 
       </div>

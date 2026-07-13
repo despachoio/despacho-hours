@@ -100,6 +100,12 @@ export async function sendRecurringInvoice(
   const message =
     invoice.draft_email_body ||
     `Hello,\n\nPlease find attached Invoice #${invoice.invoice_number}.\n\nKindly make payment before ${invoice.due_date}.\n\nThank you.\n\nRegards,\n${companySettings.company_name}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL is not configured");
+  if (!invoice.public_payment_token)
+    throw new Error("Stripe payment database migration has not been applied");
+  const paymentUrl = `${appUrl}/pay/invoice/${invoice.public_payment_token}`;
+  const textMessage = `${message}\n\nPay Invoice: ${paymentUrl}`;
   const { buffer: logo, dataUrl: logoSrc } =
     await loadCompanyLogo(companySettings);
   const pdf = await renderToBuffer(
@@ -112,7 +118,7 @@ export async function sendRecurringInvoice(
   );
   const boundary = `mixed_${crypto.randomUUID()}`;
   const alternative = `alt_${crypto.randomUUID()}`;
-  const html = `<html><body style="font-family:Arial;color:#0f172a;background:#f8fafc;padding:24px"><div style="max-width:620px;margin:auto;background:#fff;padding:32px;border-radius:16px"><img src="cid:despacho-logo" width="180" alt="${escape(companySettings.company_name)}"><h2>Invoice #${invoice.invoice_number}</h2><p style="line-height:1.7;color:#475569">${escape(message).replaceAll("\n", "<br>")}</p><p style="margin-top:24px;color:#64748b;font-size:12px">Questions? ${escape(companySettings.business_email || GOOGLE_WORKSPACE_SENDER)}<br>${escape(companySettings.website || "https://www.despacho.io")}</p></div></body></html>`;
+  const html = `<html><body style="font-family:Arial;color:#0f172a;background:#f8fafc;padding:24px"><div style="max-width:620px;margin:auto;background:#fff;padding:32px;border-radius:16px"><img src="cid:despacho-logo" width="180" alt="${escape(companySettings.company_name)}"><h2>Invoice #${invoice.invoice_number}</h2><p style="line-height:1.7;color:#475569">${escape(message).replaceAll("\n", "<br>")}</p><p style="margin:26px 0;text-align:center"><a href="${escape(paymentUrl)}" style="display:inline-block;border-radius:12px;background:#153e90;padding:14px 28px;color:#fff;text-decoration:none;font-weight:700">Pay Invoice</a></p><p style="font-size:11px;color:#94a3b8;word-break:break-all">${escape(paymentUrl)}</p><p style="margin-top:24px;color:#64748b;font-size:12px">Questions? ${escape(companySettings.business_email || GOOGLE_WORKSPACE_SENDER)}<br>${escape(companySettings.website || "https://www.despacho.io")}</p></div></body></html>`;
   const raw = [
     `From: ${header(companySettings.company_name)} <${GOOGLE_WORKSPACE_SENDER}>`,
     `To: ${to.join(", ")}`,
@@ -128,7 +134,7 @@ export async function sendRecurringInvoice(
     "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: base64",
     "",
-    wrap(message),
+    wrap(textMessage),
     `--${alternative}`,
     "Content-Type: text/html; charset=UTF-8",
     "Content-Transfer-Encoding: base64",

@@ -369,11 +369,15 @@ export default function RecurringScheduleForm({
       frequency === "custom"
         ? "Recurring"
         : `${frequency.charAt(0).toUpperCase()}${frequency.slice(1)}`;
+    // Derived schedule label for the existing form.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(`${clientName} - ${frequencyName} Invoice`);
   }, [clientId, clients, frequency, nameManuallyEdited, occurrenceMode]);
 
   useEffect(() => {
     if (editMode || occurrenceMode || !startDate) return;
+    // Keep the existing next-generation preview synchronized with recurrence.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNextDate(nextScheduledDate(startDate, frequency, Number(intervalCount)));
   }, [editMode, frequency, intervalCount, occurrenceMode, startDate]);
 
@@ -757,7 +761,7 @@ export default function RecurringScheduleForm({
             <span className="mt-1 block text-xs text-slate-500">
               Recipients: {emailTo || "Not configured"} · Auto Send:{" "}
               {autoSend ? "On" : "Off"} · Autopay:{" "}
-              {autopay ? "Coming Soon" : "Off"}
+              {autopay ? "Enabled by client" : "Off"}
             </span>
           </span>
           <span
@@ -822,15 +826,17 @@ export default function RecurringScheduleForm({
                   <input
                     type="checkbox"
                     checked={autopay}
-                    onChange={(event) => setAutopay(event.target.checked)}
+                    disabled
                     className="mt-1"
                   />
                   <span>
                     <strong className="block text-sm text-[#153E90]">
-                      Autopay · Coming Soon
+                      Autopay
                     </strong>
                     <span className="text-xs text-slate-500">
-                      Autopay integration coming soon. No charge will occur.
+                      Clients can enable Autopay only by providing explicit
+                      consent on the secure Stripe payment page. Admins cannot
+                      enable it on their behalf.
                     </span>
                   </span>
                 </label>

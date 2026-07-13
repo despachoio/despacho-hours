@@ -60,6 +60,10 @@ export type Invoice = {
   payment_reference: string | null;
   payment_reversed_at: string | null;
   payment_reversal_reason: string | null;
+  public_payment_token: string;
+  stripe_payment_intent_id: string | null;
+  stripe_checkout_status: string | null;
+  payment_failure_message: string | null;
 
   voided_at?: string | null;
   voided_by?: string | null;
@@ -71,6 +75,7 @@ export type Invoice = {
   clients: {
     id: string;
     name: string;
+    autopay_enabled?: boolean;
     client_contacts?: {
       name: string;
       email: string;
@@ -208,7 +213,19 @@ export default function InvoiceDetailPage() {
         .from("invoice_activities")
         .select("id,event_type,description,created_at")
         .eq("invoice_id", id)
-        .in("event_type", ["reminders_stopped", "reminders_resumed"])
+        .in("event_type", [
+          "reminders_stopped",
+          "reminders_resumed",
+          "stripe_payment_processing",
+          "stripe_payment_failed",
+          "stripe_payment_succeeded",
+          "stripe_payment_canceled",
+          "payment_page_viewed",
+          "autopay_enabled",
+          "autopay_disabled",
+          "autopay_attempted",
+          "autopay_action_required",
+        ])
         .order("created_at", { ascending: true }),
     ]);
 
@@ -269,24 +286,24 @@ export default function InvoiceDetailPage() {
       );
     }
 
+    const invoiceDetailSelect = `
+      *,
+      clients(
+        id,
+        name,
+        autopay_enabled,
+        client_contacts(
+          name,
+          email,
+          contact_type,
+          is_primary,
+          is_active
+        )
+      )
+    `;
     const { data: invoiceData, error } = await supabase
       .from("invoices")
-      .select(
-        `
-        *,
-        clients(
-          id,
-          name,
-          client_contacts(
-            name,
-            email,
-            contact_type,
-            is_primary,
-            is_active
-          )
-        )
-      `,
-      )
+      .select(invoiceDetailSelect)
       .eq("id", id)
       .single();
 
@@ -302,12 +319,54 @@ export default function InvoiceDetailPage() {
       return;
     }
 
+    let resolvedInvoiceData = invoiceData;
+    const normalizedInvoiceStatus = String(invoiceData.status || "")
+      .trim()
+      .toLowerCase();
+    if (
+      invoiceData.public_payment_token &&
+      invoiceData.stripe_payment_intent_id &&
+      !["paid", "void", "cancelled"].includes(normalizedInvoiceStatus)
+    ) {
+      const paymentStatusResponse = await fetch(
+        `/api/public/invoices/${invoiceData.public_payment_token}/payment-status`,
+        { cache: "no-store" },
+      );
+      const paymentStatusResult = (await paymentStatusResponse
+        .json()
+        .catch(() => ({}))) as { status?: string };
+
+      if (paymentStatusResult.status === "paid") {
+        const refreshedInvoice = await supabase
+          .from("invoices")
+          .select(invoiceDetailSelect)
+          .eq("id", id)
+          .single();
+        if (refreshedInvoice.error) {
+          console.error("Reconciled invoice reload failed:", {
+            message: refreshedInvoice.error.message,
+            invoiceId: id,
+          });
+        } else {
+          resolvedInvoiceData = refreshedInvoice.data;
+        }
+      } else if (
+        paymentStatusResult.status === "succeeded" ||
+        !paymentStatusResponse.ok
+      ) {
+        console.error("Stripe invoice reconciliation is still pending:", {
+          invoiceId: id,
+          paymentStatus: paymentStatusResult.status || "unavailable",
+        });
+      }
+    }
+
     let recurringSchedule: Invoice["recurring_invoice_schedules"] = null;
-    if (invoiceData.recurring_schedule_id) {
+    if (resolvedInvoiceData.recurring_schedule_id) {
       const { data: scheduleData, error: scheduleError } = await supabase
         .from("recurring_invoice_schedules")
         .select("autopay_enabled")
-        .eq("id", invoiceData.recurring_schedule_id)
+        .eq("id", resolvedInvoiceData.recurring_schedule_id)
         .maybeSingle();
 
       if (scheduleError) {
@@ -316,7 +375,7 @@ export default function InvoiceDetailPage() {
           details: scheduleError.details,
           hint: scheduleError.hint,
           code: scheduleError.code,
-          scheduleId: invoiceData.recurring_schedule_id,
+          scheduleId: resolvedInvoiceData.recurring_schedule_id,
         });
       } else if (scheduleData) {
         recurringSchedule = scheduleData;
@@ -324,7 +383,7 @@ export default function InvoiceDetailPage() {
     }
 
     setInvoice({
-      ...invoiceData,
+      ...resolvedInvoiceData,
       recurring_invoice_schedules: recurringSchedule,
     } as Invoice);
 
@@ -390,7 +449,7 @@ export default function InvoiceDetailPage() {
           <div className="col-span-3 space-y-6">
             <InvoiceInfoCard invoice={invoice} />
 
-            <PaymentCard invoice={invoice} payments={payments} />
+            <PaymentCard invoice={invoice} payments={payments} isAdmin={isAdmin} />
           </div>
 
           {/* CENTER */}

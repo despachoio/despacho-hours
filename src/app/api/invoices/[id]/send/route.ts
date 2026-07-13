@@ -258,6 +258,7 @@ function buildEmailHtml({
   companyName,
   businessEmail,
   website,
+  paymentUrl,
 }: {
   invoiceNumber: number;
   clientName: string;
@@ -267,6 +268,7 @@ function buildEmailHtml({
   companyName: string;
   businessEmail: string;
   website: string;
+  paymentUrl: string | null;
 }) {
   const formattedMessage = escapeHtml(message).replaceAll("\n", "<br />");
 
@@ -294,6 +296,7 @@ function buildEmailHtml({
                 <td align="right" style="padding:0 18px 16px;color:#0f172a;font-size:13px;font-weight:700;">${escapeHtml(dueDate)}</td>
               </tr>
             </table>
+            ${paymentUrl ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:26px auto 0"><tr><td style="border-radius:12px;background:#153e90"><a href="${escapeHtml(paymentUrl)}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700">Pay Invoice</a></td></tr></table><p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#94a3b8;word-break:break-all">${escapeHtml(paymentUrl)}</p>` : ""}
           </td></tr>
           <tr><td style="padding:22px 34px;background:#0f172a;color:#ffffff;">
             <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Questions?</div>
@@ -613,6 +616,26 @@ export async function POST(
     }
 
     const pdfFilename = `Invoice-${invoice.invoice_number}.pdf`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+    if (!appUrl) {
+      return Response.json(
+        { error: "NEXT_PUBLIC_APP_URL is not configured" },
+        { status: 500 },
+      );
+    }
+    const normalizedStatus = String(invoice.status || "").toLowerCase();
+    if (!invoice.public_payment_token) {
+      return Response.json(
+        { error: "Stripe payment database migration has not been applied" },
+        { status: 500 },
+      );
+    }
+    const paymentUrl = ["paid", "void", "cancelled"].includes(normalizedStatus)
+      ? null
+      : `${appUrl}/pay/invoice/${invoice.public_payment_token}`;
+    const messageWithPaymentLink = paymentUrl
+      ? `${message}\n\nPay Invoice: ${paymentUrl}`
+      : message;
     const html = buildEmailHtml({
       invoiceNumber: invoice.invoice_number,
       clientName: invoice.clients?.name || "Client",
@@ -622,13 +645,14 @@ export async function POST(
       companyName: companySettings.company_name,
       businessEmail: companySettings.business_email || GOOGLE_WORKSPACE_SENDER,
       website: companySettings.website || "https://www.despacho.io",
+      paymentUrl,
     });
     const rawMessage = buildRawMimeMessage({
       to,
       cc,
       subject,
       html,
-      message,
+      message: messageWithPaymentLink,
       pdf: pdfBuffer,
       pdfFilename,
       logo: logoBuffer,
