@@ -408,7 +408,7 @@ export default function EditInvoicePage() {
     }
 
     setSaving(false);
-    router.push(`/dashboard/invoices/${invoiceId}`);
+    router.push(`/invoices/${invoiceId}`);
   }
 
   if (loading) {
@@ -441,7 +441,7 @@ export default function EditInvoicePage() {
             <div className="mt-6 flex justify-center">
               <KairoButton
                 type="button"
-                onClick={() => router.push(`/dashboard/invoices/${invoiceId}`)}
+                onClick={() => router.push(`/invoices/${invoiceId}`)}
               >
                 View Invoice
               </KairoButton>
@@ -457,7 +457,7 @@ export default function EditInvoicePage() {
       <div className="mx-auto max-w-6xl">
         <button
           type="button"
-          onClick={() => router.push(`/dashboard/invoices/${invoiceId}`)}
+          onClick={() => router.push(`/invoices/${invoiceId}`)}
           className="mb-6 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
         >
           ← Back to invoice
@@ -691,7 +691,7 @@ export default function EditInvoicePage() {
             <KairoButton
               type="button"
               variant="secondary"
-              onClick={() => router.push(`/dashboard/invoices/${invoiceId}`)}
+              onClick={() => router.push(`/invoices/${invoiceId}`)}
               disabled={saving}
             >
               Cancel

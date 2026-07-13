@@ -258,7 +258,7 @@ export default function NewInvoicePage() {
 
     setSaving(false);
     alert(`Invoice #${invoice.invoice_number} created successfully.`);
-    router.push(`/dashboard/invoices/${invoice.id}`);
+    router.push(`/invoices/${invoice.id}`);
   }
 
   return (
@@ -266,7 +266,7 @@ export default function NewInvoicePage() {
       <div className="mx-auto max-w-6xl">
         <button
           type="button"
-          onClick={() => router.push("/dashboard/invoices")}
+          onClick={() => router.push("/invoices")}
           className="mb-6 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
         >
           ← Back to Invoices
@@ -509,7 +509,7 @@ export default function NewInvoicePage() {
             <KairoButton
               type="button"
               variant="secondary"
-              onClick={() => router.push("/dashboard/invoices")}
+              onClick={() => router.push("/invoices")}
               disabled={saving}
             >
               Cancel

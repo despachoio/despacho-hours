@@ -82,7 +82,7 @@ export default function RecurringScheduleDetailPage() {
     <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <button
-          onClick={() => router.push("/dashboard/invoices?tab=recurring")}
+          onClick={() => router.push("/invoices?tab=recurring")}
           className="text-sm font-bold text-slate-500"
         >
           ← Recurring Invoices
@@ -102,7 +102,7 @@ export default function RecurringScheduleDetailPage() {
           </div>
           <button
             onClick={() =>
-              router.push(`/dashboard/invoices/recurring/${id}/edit`)
+              router.push(`/invoices/recurring/${id}/edit`)
             }
             className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#153E90]"
           >
@@ -146,7 +146,7 @@ export default function RecurringScheduleDetailPage() {
                   <button
                     onClick={() =>
                       router.push(
-                        `/dashboard/invoices/${occurrence.generated_invoice_id}`,
+                        `/invoices/${occurrence.generated_invoice_id}`,
                       )
                     }
                     className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"

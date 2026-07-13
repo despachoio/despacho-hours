@@ -334,7 +334,7 @@ function InvoicesPageContent() {
       params.set("tab", nextTab);
       if (year) params.set("year", String(year));
       if (currency) params.set("currency", currency);
-      router.replace(`/dashboard/invoices?${params.toString()}`, {
+      router.replace(`/invoices?${params.toString()}`, {
         scroll: false,
       });
     },
@@ -588,7 +588,7 @@ function InvoicesPageContent() {
         ? params.set(key, value)
         : params.delete(key),
     );
-    router.replace(`/dashboard/invoices?${params.toString()}`, {
+    router.replace(`/invoices?${params.toString()}`, {
       scroll: false,
     });
   }, [
@@ -957,7 +957,7 @@ function InvoicesPageContent() {
                 <InvoiceTable
                   invoices={recent}
                   loading={overviewLoading}
-                  onOpen={(id) => router.push(`/dashboard/invoices/${id}`)}
+                  onOpen={(id) => router.push(`/invoices/${id}`)}
                 />
               )}
             </section>
@@ -1069,7 +1069,7 @@ function InvoicesPageContent() {
                 <InvoiceTable
                   invoices={allInvoices}
                   loading={tableLoading}
-                  onOpen={(id) => router.push(`/dashboard/invoices/${id}`)}
+                  onOpen={(id) => router.push(`/invoices/${id}`)}
                 />
               )}
             </div>
@@ -1165,7 +1165,7 @@ function InvoicesPageContent() {
             </div>
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <button
-                onClick={() => router.push("/dashboard/invoices/new")}
+                onClick={() => router.push("/invoices/new")}
                 className="group rounded-2xl border border-slate-200 p-5 text-left hover:border-blue-300 hover:bg-blue-50/30"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#153E90]">
@@ -1188,7 +1188,7 @@ function InvoicesPageContent() {
                 </span>
               </button>
               <button
-                onClick={() => router.push("/dashboard/invoices/recurring/new")}
+                onClick={() => router.push("/invoices/recurring/new")}
                 className="group rounded-2xl border border-slate-200 p-5 text-left hover:border-violet-300 hover:bg-violet-50/30"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-700">

@@ -395,7 +395,7 @@ async function saveProject() {
       .insert(noteRows);
   }
 
-  router.push("/dashboard/projects");
+  router.push("/projects");
 }
 
 
@@ -444,7 +444,7 @@ async function addHours() {
 
   setExtraHours("");
 
-  router.push(`/dashboard/projects/${project.id}/wallet`);
+  router.push(`/projects/${project.id}/wallet`);
 }
 async function addResource(){
 
@@ -524,7 +524,7 @@ projectId
 
 
 router.push(
-"/dashboard/projects"
+"/projects"
 );
 
 
@@ -556,7 +556,7 @@ projectId
 
 
 router.push(
-"/dashboard/projects"
+"/projects"
 );
 
 
@@ -601,7 +601,7 @@ return (
 
 onClick={()=>
 router.push(
-"/dashboard/projects"
+"/projects"
 )
 }
 
@@ -956,7 +956,7 @@ No activity yet.
       </button>
 
       <button
-        onClick={() => router.push("/dashboard/projects")}
+        onClick={() => router.push("/projects")}
         className="rounded-2xl border px-6"
       >
         Cancel
@@ -1013,7 +1013,7 @@ No activity yet.
 <button
 
   onClick={() =>
-    router.push("/dashboard/projects")
+    router.push("/projects")
   }
 
   className="rounded-2xl border px-6 py-3 font-semibold"
@@ -1194,7 +1194,7 @@ No activity yet.
       <button
 
         onClick={() =>
-          router.push("/dashboard/projects")
+          router.push("/projects")
         }
 
         className="rounded-2xl border px-6 py-3"
@@ -1233,7 +1233,7 @@ No activity yet.
       </button>
       <button
         type="button"
-        onClick={() => router.push("/dashboard/projects")}
+        onClick={() => router.push("/projects")}
         className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 font-bold text-slate-700"
       >
         Cancel
@@ -1259,7 +1259,7 @@ No activity yet.
       </button>
       <button
         type="button"
-        onClick={() => router.push("/dashboard/projects")}
+        onClick={() => router.push("/projects")}
         className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 font-bold text-slate-700"
       >
         Cancel

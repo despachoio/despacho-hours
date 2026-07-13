@@ -47,7 +47,7 @@ const clientFromUrl = searchParams.get("client");
       .single();
 
     if (profile?.role !== "Admin") {
-      router.push("/dashboard/projects");
+      router.push("/projects");
       return;
     }
 
@@ -174,7 +174,7 @@ if (noteError) {
     }
 
     setSaving(false);
-    router.push("/dashboard/projects");
+    router.push("/projects");
   }
 
   useEffect(() => {
@@ -186,7 +186,7 @@ if (noteError) {
       <div className="mx-auto max-w-3xl">
         <button
           type="button"
-          onClick={() => router.push("/dashboard/projects")}
+          onClick={() => router.push("/projects")}
           className="mb-6 text-sm font-semibold text-slate-500 hover:text-slate-950"
         >
           ← Back to Projects
@@ -387,7 +387,7 @@ if (noteError) {
           <div className="mt-8 flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => router.push("/dashboard/projects")}
+              onClick={() => router.push("/projects")}
               className="rounded-xl border px-6 py-3 font-bold"
             >
               Cancel

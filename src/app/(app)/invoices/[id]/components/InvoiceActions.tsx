@@ -676,7 +676,7 @@ export default function InvoiceActions({
         "invoiceDuplicateSuccess",
         `Invoice duplicated as Draft #${result.invoiceNumber}.`,
       );
-      router.push(`/dashboard/invoices/${result.invoiceId}/edit`);
+      router.push(`/invoices/${result.invoiceId}/edit`);
     } catch (error) {
       setDuplicateError(
         error instanceof Error
@@ -902,7 +902,7 @@ export default function InvoiceActions({
       const result = await response.json().catch(() => null);
       if (!response.ok)
         throw new Error(result?.error || "Unable to delete recurring Draft.");
-      router.push("/dashboard/invoices?tab=all");
+      router.push("/invoices?tab=all");
       router.refresh();
     } catch (error) {
       setDeleteDraftError(
@@ -937,7 +937,7 @@ export default function InvoiceActions({
           <button
             type="button"
             onClick={() =>
-              router.push(`/dashboard/invoices/${invoice.id}/edit`)
+              router.push(`/invoices/${invoice.id}/edit`)
             }
             disabled={invoice.status.toLowerCase() !== "draft"}
             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-semibold transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
@@ -987,7 +987,7 @@ export default function InvoiceActions({
               type="button"
               onClick={() =>
                 router.push(
-                  `/dashboard/invoices/recurring/new?sourceInvoiceId=${invoice.id}`,
+                  `/invoices/recurring/new?sourceInvoiceId=${invoice.id}`,
                 )
               }
               className="w-full rounded-xl border border-violet-200 px-4 py-3 text-left font-semibold text-violet-700 transition hover:bg-violet-50"

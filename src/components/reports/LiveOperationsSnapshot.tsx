@@ -28,7 +28,7 @@ export default function LiveOperationsSnapshot({
         </div>
         <button
           type="button"
-          onClick={() => router.push("/dashboard/time")}
+          onClick={() => router.push("/timer")}
           className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-bold text-[#153E90] hover:bg-blue-50"
         >
           View all in Time Tracking →

@@ -178,7 +178,7 @@ export default function ClientDetailPage() {
       setUpdatingClientStatus(false);
       return;
     }
-    router.push("/dashboard/clients");
+    router.push("/clients");
     router.refresh();
   }
 
@@ -301,7 +301,7 @@ export default function ClientDetailPage() {
       <div className="mx-auto max-w-7xl">
         <button
           type="button"
-          onClick={() => router.push("/dashboard/clients")}
+          onClick={() => router.push("/clients")}
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
         >
           ← Back to Clients
@@ -365,7 +365,7 @@ export default function ClientDetailPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      router.push(`/dashboard/projects/new?client=${client.id}`)
+                      router.push(`/projects/new?client=${client.id}`)
                     }
                     className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
                   >
@@ -579,7 +579,7 @@ export default function ClientDetailPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          router.push(`/dashboard/projects/${project.id}`)
+                          router.push(`/projects/${project.id}`)
                         }
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-[#153E90] hover:text-[#153E90]"
                       >

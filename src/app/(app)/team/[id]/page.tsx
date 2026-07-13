@@ -182,7 +182,7 @@ function TeamDetailPageContent() {
       setError(profileError.message);
       return;
     }
-    router.push(`/dashboard/team/${id}`);
+    router.push(`/team/${id}`);
     router.refresh();
   }
 
@@ -219,7 +219,7 @@ function TeamDetailPageContent() {
           ? { ...current, status: result.employee?.status || status }
           : current,
       );
-      router.push(`/dashboard/team/${id}`);
+      router.push(`/team/${id}`);
     } catch {
       setError("Unable to update employee status.");
     } finally {
@@ -265,7 +265,7 @@ function TeamDetailPageContent() {
     <div className="flex flex-wrap gap-2">
       <button
         type="button"
-        onClick={() => router.push(`/dashboard/team/${id}?action=edit`)}
+        onClick={() => router.push(`/team/${id}?action=edit`)}
         className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-950"
       >
         Edit
@@ -281,7 +281,7 @@ function TeamDetailPageContent() {
         type="button"
         onClick={() =>
           router.push(
-            `/dashboard/team/${id}?action=${member.status === "active" ? "deactivate" : "activate"}`,
+            `/team/${id}?action=${member.status === "active" ? "deactivate" : "activate"}`,
           )
         }
         className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold"
@@ -296,7 +296,7 @@ function TeamDetailPageContent() {
       <div className="mx-auto max-w-[1450px]">
         <button
           type="button"
-          onClick={() => router.push("/dashboard/team")}
+          onClick={() => router.push("/team")}
           className="mb-5 text-sm font-bold text-slate-500 hover:text-[#153E90]"
         >
           ← Back to Team
@@ -327,7 +327,7 @@ function TeamDetailPageContent() {
             accessRole={accessRole}
             setAccessRole={setAccessRole}
             onSave={() => void saveMember()}
-            onCancel={() => router.push(`/dashboard/team/${id}`)}
+            onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
         {action === "deactivate" && isAdmin ? (
@@ -337,7 +337,7 @@ function TeamDetailPageContent() {
             tone="red"
             busy={statusBusy}
             onConfirm={() => void updateStatus("inactive")}
-            onCancel={() => router.push(`/dashboard/team/${id}`)}
+            onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
         {action === "activate" && isAdmin ? (
@@ -347,7 +347,7 @@ function TeamDetailPageContent() {
             tone="green"
             busy={statusBusy}
             onConfirm={() => void updateStatus("active")}
-            onCancel={() => router.push(`/dashboard/team/${id}`)}
+            onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
         <div className="mt-6 flex justify-end">

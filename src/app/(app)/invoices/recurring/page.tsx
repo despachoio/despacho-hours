@@ -274,7 +274,7 @@ export function RecurringInvoicesWorkspace({
             </div>
             <button
               type="button"
-              onClick={() => router.push("/dashboard/invoices/recurring/new")}
+              onClick={() => router.push("/invoices/recurring/new")}
               className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg"
             >
               + New Schedule
@@ -414,7 +414,7 @@ export function RecurringInvoicesWorkspace({
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/dashboard/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`,
+                                  `/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`,
                                 )
                               }
                               className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"
@@ -433,7 +433,7 @@ export function RecurringInvoicesWorkspace({
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/dashboard/invoices/recurring/${schedule.id}/edit`,
+                                  `/invoices/recurring/${schedule.id}/edit`,
                                 )
                               }
                               className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"
@@ -453,7 +453,7 @@ export function RecurringInvoicesWorkspace({
                           <button
                             onClick={() =>
                               router.push(
-                                `/dashboard/invoices/${row.generated_invoice_id}`,
+                                `/invoices/${row.generated_invoice_id}`,
                               )
                             }
                             className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white"
@@ -482,7 +482,7 @@ export function RecurringInvoicesWorkspace({
                       <button
                         onClick={() =>
                           router.push(
-                            `/dashboard/invoices/recurring/${schedule.id}`,
+                            `/invoices/recurring/${schedule.id}`,
                           )
                         }
                         className="text-left text-lg font-bold hover:text-[#153E90]"
@@ -502,7 +502,7 @@ export function RecurringInvoicesWorkspace({
                     <button
                       onClick={() =>
                         router.push(
-                          `/dashboard/invoices/recurring/${schedule.id}/edit`,
+                          `/invoices/recurring/${schedule.id}/edit`,
                         )
                       }
                       className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold"

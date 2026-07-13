@@ -636,7 +636,7 @@ export default function ProjectWalletPage() {
             <button
               type="button"
               onClick={() =>
-                router.push("/dashboard/projects")
+                router.push("/projects")
               }
               className="mt-6 rounded-xl border px-5 py-3 font-bold"
             >
@@ -653,7 +653,7 @@ export default function ProjectWalletPage() {
         <button
           type="button"
           onClick={() =>
-            router.push("/dashboard/projects")
+            router.push("/projects")
           }
           className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
         >
@@ -704,7 +704,7 @@ export default function ProjectWalletPage() {
               type="button"
               onClick={() =>
                 router.push(
-                  `/dashboard/projects/${project.id}?action=hours`
+                  `/projects/${project.id}?action=hours`
                 )
               }
               className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"

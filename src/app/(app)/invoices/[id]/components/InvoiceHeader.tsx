@@ -25,7 +25,7 @@ export default function InvoiceHeader({
     <>
       <button
         onClick={() =>
-          router.push("/dashboard/invoices")
+          router.push("/invoices")
         }
         className="text-sm font-semibold text-slate-500 hover:text-slate-900"
       >

@@ -195,7 +195,7 @@ export default function ProjectsPage() {
             {role === "Admin" && (
               <button
                 type="button"
-                onClick={() => router.push("/dashboard/projects/new")}
+                onClick={() => router.push("/projects/new")}
                 className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
               >
                 + New Project
@@ -237,7 +237,7 @@ export default function ProjectsPage() {
                     <div
                       key={project.id}
                       onClick={() =>
-                        router.push(`/dashboard/projects/${project.id}/wallet`)
+                        router.push(`/projects/${project.id}/wallet`)
                       }
                       className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md"
                     >
@@ -312,7 +312,7 @@ export default function ProjectsPage() {
                               if (!selectedAction) return;
 
                               router.push(
-                                `/dashboard/projects/${project.id}?action=${selectedAction}`,
+                                `/projects/${project.id}?action=${selectedAction}`,
                               );
                             }}
                             defaultValue=""

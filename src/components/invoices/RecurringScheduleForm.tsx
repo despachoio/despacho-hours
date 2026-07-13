@@ -486,7 +486,7 @@ export default function RecurringScheduleForm({
       setError(result?.error || "Unable to save recurring invoice.");
       return;
     }
-    router.push("/dashboard/invoices?tab=recurring");
+    router.push("/invoices?tab=recurring");
     router.refresh();
   }
 
@@ -859,7 +859,7 @@ export default function RecurringScheduleForm({
           <KairoButton
             type="button"
             variant="secondary"
-            onClick={() => router.push("/dashboard/invoices?tab=recurring")}
+            onClick={() => router.push("/invoices?tab=recurring")}
           >
             Cancel
           </KairoButton>

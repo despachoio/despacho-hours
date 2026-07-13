@@ -330,17 +330,17 @@ export default function DashboardPage() {
               <MetricCard
                 label="My Projects"
                 value={projects.length}
-                onClick={() => router.push("/dashboard/projects")}
+                onClick={() => router.push("/projects")}
               />
               <MetricCard
                 label="My Hours This Week"
                 value={totalWeeklyHours.toFixed(2)}
-                onClick={() => router.push("/dashboard/time")}
+                onClick={() => router.push("/timer")}
               />
               <MetricCard
                 label="My Weekly Utilization"
                 value={`${utilization}%`}
-                onClick={() => router.push("/dashboard/time")}
+                onClick={() => router.push("/timer")}
               />
             </>
           ) : (
@@ -348,22 +348,22 @@ export default function DashboardPage() {
               <MetricCard
                 label="Active Clients"
                 value={activeClients}
-                onClick={() => router.push("/dashboard/clients")}
+                onClick={() => router.push("x /clients")}
               />
               <MetricCard
                 label="Active Projects"
                 value={activeProjects}
-                onClick={() => router.push("/dashboard/projects")}
+                onClick={() => router.push("/projects")}
               />
               <MetricCard
                 label="Hours This Week"
                 value={totalWeeklyHours.toFixed(2)}
-                onClick={() => router.push("/dashboard/time")}
+                onClick={() => router.push("/timer")}
               />
               <MetricCard
                 label="Team Utilization"
                 value={`${utilization}%`}
-                onClick={() => router.push("/dashboard/team")}
+                onClick={() => router.push("/team")}
               />
             </>
           )}
@@ -375,7 +375,7 @@ export default function DashboardPage() {
               eyebrow="Billing intelligence"
               title="Invoice Overview"
               action="View invoices"
-              onAction={() => router.push("/dashboard/invoices")}
+              onAction={() => router.push("/invoices")}
             />
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <InvoiceCard
@@ -386,7 +386,7 @@ export default function DashboardPage() {
                 note="Sent and overdue invoices"
                 tone="blue"
                 onClick={() =>
-                  router.push("/dashboard/invoices?tab=all&status=open")
+                  router.push("/invoices?tab=all&status=open")
                 }
               />
               <InvoiceCard
@@ -397,7 +397,7 @@ export default function DashboardPage() {
                 note="Completed collections"
                 tone="green"
                 onClick={() =>
-                  router.push("/dashboard/invoices?tab=all&status=paid")
+                  router.push("/invoices?tab=all&status=paid")
                 }
               />
               <InvoiceCard
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                 note="Draft, sent, overdue, and paid"
                 tone="navy"
                 onClick={() =>
-                  router.push(`/dashboard/invoices?tab=all&year=${invoiceYear}`)
+                  router.push(`/invoices?tab=all&year=${invoiceYear}`)
                 }
               />
               <InvoiceCard
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 note="Past due today"
                 tone="red"
                 onClick={() =>
-                  router.push("/dashboard/invoices?tab=all&status=overdue")
+                  router.push("/invoices?tab=all&status=overdue")
                 }
               />
             </div>
@@ -448,7 +448,7 @@ export default function DashboardPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/time")}
+                  onClick={() => router.push("/timer")}
                   className="ml-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-[#153E90] shadow-sm hover:border-blue-200"
                 >
                   Open Time
