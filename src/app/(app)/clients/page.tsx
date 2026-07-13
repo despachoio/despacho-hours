@@ -292,11 +292,11 @@ export default function ClientsPage() {
                 key={client.id}
                 role="link"
                 tabIndex={0}
-                onClick={() => router.push(`/dashboard/clients/${client.id}`)}
+                onClick={() => router.push(`/clients/${client.id}`)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    router.push(`/dashboard/clients/${client.id}`);
+                    router.push(`/clients/${client.id}`);
                   }
                 }}
                 className="group flex min-h-[96px] cursor-pointer items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 sm:px-6"
