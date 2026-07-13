@@ -32,10 +32,13 @@ export default function EmployeeCard({
 
   return (
     <article
-      className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+      className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/15"
       onClick={() => router.push(`/dashboard/team/${employee.id}`)}
       onKeyDown={(event) => {
-        if (event.key === "Enter") router.push(`/dashboard/team/${employee.id}`);
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          router.push(`/dashboard/team/${employee.id}`);
+        }
       }}
       role="link"
       tabIndex={0}

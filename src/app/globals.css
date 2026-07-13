@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --kairo-blue: #153e90;
+  --kairo-navy: #0f172a;
+  --kairo-card: #ffffff;
+  --kairo-border: #e2e8f0;
+  --kairo-muted: #64748b;
+  --kairo-subtle: #94a3b8;
+  --kairo-success: #059669;
+  --kairo-warning: #d97706;
+  --kairo-danger: #dc2626;
+  --kairo-info: #2563eb;
 }
 
 @theme inline {
@@ -12,66 +22,94 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-body {
-  font-size: 15px;
-}
-
-h1 {
-  letter-spacing: -0.04em;
-}
-
-h2 {
-  letter-spacing: -0.03em;
-}
-
 * {
   box-sizing: border-box;
 }
 
+html {
+  min-width: 320px;
+  background: var(--background);
+  color-scheme: light;
+}
+
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  color: inherit;
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: 32px;
-  font-weight: 700;
   letter-spacing: -0.04em;
 }
 
 h2 {
-  font-weight: 650;
   letter-spacing: -0.03em;
 }
 
-button {
-  transition: all 0.2s ease;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-button:hover {
-  transform: translateY(-1px);
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, a, input, select, textarea, [role="button"], [role="link"]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--kairo-blue) 65%, white);
+  outline-offset: 2px;
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
 }
 
 input,
-select {
-  background: white;
+select,
+textarea {
+  background-color: white;
+  color: var(--foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--kairo-subtle);
 }
 
 ::selection {
-  background: #0f172a;
+  background: var(--kairo-blue);
   color: white;
+}
+
+* {
+  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

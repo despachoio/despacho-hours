@@ -11,7 +11,7 @@ export default function KairoCard({
 }: Props) {
   return (
     <div
-      className={`rounded-3xl border border-slate-200 bg-white shadow-sm ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}
     >
       {children}
     </div>

@@ -1570,12 +1570,18 @@ return (
 
 <main className="min-h-screen bg-[#f8fafc] px-6 py-7 sm:px-6 lg:px-8">
   <div className="mx-auto max-w-[1500px]">
-    <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-10 py-12 text-white shadow-xl shadow-slate-300/50 lg:px-14 lg:py-16">
-      <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+    <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-11">
+      <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
       <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
-      <div className="relative flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-8xl font-bold tracking-tight lg:text-5xl">Time Tracking</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">
+            Despacho workforce
+          </p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">Time Tracking</h1>
+          <p className="mt-3 text-sm text-slate-300">
+            Track project time and monitor live work.
+          </p>
         </div>
         {profile?.role === "Admin" && (
           <button
@@ -1583,7 +1589,7 @@ return (
               setShowManualEntry(true);
               if (profile.employee_id) setManualEmployeeId(profile.employee_id);
             }}
-            className="rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+            className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
           >
             + Add Time
           </button>

@@ -52,7 +52,7 @@ export default function ReportFilters({
           <select
             value={value.datePreset}
             onChange={(event) => update("datePreset", event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm"
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
           >
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -70,7 +70,7 @@ export default function ReportFilters({
           <select
             value={value.status}
             onChange={(event) => update("status", event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm"
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
           >
             <option value="all">All Statuses</option>
             <option value="running">Running</option>
@@ -81,12 +81,12 @@ export default function ReportFilters({
           value={value.search}
           onChange={(event) => update("search", event.target.value)}
           placeholder="Search reports"
-          className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400"
+          className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
         />
         <button
           type="button"
           onClick={onClear}
-          className="h-11 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:bg-slate-50"
+          className="h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/10"
         >
           Reset
         </button>
@@ -98,14 +98,14 @@ export default function ReportFilters({
             type="date"
             value={value.customFrom}
             onChange={(event) => update("customFrom", event.target.value)}
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
           />
           <input
             aria-label="Custom end date"
             type="date"
             value={value.customTo}
             onChange={(event) => update("customTo", event.target.value)}
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
           />
         </div>
       ) : null}
@@ -132,7 +132,7 @@ function Select({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
       >
         <option value="">{all}</option>
         {options.map((option) => (

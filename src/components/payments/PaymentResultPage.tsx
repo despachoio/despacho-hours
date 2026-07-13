@@ -124,7 +124,7 @@ export default function PaymentResultPage({ token }: { token: string }) {
     <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-5 py-10">
       <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-200/50 sm:p-10">
         <Image src="/despacho-logo-full.png" alt="Despacho" width={180} height={58} className="mx-auto h-auto w-44" priority />
-        {error ? <p role="alert" className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
+        {error ? <p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
         {checking && !invoice ? <p className="mt-8 text-slate-500">Checking payment status…</p> : null}
         {!checking || invoice ? (
           <>
@@ -140,7 +140,7 @@ export default function PaymentResultPage({ token }: { token: string }) {
                   type="button"
                   disabled={disabling}
                   onClick={() => void disableAutopay()}
-                  className="mt-3 text-sm font-bold text-red-600 disabled:opacity-50"
+                  className="mt-3 rounded-lg px-2 py-1 text-sm font-bold text-red-600 transition-colors hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50"
                 >
                   {disabling ? "Disabling…" : "Disable Autopay"}
                 </button>
@@ -152,12 +152,12 @@ export default function PaymentResultPage({ token }: { token: string }) {
                   type="button"
                   disabled={checking}
                   onClick={() => void checkStatus(false)}
-                  className="rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white disabled:opacity-60"
+                  className="rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:opacity-60"
                 >
                   {checking ? "Checking…" : "Refresh Status"}
                 </button>
               ) : null}
-              <a href={`/pay/invoice/${token}`} className="inline-flex rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700">
+              <a href={`/pay/invoice/${token}`} className="inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/15">
                 Return to Invoice
               </a>
             </div>

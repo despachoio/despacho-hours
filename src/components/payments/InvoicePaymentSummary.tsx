@@ -19,7 +19,7 @@ function date(value: string) {
 
 export default function InvoicePaymentSummary({ invoice }: { invoice: PublicInvoice }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/60 lg:p-8">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
@@ -29,7 +29,7 @@ export default function InvoicePaymentSummary({ invoice }: { invoice: PublicInvo
             {invoice.clientName}
           </h1>
         </div>
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase text-[#153E90]">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#153E90] ring-1 ring-inset ring-blue-200">
           {invoice.status}
         </span>
       </div>
@@ -39,7 +39,7 @@ export default function InvoicePaymentSummary({ invoice }: { invoice: PublicInvo
       </dl>
       <div className="mt-6 space-y-3">
         {invoice.items.map((item, index) => (
-          <div key={`${item.description}-${index}`} className="flex justify-between gap-5 text-sm">
+          <div key={`${item.description}-${index}`} className="flex justify-between gap-5 rounded-xl px-2 py-1.5 text-sm even:bg-slate-50">
             <div className="min-w-0">
               <p className="font-bold text-slate-800">
                 {item.projectCode ? `[${item.projectCode}] ` : ""}{item.projectName || "Service"}

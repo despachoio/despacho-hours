@@ -47,8 +47,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-10">
-      <section className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+    <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-5 py-10">
+      <section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 sm:p-10">
         <div className="flex justify-center">
           <Image
             src="/kairo-logo-full.png"
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               aria-invalid={Boolean(error)}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-5 py-3 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+              className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 shadow-sm outline-none transition-colors duration-200 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15"
             />
             {error ? (
               <p role="alert" className="mt-3 text-sm font-semibold text-red-600">
@@ -101,7 +101,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={sending}
-              className="mt-5 w-full rounded-2xl bg-slate-950 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 h-12 w-full rounded-xl bg-[#0F172A] px-5 font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#153E90] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {sending ? "Sending..." : "Send Reset Link"}
             </button>
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
 
         <Link
           href="/login"
-          className="mt-5 block w-full rounded-2xl border border-slate-200 py-3 text-center font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="mt-5 block w-full rounded-xl border border-slate-300 bg-white py-3 text-center font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
         >
           Back to Login
         </Link>

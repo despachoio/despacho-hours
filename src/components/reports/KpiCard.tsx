@@ -17,10 +17,10 @@ export default function KpiCard({
     blue: "bg-blue-50 text-[#153E90]",
     green: "bg-emerald-50 text-emerald-700",
     amber: "bg-amber-50 text-amber-700",
-    violet: "bg-violet-50 text-violet-700",
+    violet: "bg-blue-50 text-[#153E90]",
   }[accent];
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
@@ -31,7 +31,7 @@ export default function KpiCard({
           </p>
         </div>
         <span
-          className={`rounded-xl px-2.5 py-1.5 text-xs font-bold ${colors}`}
+          className={`rounded-xl px-2.5 py-1.5 text-xs font-bold ring-1 ring-inset ring-current/10 ${colors}`}
         >
           ●
         </span>

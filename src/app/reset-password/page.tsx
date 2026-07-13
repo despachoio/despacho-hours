@@ -42,8 +42,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-5 py-10">
-      <section className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+    <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-5 py-10">
+      <section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 sm:p-10">
         <div className="flex justify-center">
           <Image
             src="/kairo-logo-full.png"
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-5 py-3 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 shadow-sm outline-none transition-colors duration-200 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15"
               />
             </div>
             <div>
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 value={confirmation}
                 onChange={(event) => setConfirmation(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-5 py-3 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 shadow-sm outline-none transition-colors duration-200 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15"
               />
             </div>
             {error ? (
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={updating}
-              className="w-full rounded-2xl bg-slate-950 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-12 w-full rounded-xl bg-[#0F172A] px-5 font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#153E90] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {updating ? "Updating..." : "Update Password"}
             </button>
@@ -122,7 +122,7 @@ export default function ResetPasswordPage() {
 
         <Link
           href="/login"
-          className="mt-5 block text-center text-sm font-semibold text-[#153E90] hover:underline"
+          className="mt-5 block rounded text-center text-sm font-semibold text-[#153E90] transition-colors duration-200 hover:text-[#123474] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
         >
           Back to Login
         </Link>

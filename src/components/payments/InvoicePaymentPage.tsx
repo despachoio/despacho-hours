@@ -134,9 +134,9 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex items-center justify-between">
           <Image src="/despacho-logo-full.png" alt="Despacho" width={190} height={60} className="h-auto w-40 sm:w-48" priority />
-          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Secure payment</span>
+          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200">Secure payment</span>
         </header>
-        {loading ? <div className="rounded-3xl bg-white p-12 text-center text-slate-500 shadow-sm">Checking payment status…</div> : null}
+        {loading ? <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-sm">Checking payment status…</div> : null}
         {!loading && error && !invoice ? <div role="alert" className="rounded-3xl border border-red-200 bg-white p-8 text-center font-semibold text-red-700 shadow-sm">{error}</div> : null}
         {!loading && invoice ? (
           <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
@@ -152,19 +152,19 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
               <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
                 <h2 className="text-2xl font-bold text-slate-950">{stateTitle}</h2>
                 <p className="mt-3 leading-7 text-slate-500">{stateDescription}</p>
-                {error ? <p role="alert" className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
+                {error ? <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
                 {paymentStatus === "failed" ? (
                   <button
                     type="button"
                     disabled={preparing}
                     onClick={() => void preparePayment(true)}
-                    className="mt-6 rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-6 rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {preparing ? "Preparing…" : "Try payment again"}
                   </button>
                 ) : null}
                 {paymentStatus === "processing" || paymentStatus === "succeeded" ? (
-                  <a href={`/pay/invoice/${token}/result`} className="mt-6 inline-flex rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white">
+                  <a href={`/pay/invoice/${token}/result`} className="mt-6 inline-flex rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20">
                     Check payment status
                   </a>
                 ) : null}

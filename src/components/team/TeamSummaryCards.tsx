@@ -61,9 +61,9 @@ export default function TeamSummaryCards({
       {metrics.map(([label, value]) => (
         <article
           key={label}
-          className="relative min-h-32 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+          className="relative min-h-32 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
         >
-          <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-gradient-to-r from-[#153E90] to-blue-300" />
+          <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-[#153E90]" />
           <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             {label}
           </p>

@@ -13,14 +13,14 @@ export default function KairoSelect({
   return (
     <div>
       {label && (
-        <label className="mb-2 block text-sm font-semibold text-slate-600">
+        <label htmlFor={props.id} className="mb-2 block text-sm font-semibold text-slate-700">
           {label}
         </label>
       )}
 
       <select
         {...props}
-        className={`w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-900 ${className}`}
+        className={`min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none transition-colors duration-200 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15 disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
       >
         {children}
       </select>

@@ -12,19 +12,19 @@ export default function KairoButton({
 }: Props) {
   const styles = {
     primary:
-      "bg-slate-950 text-white hover:bg-slate-800",
+      "bg-[#0F172A] text-white shadow-sm hover:bg-[#153E90]",
 
     secondary:
-      "border border-slate-200 bg-white hover:bg-slate-50",
+      "border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50",
 
     danger:
-      "bg-red-600 text-white hover:bg-red-700",
+      "bg-[#DC2626] text-white shadow-sm hover:bg-red-700",
   };
 
   return (
     <button
       {...props}
-      className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${styles[variant]} ${className}`}
+      className={`rounded-xl px-5 py-3 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${styles[variant]} ${className}`}
     >
       {children}
     </button>

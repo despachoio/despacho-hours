@@ -78,7 +78,7 @@ export default function StripePaymentForm({
   }
 
   return (
-    <form onSubmit={submit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+    <form onSubmit={submit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/60 lg:p-8">
       <h2 className="text-xl font-bold text-slate-950">Secure card payment</h2>
       <p className="mt-1 text-sm text-slate-500">Payment details are securely processed by Stripe.</p>
       <fieldset disabled={submitting} aria-busy={submitting}>
@@ -86,12 +86,12 @@ export default function StripePaymentForm({
           <PaymentElement />
         </div>
       {autopayEligible ? (
-        <label className="mt-6 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 transition-colors hover:bg-blue-50">
           <input
             type="checkbox"
             checked={autopayConsent}
             onChange={(event) => setAutopayConsent(event.target.checked)}
-            className="mt-1"
+            className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#153E90] focus-visible:ring-2 focus-visible:ring-[#153E90]/25"
           />
           <span>
             <strong className="block text-sm text-slate-900">Enable Autopay for future recurring invoices</strong>
@@ -102,11 +102,11 @@ export default function StripePaymentForm({
         </label>
       ) : null}
       </fieldset>
-      {error ? <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
+      {error ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
       <button
         type="submit"
         disabled={!stripe || submitting}
-        className="mt-6 w-full rounded-2xl bg-[#153E90] px-5 py-3.5 font-bold text-white shadow-lg shadow-blue-900/15 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-6 w-full rounded-xl bg-[#153E90] px-5 py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? "Processing payment…" : "Make Payment"}
       </button>

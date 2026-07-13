@@ -54,10 +54,10 @@ export default function LoginPage() {
 
   return (
 
-    <main className="flex min-h-screen items-center justify-center bg-[#f8fafc]">
+    <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-5 py-10">
 
 
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+      <section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 sm:p-10">
 
 
         <div className="flex justify-center">
@@ -74,7 +74,7 @@ export default function LoginPage() {
 
 
 
-        <p className="mt-2 text-center text-slate-500 font-bold uppercase">
+        <p className="mt-2 text-center text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
 
           The Pulse of Despacho
 
@@ -105,7 +105,7 @@ export default function LoginPage() {
 
             onChange={(e)=>setEmail(e.target.value)}
 
-            className="w-full rounded-2xl border px-5 py-3"
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 shadow-sm outline-none transition-colors duration-200 placeholder:text-slate-400 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15"
 
           />
 
@@ -125,14 +125,14 @@ export default function LoginPage() {
 
             onChange={(e)=>setPassword(e.target.value)}
 
-            className="w-full rounded-2xl border px-5 py-3"
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 shadow-sm outline-none transition-colors duration-200 placeholder:text-slate-400 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15"
 
           />
 
           <div className="flex justify-end">
             <Link
               href="/forgot-password"
-              className="text-sm font-semibold text-[#153E90] transition hover:underline"
+              className="rounded text-sm font-semibold text-[#153E90] transition-colors duration-200 hover:text-[#123474] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
             >
               Forgot Password?
             </Link>
@@ -147,7 +147,7 @@ export default function LoginPage() {
 
             disabled={isLoggingIn}
 
-            className="w-full rounded-2xl bg-slate-950 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-12 w-full rounded-xl bg-[#0F172A] px-5 font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#153E90] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
 
           >
 
@@ -160,7 +160,7 @@ export default function LoginPage() {
         </form>
 
 
-      </div>
+      </section>
 
 
     </main>

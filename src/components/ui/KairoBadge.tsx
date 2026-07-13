@@ -10,16 +10,16 @@ export default function KairoBadge({
   color = "gray",
 }: Props) {
   const styles = {
-    gray: "bg-slate-100 text-slate-700",
-    green: "bg-green-100 text-green-700",
-    red: "bg-red-100 text-red-700",
-    yellow: "bg-yellow-100 text-yellow-700",
-    blue: "bg-blue-100 text-blue-700",
+    gray: "bg-slate-100 text-slate-700 ring-slate-200",
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    red: "bg-red-50 text-red-700 ring-red-200",
+    yellow: "bg-amber-50 text-amber-700 ring-amber-200",
+    blue: "bg-blue-50 text-blue-700 ring-blue-200",
   };
 
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${styles[color]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ring-1 ring-inset ${styles[color]}`}
     >
       {children}
     </span>

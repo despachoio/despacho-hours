@@ -30,6 +30,24 @@ const allMenu: MenuItem[] = [
     icon: "dashboard",
   },
   {
+    name: "Time",
+    path: "/dashboard/time",
+    roles: ["Admin", "Manager", "Employee"],
+    icon: "time",
+  },
+  {
+    name: "Team",
+    path: "/dashboard/team",
+    roles: ["Admin", "Manager", "Employee"],
+    icon: "team",
+  },
+  {
+    name: "Invoices",
+    path: "/dashboard/invoices",
+    roles: ["Admin"],
+    icon: "invoices",
+  },
+  {
     name: "Clients",
     path: "/dashboard/clients",
     roles: ["Admin", "Manager"],
@@ -42,28 +60,10 @@ const allMenu: MenuItem[] = [
     icon: "projects",
   },
   {
-    name: "Team",
-    path: "/dashboard/team",
-    roles: ["Admin", "Manager", "Employee"],
-    icon: "team",
-  },
-  {
-    name: "Time",
-    path: "/dashboard/time",
-    roles: ["Admin", "Manager", "Employee"],
-    icon: "time",
-  },
-  {
     name: "Reports",
     path: "/dashboard/reports",
     roles: ["Admin", "Manager", "Employee"],
     icon: "reports",
-  },
-  {
-    name: "Invoices",
-    path: "/dashboard/invoices",
-    roles: ["Admin"],
-    icon: "invoices",
   },
   {
     name: "Settings",
@@ -238,14 +238,14 @@ export default function DashboardLayout({
   }
 
   const sidebar = (
-    <aside className="relative flex h-full w-[288px] flex-col overflow-hidden border-r border-slate-200/80 bg-white shadow-[12px_0_40px_rgba(15,23,42,0.04)]">
+    <aside className="relative flex h-full w-[288px] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[12px_0_40px_rgba(15,23,42,0.04)]">
       <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-blue-100/60 blur-3xl" />
       <div className="relative border-b border-slate-100 px-7 pb-6 pt-7">
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
-            className="rounded-xl text-left hover:opacity-80"
+            className="rounded-xl text-left transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
             aria-label="Go to dashboard"
           >
             <Image
@@ -293,9 +293,9 @@ export default function DashboardLayout({
                   type="button"
                   onClick={() => navigate(item.path)}
                   aria-current={active ? "page" : undefined}
-                  className={`group relative flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-semibold transition-all ${
+                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 ${
                     active
-                      ? "bg-[#0F172A] text-white shadow-lg shadow-slate-900/15"
+                      ? "bg-[#153E90] text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
                   }`}
                 >
@@ -324,7 +324,7 @@ export default function DashboardLayout({
             onClick={() => setIsProfileMenuOpen((open) => !open)}
             className="flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35"
           >
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#153E90] to-[#0F172A] text-xs font-bold text-white shadow-md shadow-blue-900/15">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#153E90] text-xs font-bold text-white shadow-sm">
               {getInitials(userName) || "K"}
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
             </div>
