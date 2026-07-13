@@ -40,9 +40,14 @@ export default function ForgotPasswordPage() {
     setSending(false);
 
     if (resetError) {
-      setError("Unable to send the reset link. Please try again.");
-      return;
-    }
+  console.error(resetError);
+
+  setError(
+    `${resetError.message} (${resetError.status ?? "no-status"})`
+  );
+
+  return;
+}
     setSent(true);
   }
 
