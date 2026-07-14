@@ -174,14 +174,42 @@ function TeamDetailPageContent() {
       setError(employeeError.message);
       return;
     }
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ role: accessRole, full_name: name })
-      .eq("employee_id", id);
-    if (profileError) {
-      setError(profileError.message);
-      return;
+    const { data: employeeRecord, error: employeeLookupError } = await supabase
+  .from("employees")
+  .select("user_id")
+  .eq("id", id)
+  .single();
+
+if (employeeLookupError) {
+  setError(employeeLookupError.message);
+  return;
+}
+
+if (!employeeRecord?.user_id) {
+  setError(
+    "This employee does not have login access yet. Create a Supabase Auth user before assigning Admin or Manager access."
+  );
+  return;
+}
+
+const { error: profileError } = await supabase
+  .from("profiles")
+  .upsert(
+    {
+      user_id: employeeRecord.user_id,
+      employee_id: id,
+      role: accessRole,
+      full_name: name,
+    },
+    {
+      onConflict: "user_id",
     }
+  );
+
+if (profileError) {
+  setError(profileError.message);
+  return;
+}
     router.push(`/team/${id}`);
     router.refresh();
   }
