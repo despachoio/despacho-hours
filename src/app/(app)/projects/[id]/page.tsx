@@ -140,8 +140,7 @@ const [startDate,setStartDate] =
 useState("");
 
 
-const [purchasedHours,setPurchasedHours] =
-useState("");
+
 
 
 const [extraHours,setExtraHours] =
@@ -263,11 +262,8 @@ data.start_date || ""
 );
 
 
-setPurchasedHours(
-String(
-data.purchased_hours || 0
-)
-);
+
+
 
 
 }
@@ -362,7 +358,7 @@ data as TeamMember[]
 async function saveProject() {
   if (!project) return;
 
-  const purchased = Number(purchasedHours || 0);
+  const purchased = project.purchased_hours || 0;
 
   await supabase
     .from("projects")
@@ -913,16 +909,20 @@ No activity yet.
     </div>
 
     <div>
-      <label className="mb-2 block text-sm font-semibold text-slate-600">
-        Purchased Hours
-      </label>
-      <input
-        type="number"
-        value={purchasedHours}
-        onChange={(e) => setPurchasedHours(e.target.value)}
-        className="w-full rounded-2xl border px-5 py-3"
-      />
-    </div>
+  <label className="text-sm font-semibold text-slate-700">
+    Purchased Hours
+  </label>
+
+  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+    <p className="text-lg font-bold text-slate-900">
+      {project.purchased_hours || 0} hrs
+    </p>
+
+    <p className="mt-1 text-sm text-slate-500">
+      Hours are added automatically when client payments are received.
+    </p>
+  </div>
+</div>
 
     <div>
 
@@ -985,7 +985,7 @@ No activity yet.
     setExtraHours(e.target.value)
   }
 
-  placeholder="Hours to add"
+  placeholder="Hours to credit"
 
   className="w-full rounded-2xl border px-5 py-3"
 
@@ -1004,7 +1004,7 @@ No activity yet.
 
 >
 
-  Add Hours
+  Manual Hour Adjustment
 
 </button>
 

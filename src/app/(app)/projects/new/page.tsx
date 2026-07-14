@@ -26,7 +26,6 @@ const clientFromUrl = searchParams.get("client");
   const [projectCode, setProjectCode] = useState("");
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [purchasedHours, setPurchasedHours] = useState("");
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
 
@@ -80,35 +79,29 @@ if (clientFromUrl) {
   }
 
   async function saveProject() {
-    if (!clientId || !name || !startDate || !purchasedHours) {
-      alert("Please fill client, project name, start date, and purchased hours.");
-      return;
-    }
+    if (!clientId || !name || !startDate) {
+  alert("Please fill client, project name, and start date.");
+  return;
+}
 
     if (saving) return;
 
     setSaving(true);
 
-    const hours = Number(purchasedHours);
-
-    if (!hours || hours <= 0) {
-      alert("Purchased hours must be greater than 0.");
-      setSaving(false);
-      return;
-    }
+    
 
     const { data: newProject, error } = await supabase
       .from("projects")
       .insert({
-        client_id: clientId,
-        project_code: projectCode || null,
-        name,
-        start_date: startDate,
-        purchased_hours: hours,
-        used_hours: 0,
-        remaining_hours: hours,
-        status: "active",
-      })
+  client_id: clientId,
+  project_code: projectCode || null,
+  name,
+  start_date: startDate,
+  purchased_hours: 0,
+  used_hours: 0,
+  remaining_hours: 0,
+  status: "active",
+})
       .select("id")
       .single();
 
@@ -118,43 +111,10 @@ if (clientFromUrl) {
       return;
     }
 
-    const purchaseDate =
-  new Date()
-    .toLocaleDateString(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }
-    )
-    .replace(/ /g, "-");
+    
 
 
-const { error: noteError } =
-  await supabase
-    .from("project_notes")
-    .insert({
 
-      project_id:
-        newProject.id,
-
-      note:
-        `${purchaseDate} - ${hours.toFixed(2)} hours purchased`,
-
-    });
-
-
-if (noteError) {
-
-  alert(
-    "Project note error: " +
-    noteError.message
-  );
-
-  console.error(noteError);
-
-}
 
     if (assignedEmployeeIds.length > 0 && newProject?.id) {
       const rows = assignedEmployeeIds.map((employeeId) => ({
@@ -257,19 +217,21 @@ if (noteError) {
               />
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-500">
-                Purchased Hours
-              </label>
+           <div>
+  <label className="text-sm font-semibold text-slate-500">
+    Purchased Hours
+  </label>
 
-              <input
-                type="number"
-                value={purchasedHours}
-                onChange={(e) => setPurchasedHours(e.target.value)}
-                placeholder="Example: 200"
-                className="mt-2 w-full rounded-2xl border px-5 py-3"
-              />
-            </div>
+  <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+    <p className="text-lg font-bold text-slate-900">
+      0 hrs
+    </p>
+
+    <p className="mt-1 text-sm text-slate-500">
+      Hours are added automatically when client payments are received.
+    </p>
+  </div>
+</div>
 
             <div>
   <label className="text-sm font-semibold text-slate-500">

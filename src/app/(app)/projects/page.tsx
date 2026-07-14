@@ -327,7 +327,7 @@ export default function ProjectsPage() {
 
                                 <option value="team">Assign Team</option>
 
-                                <option value="hours">Add Hours</option>
+                                <option value="hours">Hours to credit</option>
 
                                 <option value="archive">Deactivate</option>
                               </>
