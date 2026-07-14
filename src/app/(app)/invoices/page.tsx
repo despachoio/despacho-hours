@@ -374,9 +374,7 @@ function InvoicesPageContent() {
           .select(
             "id,invoice_number,client_id,issue_date,due_date,currency,total_amount,paid_amount,status,generated_from_recurring,clients(name)",
           )
-          .or(
-            "status.in.(sent,overdue),and(status.eq.draft,generated_from_recurring.eq.true)",
-          )
+          .in("status", ["draft", "sent", "overdue"])
           .order("due_date", { ascending: true })
           .order("invoice_number", { ascending: false })
           .limit(10),
@@ -500,7 +498,7 @@ function InvoicesPageContent() {
       );
     if (clientFilter) query = query.eq("client_id", clientFilter);
     if (statusFilter === "open")
-      query = query.in("status", ["sent", "overdue"]);
+      query = query.in("status", ["draft", "sent", "overdue"]);
     else if (statusFilter === "overdue")
       query = query.in("status", ["sent", "overdue"]).lt(
         "due_date",
@@ -933,7 +931,7 @@ function InvoicesPageContent() {
                 <div>
                   <h2 className="text-xl font-bold">Open Invoices</h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Up to 10 sent, overdue, or newly generated recurring Drafts.
+                    Up to 10 Draft, sent, or overdue invoices.
                   </p>
                 </div>
                 <button

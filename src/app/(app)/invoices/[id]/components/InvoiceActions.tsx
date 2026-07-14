@@ -258,11 +258,11 @@ export default function InvoiceActions({
   const recurringSchedule = Array.isArray(invoice.recurring_invoice_schedules)
     ? invoice.recurring_invoice_schedules[0]
     : invoice.recurring_invoice_schedules;
-  const canDeleteRecurringDraft =
+  const canDeleteDraft =
     isAdmin &&
     normalizedStatus === "draft" &&
-    invoice.generated_from_recurring === true &&
-    recurringSchedule?.autopay_enabled !== true;
+    (invoice.generated_from_recurring !== true ||
+      recurringSchedule?.autopay_enabled !== true);
   const canSendInvoice = !["paid", "void", "cancelled"].includes(
     normalizedStatus,
   );
@@ -884,8 +884,8 @@ export default function InvoiceActions({
     }
   }
 
-  async function deleteRecurringDraft() {
-    if (!canDeleteRecurringDraft || isDeletingDraft) return;
+  async function deleteDraft() {
+    if (!canDeleteDraft || isDeletingDraft) return;
     setIsDeletingDraft(true);
     setDeleteDraftError("");
     try {
@@ -901,14 +901,14 @@ export default function InvoiceActions({
       );
       const result = await response.json().catch(() => null);
       if (!response.ok)
-        throw new Error(result?.error || "Unable to delete recurring Draft.");
+        throw new Error(result?.error || "Unable to delete Draft.");
       router.push("/invoices?tab=all");
       router.refresh();
     } catch (error) {
       setDeleteDraftError(
         error instanceof Error
           ? error.message
-          : "Unable to delete recurring Draft.",
+          : "Unable to delete Draft.",
       );
     } finally {
       setIsDeletingDraft(false);
@@ -1055,7 +1055,7 @@ export default function InvoiceActions({
             )
           ) : null}
 
-          {canDeleteRecurringDraft ? (
+          {canDeleteDraft ? (
             <>
               <div className="my-3 border-t border-slate-200" />
               <button
@@ -1066,7 +1066,9 @@ export default function InvoiceActions({
                 }}
                 className="w-full rounded-xl border border-red-200 px-4 py-3 text-left font-semibold text-red-600 hover:bg-red-50"
               >
-                Delete Recurring Draft
+                {invoice.generated_from_recurring
+                  ? "Delete Recurring Draft"
+                  : "Delete Draft"}
               </button>
             </>
           ) : null}
@@ -1078,18 +1080,21 @@ export default function InvoiceActions({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="delete-recurring-draft-title"
+          aria-labelledby="delete-draft-title"
         >
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
             <h2
-              id="delete-recurring-draft-title"
+              id="delete-draft-title"
               className="text-xl font-bold text-slate-950"
             >
-              Delete recurring Draft?
+              {invoice.generated_from_recurring
+                ? "Delete recurring Draft?"
+                : "Delete Draft invoice?"}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              This removes this Draft invoice only. The recurring schedule and
-              its future occurrences will remain active.
+              {invoice.generated_from_recurring
+                ? "This removes this Draft invoice only. The recurring schedule and its future occurrences will remain active."
+                : "This permanently removes this one-time Draft invoice and its line items."}
             </p>
             {deleteDraftError ? (
               <div
@@ -1110,7 +1115,7 @@ export default function InvoiceActions({
               </button>
               <button
                 type="button"
-                onClick={() => void deleteRecurringDraft()}
+                onClick={() => void deleteDraft()}
                 disabled={isDeletingDraft}
                 className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
               >

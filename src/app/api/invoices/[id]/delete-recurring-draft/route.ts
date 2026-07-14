@@ -18,14 +18,14 @@ export async function DELETE(
   if (error || !invoice)
     return Response.json({ error: "Invoice not found" }, { status: 404 });
 
-  if (invoice.status !== "draft" || invoice.generated_from_recurring !== true) {
+  if (invoice.status !== "draft") {
     return Response.json(
-      { error: "Only recurring Draft invoices can be deleted" },
+      { error: "Only Draft invoices can be deleted" },
       { status: 409 },
     );
   }
 
-  if (invoice.recurring_schedule_id) {
+  if (invoice.generated_from_recurring && invoice.recurring_schedule_id) {
     const { data: schedule, error: scheduleError } = await auth.admin
       .from("recurring_invoice_schedules")
       .select("autopay_enabled")
@@ -55,34 +55,36 @@ export async function DELETE(
     }
   }
 
-  const occurrenceCleanup = await auth.admin
-    .from("recurring_invoice_occurrences")
-    .update({
-      status: "cancelled",
-      generated_invoice_id: null,
-      skip_reason: "Generated Draft deleted by Admin",
-    })
-    .eq("generated_invoice_id", id);
-  if (occurrenceCleanup.error) {
-    return Response.json(
-      {
-        error: `Unable to unlink the recurring occurrence: ${occurrenceCleanup.error.message}`,
-      },
-      { status: 500 },
-    );
-  }
+  if (invoice.generated_from_recurring) {
+    const occurrenceCleanup = await auth.admin
+      .from("recurring_invoice_occurrences")
+      .update({
+        status: "cancelled",
+        generated_invoice_id: null,
+        skip_reason: "Generated Draft deleted by Admin",
+      })
+      .eq("generated_invoice_id", id);
+    if (occurrenceCleanup.error) {
+      return Response.json(
+        {
+          error: `Unable to unlink the recurring occurrence: ${occurrenceCleanup.error.message}`,
+        },
+        { status: 500 },
+      );
+    }
 
-  const scheduleCleanup = await auth.admin
-    .from("recurring_invoice_schedules")
-    .update({ last_generated_invoice_id: null })
-    .eq("last_generated_invoice_id", id);
-  if (scheduleCleanup.error) {
-    return Response.json(
-      {
-        error: `Unable to unlink the recurring schedule: ${scheduleCleanup.error.message}`,
-      },
-      { status: 500 },
-    );
+    const scheduleCleanup = await auth.admin
+      .from("recurring_invoice_schedules")
+      .update({ last_generated_invoice_id: null })
+      .eq("last_generated_invoice_id", id);
+    if (scheduleCleanup.error) {
+      return Response.json(
+        {
+          error: `Unable to unlink the recurring schedule: ${scheduleCleanup.error.message}`,
+        },
+        { status: 500 },
+      );
+    }
   }
 
   const itemDelete = await auth.admin
@@ -102,7 +104,7 @@ export async function DELETE(
     .eq("status", "draft");
   if (deleted.error) {
     return Response.json(
-      { error: `Unable to delete recurring Draft: ${deleted.error.message}` },
+      { error: `Unable to delete Draft: ${deleted.error.message}` },
       { status: 500 },
     );
   }
