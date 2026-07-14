@@ -35,6 +35,7 @@ function TeamDetailPageContent() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [error, setError] = useState("");
   const [statusBusy, setStatusBusy] = useState(false);
+  const [passwordResetBusy, setPasswordResetBusy] = useState(false);
   const [employeeCode, setEmployeeCode] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -256,13 +257,36 @@ if (profileError) {
   }
 
   async function sendPasswordReset() {
-    if (!isAdmin || !member?.email) return;
-    const result = await supabase.functions.invoke("send-password-reset", {
-      body: { email: member.email },
-    });
-    setError(
-      result.error ? result.error.message : "Password reset email sent.",
-    );
+    if (!isAdmin || !member?.email || passwordResetBusy) return;
+    setPasswordResetBusy(true);
+    setError("");
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setError("Your session has expired.");
+        return;
+      }
+
+      const response = await fetch(`/api/team/${id}/password-reset`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        success?: boolean;
+      };
+      if (!response.ok || !result.success) {
+        setError(result.error || "Unable to send password reset email.");
+        return;
+      }
+      setError("Password reset email sent.");
+    } catch {
+      setError("Unable to send password reset email.");
+    } finally {
+      setPasswordResetBusy(false);
+    }
   }
 
   if (loading)
@@ -301,9 +325,10 @@ if (profileError) {
       <button
         type="button"
         onClick={() => void sendPasswordReset()}
-        className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold"
+        disabled={passwordResetBusy}
+        className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Reset Password
+        {passwordResetBusy ? "Sending..." : "Reset Password"}
       </button>
       <button
         type="button"
