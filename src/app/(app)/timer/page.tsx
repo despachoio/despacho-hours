@@ -1702,12 +1702,14 @@ return (
               <span className="sr-only">Description</span>
               <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What are you working on?" className="h-full w-full rounded-xl border border-slate-500 px-4 py-3 outline-none focus:border-blue-500" />
             </label>
-            <Button
+           <button
+  type="button"
   onClick={handleStartTimer}
   disabled={startingTimer || !projectId}
+  className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
 >
   {startingTimer ? "Starting..." : "Start"}
-</Button>
+</button>
           </div>
         </>
       ) : (
