@@ -141,10 +141,15 @@ export default function TimePage() {
   const [entries, setEntries] =
     useState<TimeEntry[]>([]);
 
+  const [personalSummaryEntries, setPersonalSummaryEntries] =
+    useState<Pick<TimeEntry, "employee_id" | "project_id" | "entry_date" | "hours">[]>([]);
+
 
 
   const [employeeId, setEmployeeId] =
     useState("");
+
+    const [startingTimer, setStartingTimer] = useState(false);
 
 
   const [projectId, setProjectId] =
@@ -230,6 +235,7 @@ const [manualDescription, setManualDescription] =
 
 const [isSavingEdit, setIsSavingEdit] = useState(false);
 const timerActionsInFlight = useRef(new Set<string>());
+const startTimerInFlight = useRef(false);
 
 const PAGE_SIZE = 50;
 const [filterEmployee, setFilterEmployee] = useState("");
@@ -511,6 +517,26 @@ setEmployeeId(
 profileData.employee_id
 );
 
+const week = getDateBounds("this_week");
+const { data: summaryData, error: summaryError } = await supabase
+  .from("time_entries")
+  .select("employee_id,project_id,entry_date,hours")
+  .eq("employee_id", profileData.employee_id)
+  .gte("entry_date", week.from)
+  .lte("entry_date", week.to);
+
+if (summaryError) {
+  console.error("Failed to load personal time summary:", summaryError);
+  setPersonalSummaryEntries([]);
+} else {
+  setPersonalSummaryEntries(
+    (summaryData || []) as Pick<
+      TimeEntry,
+      "employee_id" | "project_id" | "entry_date" | "hours"
+    >[],
+  );
+}
+
 }
 
 }
@@ -699,19 +725,20 @@ let timerData=null;
 if(currentProfile?.employee_id){
 
 
-const {data} =
-await supabase
+const { data, error: timerError } = await supabase
+  .from("active_timers")
+  .select("*")
+  .eq("employee_id", currentProfile.employee_id)
+  .in("status", ["running", "paused"])
+  .order("started_at", { ascending: false })
+  .limit(1)
+  .maybeSingle();
 
-.from("active_timers")
+if (timerError) {
+  console.error("Failed to load active timer:", timerError);
+}
 
-.select("*")
-
-.eq(
-"employee_id",
-currentProfile.employee_id
-)
-
-.maybeSingle();
+timerData = data;
 
 
 timerData=data;
@@ -799,45 +826,83 @@ setLiveTimers([]);
 
 
 }
-async function startTimer() {
+async function handleStartTimer() {
+  // Immediate protection against double-clicks.
+  if (startTimerInFlight.current) return;
 
-  if (!employeeId || !projectId) {
-
-    alert("Please select project.");
-
+  if (!employeeId) {
+    alert("Employee login is not configured.");
     return;
-
   }
 
+  if (!projectId) {
+    alert("Please select a project.");
+    return;
+  }
 
-  const { error } =
-    await supabase
+  startTimerInFlight.current = true;
+  setStartingTimer(true);
+
+  try {
+    // Check whether the employee already has a running or paused timer.
+    const { data: existingTimers, error: existingTimerError } =
+      await supabase
+        .from("active_timers")
+        .select("id, status, project_id")
+        .eq("employee_id", employeeId)
+        .in("status", ["running", "paused"])
+        .order("started_at", { ascending: false })
+        .limit(1);
+
+    if (existingTimerError) {
+      alert(existingTimerError.message);
+      return;
+    }
+
+    const existingTimer = existingTimers?.[0];
+
+    if (existingTimer) {
+      alert(
+        existingTimer.status === "paused"
+          ? "You already have a paused timer. Resume or stop it before starting another timer."
+          : "You already have an active timer."
+      );
+
+      await loadData();
+      return;
+    }
+
+    const { data: newTimer, error: insertError } = await supabase
       .from("active_timers")
       .insert({
-
         employee_id: employeeId,
-
         project_id: projectId,
-
-        description:
-          description || null,
-
+        description: description.trim() || null,
         status: "running",
+      })
+      .select("*")
+      .single();
 
-      });
+    if (insertError) {
+      // PostgreSQL unique-constraint violation.
+      if (insertError.code === "23505") {
+        alert("You already have an active timer.");
+        await loadData();
+        return;
+      }
 
+      alert(insertError.message);
+      return;
+    }
 
-  if (error) {
+    setActiveTimer(newTimer as ActiveTimer);
+    setElapsedSeconds(0);
 
-    alert(error.message);
-
-    return;
-
+    await loadData();
+  } finally {
+    startTimerInFlight.current = false;
+    setStartingTimer(false);
   }
-
-
-  loadData();
-
 }
 
 
@@ -1498,14 +1563,18 @@ const groupedEntries = useMemo(
 const summary = useMemo(() => {
   const today = toDateKey(new Date());
   const week = getDateBounds("this_week");
-  const weekEntries = entries.filter((entry) => entry.entry_date >= week.from && entry.entry_date <= week.to);
+  const weekEntries = personalSummaryEntries.filter(
+    (entry) => entry.entry_date >= week.from && entry.entry_date <= week.to,
+  );
   return {
-    today: entries.filter((entry) => entry.entry_date === today).reduce((total, entry) => total + Number(entry.hours || 0), 0),
+    today: personalSummaryEntries
+      .filter((entry) => entry.entry_date === today)
+      .reduce((total, entry) => total + Number(entry.hours || 0), 0),
     week: weekEntries.reduce((total, entry) => total + Number(entry.hours || 0), 0),
     projects: new Set(weekEntries.map((entry) => entry.project_id)).size,
     running: profile?.role === "Admin" || profile?.role === "Manager" ? liveTimers.length : activeTimer ? 1 : 0,
   };
-}, [entries, liveTimers.length, activeTimer, profile?.role]);
+}, [personalSummaryEntries, liveTimers.length, activeTimer, profile?.role]);
 
 function resetFilters() {
   setFilterEmployee("");
@@ -1633,7 +1702,12 @@ return (
               <span className="sr-only">Description</span>
               <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What are you working on?" className="h-full w-full rounded-xl border border-slate-500 px-4 py-3 outline-none focus:border-blue-500" />
             </label>
-            <button onClick={startTimer} className="rounded-xl bg-[#153e90] px-6 py-3 font-bold text-white hover:bg-blue-800">Start</button>
+            <Button
+  onClick={handleStartTimer}
+  disabled={startingTimer || !projectId}
+>
+  {startingTimer ? "Starting..." : "Start"}
+</Button>
           </div>
         </>
       ) : (
