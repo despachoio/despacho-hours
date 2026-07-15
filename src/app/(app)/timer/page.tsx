@@ -1494,6 +1494,34 @@ const manualProjects = useMemo(
   [manualAssignedProjects, manualClient]
 );
 
+const selectedEmployeeProjects = useMemo(() => {
+  if (!filterEmployee) return [];
+
+  return projects.filter((project) =>
+    project.project_resources?.some(
+      (resource) => resource.employee_id === filterEmployee
+    )
+  );
+}, [projects, filterEmployee]);
+
+const selectedEmployeeClients = useMemo(() => {
+  return Array.from(
+    new Set(
+      selectedEmployeeProjects
+        .map((project) => project.clients?.name)
+        .filter(Boolean) as string[]
+    )
+  ).sort();
+}, [selectedEmployeeProjects]);
+
+const selectedEmployeeFilteredProjects = useMemo(() => {
+  if (!filterClient) return selectedEmployeeProjects;
+
+  return selectedEmployeeProjects.filter(
+    (project) => project.clients?.name === filterClient
+  );
+}, [selectedEmployeeProjects, filterClient]);
+
 const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
   let visible: LiveTimer[] = [];
 
@@ -1520,21 +1548,54 @@ const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
 
 const runningLiveTimerCount = visibleLiveTimers.filter((timer) => timer.status === "running").length;
 
-const hasEntryFilters = Boolean(
-  filterEmployee || filterClient || filterProject || filterDateRange || debouncedSearch
-);
+const hasEntryFilters =
+  profile?.role === "Employee"
+    ? Boolean(
+        filterClient ||
+        filterProject ||
+        filterDateRange ||
+        debouncedSearch
+      )
+    : Boolean(filterEmployee);
+
+
 
 const filteredEntries = useMemo(() => {
   if (!hasEntryFilters) return [];
-  const bounds = filterDateRange && filterDateRange !== "custom" ? getDateBounds(filterDateRange) : null;
+  const bounds =
+    filterDateRange && filterDateRange !== "custom"
+      ? getDateBounds(filterDateRange)
+      : null;
   return entries.filter((entry) => {
-    if (profile?.role !== "Employee" && filterEmployee && entry.employee_id !== filterEmployee) return false;
-    if (filterClient && entry.projects?.clients?.name !== filterClient) return false;
-    if (filterProject && entry.project_id !== filterProject) return false;
+    if (
+      profile?.role !== "Employee" &&
+      filterEmployee &&
+      entry.employee_id !== filterEmployee
+    ) {
+      return false;
+    }
+    if (
+      filterClient &&
+      entry.projects?.clients?.name !== filterClient
+    ) {
+      return false;
+    }
+    if (
+      filterProject &&
+      entry.project_id !== filterProject
+    ) {
+      return false;
+    }
     if (filterDateRange === "custom") {
       if (customFrom && entry.entry_date < customFrom) return false;
       if (customTo && entry.entry_date > customTo) return false;
-    } else if (bounds && (entry.entry_date < bounds.from || entry.entry_date > bounds.to)) {
+    } else if (
+      bounds &&
+      (
+        entry.entry_date < bounds.from ||
+        entry.entry_date > bounds.to
+      )
+    ) {
       return false;
     }
     if (debouncedSearch) {
@@ -1544,12 +1605,28 @@ const filteredEntries = useMemo(() => {
         entry.projects?.project_code,
         entry.projects?.name,
         entry.description,
-      ].filter(Boolean).join(" ").toLowerCase();
-      if (!searchable.includes(debouncedSearch)) return false;
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!searchable.includes(debouncedSearch)) {
+        return false;
+      }
     }
     return true;
   });
-}, [entries, profile?.role, filterEmployee, filterClient, filterProject, filterDateRange, customFrom, customTo, debouncedSearch, hasEntryFilters]);
+}, [
+  entries,
+  profile?.role,
+  filterEmployee,
+  filterClient,
+  filterProject,
+  filterDateRange,
+  customFrom,
+  customTo,
+  debouncedSearch,
+  hasEntryFilters,
+]);
 
 const paginatedEntries = useMemo(
   () => filteredEntries.slice(entryPage * PAGE_SIZE, (entryPage + 1) * PAGE_SIZE),
@@ -1605,6 +1682,7 @@ function resetFilters() {
   setCustomTo("");
   setSearch("");
   setDebouncedSearch("");
+  setEntryPage(0);
 }
 
 function beginEdit(entry: TimeEntry) {
@@ -1844,23 +1922,67 @@ return (
       </div>
       <div className={(showMobileFilters ? "mt-4 grid" : "hidden") + " gap-3 sm:grid-cols-2 lg:grid lg:grid-cols-5"}>
         {canFilterTeamEntries && (
-          <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
-            <option value="">All Employees</option>
-            {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-          </select>
+          <select
+  value={filterEmployee}
+  onChange={(event) => {
+    setFilterEmployee(event.target.value);
+    setFilterClient("");
+    setFilterProject("");
+  }}
+  className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500"
+>
+  <option value="">Select Employee</option>
+
+  {employees.map((employee) => (
+    <option key={employee.id} value={employee.id}>
+      {employee.name}
+    </option>
+  ))}
+</select>
         )}
         <select value={filterDateRange} onChange={(event) => setFilterDateRange(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
           <option value="">Select Date Range</option>
           <option value="today">Today</option><option value="yesterday">Yesterday</option><option value="this_week">This Week</option><option value="last_week">Last Week</option><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="custom">Custom Range</option>
         </select>
-        <select value={filterClient} onChange={(event) => { setFilterClient(event.target.value); setFilterProject(""); }} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
-          <option value="">All Clients</option>
-          {clientNames.map((client) => <option key={client} value={client}>{client}</option>)}
-        </select>
-        <select value={filterProject} onChange={(event) => setFilterProject(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
-          <option value="">All Projects</option>
-          {projects.filter((project) => !filterClient || project.clients?.name === filterClient).map((project) => <option key={project.id} value={project.id}>[{project.project_code}] {project.name}</option>)}
-        </select>
+        <select
+  value={filterClient}
+  disabled={!filterEmployee}
+  onChange={(event) => {
+    setFilterClient(event.target.value);
+    setFilterProject("");
+  }}
+  className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+>
+  <option value="">
+    {filterEmployee ? "Select Client" : "Select Employee First"}
+  </option>
+
+  {selectedEmployeeClients.map((client) => (
+    <option key={client} value={client}>
+      {client}
+    </option>
+  ))}
+</select>
+        <select
+  value={filterProject}
+  disabled={!filterEmployee || !filterClient}
+  onChange={(event) => setFilterProject(event.target.value)}
+  className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+>
+  <option value="">
+    {!filterEmployee
+      ? "Select Employee First"
+      : !filterClient
+        ? "Select Client First"
+        : "Select Project"}
+  </option>
+
+  {selectedEmployeeFilteredProjects.map((project) => (
+    <option key={project.id} value={project.id}>
+      [{project.project_code || "—"}] {project.name}
+    </option>
+  ))}
+</select>
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employee, client, project…" className="rounded-xl border border-slate-500 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
       </div>
       {filterDateRange === "custom" && (
@@ -1880,7 +2002,7 @@ return (
         <p className="mt-1 text-sm text-slate-500">Completed entries grouped by date.</p>
       </div>
       {!hasEntryFilters ? (
-        <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">Select one or more filters to view time entries.</h3><p className="mt-2 text-sm text-slate-500">Choose an employee, date range, client, project, or enter a search term.</p></div>
+        <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">Select an employee to view their time entries.</h3><p className="mt-2 text-sm text-slate-500">After selecting an employee, you can narrow the results by date, assigned client, assigned project, or search.</p></div>
       ) : filteredEntries.length === 0 ? (
         <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">No time entries match your filters.</h3><button onClick={resetFilters} className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">Clear Filters</button></div>
       ) : (
