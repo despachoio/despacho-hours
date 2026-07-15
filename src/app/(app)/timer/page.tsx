@@ -237,7 +237,7 @@ const [isSavingEdit, setIsSavingEdit] = useState(false);
 const timerActionsInFlight = useRef(new Set<string>());
 const startTimerInFlight = useRef(false);
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
 const [filterEmployee, setFilterEmployee] = useState("");
 const [filterClient, setFilterClient] = useState("");
 const [filterProject, setFilterProject] = useState("");
@@ -250,6 +250,10 @@ const [entryPage, setEntryPage] = useState(0);
 const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
 const [showMobileFilters, setShowMobileFilters] = useState(false);
 const [viewingEntry, setViewingEntry] = useState<TimeEntry | null>(null);
+
+const normalizedRole = String(profile?.role || "").trim().toLowerCase();
+const canFilterTeamEntries = normalizedRole === "admin" || normalizedRole === "manager";
+const canEditTimeEntries = normalizedRole === "admin";
 
 
 
@@ -1552,6 +1556,22 @@ const paginatedEntries = useMemo(
   [filteredEntries, entryPage]
 );
 
+const totalEntryPages = Math.max(1, Math.ceil(filteredEntries.length / PAGE_SIZE));
+const visibleEntryPages = useMemo(() => {
+  const firstPage = Math.max(0, Math.min(entryPage - 2, totalEntryPages - 5));
+  const lastPage = Math.min(totalEntryPages, firstPage + 5);
+  return Array.from(
+    { length: lastPage - firstPage },
+    (_, index) => firstPage + index,
+  );
+}, [entryPage, totalEntryPages]);
+
+useEffect(() => {
+  if (entryPage >= totalEntryPages) {
+    setEntryPage(totalEntryPages - 1);
+  }
+}, [entryPage, totalEntryPages]);
+
 const groupedEntries = useMemo(
   () => paginatedEntries.reduce<Record<string, TimeEntry[]>>((groups, entry) => {
     (groups[entry.entry_date] ||= []).push(entry);
@@ -1823,7 +1843,7 @@ return (
         <button onClick={() => setShowMobileFilters(!showMobileFilters)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold">{showMobileFilters ? "Hide" : "Show"}</button>
       </div>
       <div className={(showMobileFilters ? "mt-4 grid" : "hidden") + " gap-3 sm:grid-cols-2 lg:grid lg:grid-cols-5"}>
-        {profile?.role !== "Employee" && (
+        {canFilterTeamEntries && (
           <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)} className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500">
             <option value="">All Employees</option>
             {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
@@ -1889,7 +1909,7 @@ return (
                           <td className="px-5 py-4 text-center text-sm">{formatTime(entry.started_at)}</td>
                           <td className="px-5 py-4 text-center text-sm">{formatTime(entry.stopped_at)}</td>
                           <td className="px-5 py-4 text-right font-bold">{Number(entry.hours || 0).toFixed(2)}</td>
-                          <td className="px-5 py-4"><div className="flex justify-end gap-1"><button onClick={() => setViewingEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">View</button>{profile?.role === "Admin" && <><button onClick={() => beginEdit(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Edit</button><button onClick={() => deleteTimeEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">Delete</button></>}</div></td>
+                          <td className="px-5 py-4"><div className="flex justify-end gap-1"><button onClick={() => setViewingEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">View</button>{canEditTimeEntries && <><button onClick={() => beginEdit(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Edit</button><button onClick={() => deleteTimeEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">Delete</button></>}</div></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1902,7 +1922,21 @@ return (
       )}
       <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">Showing {filteredEntries.length ? entryPage * PAGE_SIZE + 1 : 0}–{Math.min((entryPage + 1) * PAGE_SIZE, filteredEntries.length)} of {filteredEntries.length.toLocaleString()} entries</p>
-        <div className="flex gap-2"><button disabled={entryPage === 0} onClick={() => setEntryPage((page) => Math.max(0, page - 1))} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-40">Previous</button><button disabled={(entryPage + 1) * PAGE_SIZE >= filteredEntries.length} onClick={() => setEntryPage((page) => page + 1)} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Next</button></div>
+        <nav aria-label="Time entry pagination" className="flex flex-wrap gap-2">
+          <button disabled={entryPage === 0} onClick={() => setEntryPage((page) => Math.max(0, page - 1))} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-40">Previous</button>
+          {visibleEntryPages.map((page) => (
+            <button
+              key={page}
+              type="button"
+              aria-current={page === entryPage ? "page" : undefined}
+              onClick={() => setEntryPage(page)}
+              className={`min-w-10 rounded-xl px-3 py-2 text-sm font-bold ${page === entryPage ? "bg-[#153E90] text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+            >
+              {page + 1}
+            </button>
+          ))}
+          <button disabled={entryPage + 1 >= totalEntryPages} onClick={() => setEntryPage((page) => Math.min(totalEntryPages - 1, page + 1))} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Next</button>
+        </nav>
       </div>
     </section>
 
