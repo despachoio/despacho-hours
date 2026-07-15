@@ -296,7 +296,9 @@ export default function ProjectsPage() {
                             Remaining
                           </p>
 
-                          <p className="mt-1 text-xl font-bold text-slate-950">
+                          <p
+                            className={`mt-1 text-xl font-bold ${Number(project.remaining_hours || 0) < 0 ? "text-red-600" : "text-slate-950"}`}
+                          >
                             {Number(project.remaining_hours || 0).toFixed(2)}
                           </p>
                         </div>
