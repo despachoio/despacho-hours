@@ -137,7 +137,7 @@ export default function TimePage() {
   const [projects, setProjects] =
     useState<Project[]>([]);
 
-    const [isLoadingEntries, setIsLoadingEntries] = useState(false);
+  const [loadingEntries, setLoadingEntries] = useState(false);
 
 
   const [entries, setEntries] =
@@ -184,10 +184,6 @@ export default function TimePage() {
 
 const [editProjectId, setEditProjectId] =
   useState("");
-
-  const [entriesLoading, setEntriesLoading] = useState(false);
-const [totalEntryCount, setTotalEntryCount] = useState(0);
-
 
 const [editDate, setEditDate] =
   useState("");
@@ -250,7 +246,8 @@ const [filterDateRange, setFilterDateRange] = useState("");
 const [customFrom, setCustomFrom] = useState("");
 const [customTo, setCustomTo] = useState("");
 const [search, setSearch] = useState("");
-const [debouncedSearch, setDebouncedSearch] = useState("");
+const [hasSearchedEntries, setHasSearchedEntries] = useState(false);
+const [entrySearchError, setEntrySearchError] = useState("");
 const [entryPage, setEntryPage] = useState(0);
 const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
 const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -776,57 +773,110 @@ setLiveTimers([]);
 
 }
 
-async function loadEmployeeEntries(selectedEmployeeId: string) {
-  if (!selectedEmployeeId) {
+async function searchTimeEntries() {
+  if (loadingEntries) return;
+
+  const selectedEmployeeId = canFilterTeamEntries
+    ? filterEmployee
+    : profile?.employee_id || "";
+  const bounds =
+    filterDateRange && filterDateRange !== "custom"
+      ? getDateBounds(filterDateRange)
+      : null;
+  const hasDatabaseFilter = Boolean(
+    selectedEmployeeId ||
+      filterProject ||
+      bounds ||
+      (filterDateRange === "custom" && (customFrom || customTo)),
+  );
+
+  if (!hasDatabaseFilter) {
     setEntries([]);
+    setHasSearchedEntries(false);
+    setEntrySearchError(
+      "Select an employee, project, or date range before searching.",
+    );
     return;
   }
-  setIsLoadingEntries(true);
+
+  setLoadingEntries(true);
+  setEntrySearchError("");
   try {
-    const allEntries: TimeEntry[] = [];
-    const batchSize = 1000;
-    let from = 0;
-    while (true) {
-      const to = from + batchSize - 1;
-      let query = supabase
-        .from("time_entries")
-        .select(`
+    let query = supabase
+      .from("time_entries")
+      .select(`
+        id,
+        employee_id,
+        project_id,
+        entry_date,
+        started_at,
+        stopped_at,
+        hours,
+        description,
+        employees(name),
+        projects(
           id,
-          employee_id,
-          project_id,
-          entry_date,
-          started_at,
-          stopped_at,
-          hours,
-          description,
-          employees(name),
-          projects(
-            id,
-            name,
-            project_code,
-            clients(name)
-          )
-        `)
-        .eq("employee_id", selectedEmployeeId)
-        .order("entry_date", { ascending: false })
-        .order("stopped_at", { ascending: false })
-        .range(from, to);
-      const { data, error } = await query;
-      if (error) {
-        alert(error.message);
-        return;
-      }
-      const batch = (data || []) as unknown as TimeEntry[];
-      allEntries.push(...batch);
-      if (batch.length < batchSize) {
-        break;
-      }
-      from += batchSize;
+          name,
+          project_code,
+          clients(name)
+        )
+      `)
+      .order("entry_date", { ascending: false })
+      .order("stopped_at", { ascending: false });
+
+    if (selectedEmployeeId) {
+      query = query.eq("employee_id", selectedEmployeeId);
     }
-    setEntries(allEntries);
+    if (filterProject) {
+      query = query.eq("project_id", filterProject);
+    }
+    if (bounds) {
+      query = query
+        .gte("entry_date", bounds.from)
+        .lte("entry_date", bounds.to);
+    } else if (filterDateRange === "custom") {
+      if (customFrom) query = query.gte("entry_date", customFrom);
+      if (customTo) query = query.lte("entry_date", customTo);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("Time entry search failed:", error);
+      setEntries([]);
+      setHasSearchedEntries(true);
+      setEntrySearchError(error.message);
+      return;
+    }
+
+    let results = (data || []) as unknown as TimeEntry[];
+    if (filterClient) {
+      results = results.filter(
+        (entry) => entry.projects?.clients?.name === filterClient,
+      );
+    }
+
+    const searchTerm = search.trim().toLowerCase();
+    if (searchTerm) {
+      results = results.filter((entry) =>
+        [
+          entry.employees?.name,
+          entry.projects?.clients?.name,
+          entry.projects?.project_code,
+          entry.projects?.name,
+          entry.description,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm),
+      );
+    }
+
+    setEntries(results);
+    setHasSearchedEntries(true);
     setEntryPage(0);
   } finally {
-    setIsLoadingEntries(false);
+    setLoadingEntries(false);
   }
 }
 async function handleStartTimer() {
@@ -1155,6 +1205,13 @@ async function deleteTimeEntry(entry: TimeEntry) {
 
   alert("Time entry deleted and project hours updated.");
 
+  setEntries((current) => current.filter((item) => item.id !== entry.id));
+  setEntryPage((current) =>
+    Math.min(
+      current,
+      Math.max(0, Math.ceil((entries.length - 1) / PAGE_SIZE) - 1),
+    ),
+  );
   loadData();
 }
 
@@ -1294,6 +1351,32 @@ async function saveEditedEntry() {
     setEditStop("");
     setEditDescription("");
 
+    const updatedProject = projects.find(
+      (project) => project.id === editProjectId,
+    );
+    setEntries((current) =>
+      current.map((entry) =>
+        entry.id === editingEntry.id
+          ? {
+              ...entry,
+              project_id: editProjectId,
+              entry_date: editDate,
+              started_at: startDate.toISOString(),
+              stopped_at: stopDate.toISOString(),
+              hours,
+              description: editDescription || null,
+              projects: updatedProject
+                ? {
+                    id: updatedProject.id,
+                    name: updatedProject.name,
+                    project_code: updatedProject.project_code,
+                    clients: updatedProject.clients,
+                  }
+                : entry.projects,
+            }
+          : entry,
+      ),
+    );
     loadData();
   } finally {
     setIsSavingEdit(false);
@@ -1441,20 +1524,6 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [profile?.role]);
 
-useEffect(() => {
-  const timeout = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 300);
-  return () => clearTimeout(timeout);
-}, [search]);
-
-useEffect(() => {
-  setEntryPage(0);
-}, [filterEmployee, filterClient, filterProject, filterDateRange, customFrom, customTo, debouncedSearch]);
-
-const clientNames = useMemo(
-  () => Array.from(new Set(projects.map((project) => project.clients?.name).filter(Boolean) as string[])).sort(),
-  [projects]
-);
-
 const timerAssignedProjects = useMemo(
   () => profile?.employee_id
     ? projects.filter((project) => project.project_resources?.some((resource) => resource.employee_id === profile.employee_id))
@@ -1493,15 +1562,19 @@ const manualProjects = useMemo(
   [manualAssignedProjects, manualClient]
 );
 
+const entryFilterEmployeeId = canFilterTeamEntries
+  ? filterEmployee
+  : profile?.employee_id || "";
+
 const selectedEmployeeProjects = useMemo(() => {
-  if (!filterEmployee) return [];
+  if (!entryFilterEmployeeId) return [];
 
   return projects.filter((project) =>
     project.project_resources?.some(
-      (resource) => resource.employee_id === filterEmployee
+      (resource) => resource.employee_id === entryFilterEmployeeId
     )
   );
-}, [projects, filterEmployee]);
+}, [projects, entryFilterEmployeeId]);
 
 const selectedEmployeeClients = useMemo(() => {
   return Array.from(
@@ -1547,92 +1620,12 @@ const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
 
 const runningLiveTimerCount = visibleLiveTimers.filter((timer) => timer.status === "running").length;
 
-const hasEntryFilters =
-  profile?.role === "Employee"
-    ? Boolean(
-        filterClient ||
-        filterProject ||
-        filterDateRange ||
-        debouncedSearch
-      )
-    : Boolean(filterEmployee);
-
-
-
-const filteredEntries = useMemo(() => {
-  if (!hasEntryFilters) return [];
-  const bounds =
-    filterDateRange && filterDateRange !== "custom"
-      ? getDateBounds(filterDateRange)
-      : null;
-  return entries.filter((entry) => {
-    if (
-      profile?.role !== "Employee" &&
-      filterEmployee &&
-      entry.employee_id !== filterEmployee
-    ) {
-      return false;
-    }
-    if (
-      filterClient &&
-      entry.projects?.clients?.name !== filterClient
-    ) {
-      return false;
-    }
-    if (
-      filterProject &&
-      entry.project_id !== filterProject
-    ) {
-      return false;
-    }
-    if (filterDateRange === "custom") {
-      if (customFrom && entry.entry_date < customFrom) return false;
-      if (customTo && entry.entry_date > customTo) return false;
-    } else if (
-      bounds &&
-      (
-        entry.entry_date < bounds.from ||
-        entry.entry_date > bounds.to
-      )
-    ) {
-      return false;
-    }
-    if (debouncedSearch) {
-      const searchable = [
-        entry.employees?.name,
-        entry.projects?.clients?.name,
-        entry.projects?.project_code,
-        entry.projects?.name,
-        entry.description,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      if (!searchable.includes(debouncedSearch)) {
-        return false;
-      }
-    }
-    return true;
-  });
-}, [
-  entries,
-  profile?.role,
-  filterEmployee,
-  filterClient,
-  filterProject,
-  filterDateRange,
-  customFrom,
-  customTo,
-  debouncedSearch,
-  hasEntryFilters,
-]);
-
 const paginatedEntries = useMemo(
-  () => filteredEntries.slice(entryPage * PAGE_SIZE, (entryPage + 1) * PAGE_SIZE),
-  [filteredEntries, entryPage]
+  () => entries.slice(entryPage * PAGE_SIZE, (entryPage + 1) * PAGE_SIZE),
+  [entries, entryPage]
 );
 
-const totalEntryPages = Math.max(1, Math.ceil(filteredEntries.length / PAGE_SIZE));
+const totalEntryPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
 const visibleEntryPages = useMemo(() => {
   const firstPage = Math.max(0, Math.min(entryPage - 2, totalEntryPages - 5));
   const lastPage = Math.min(totalEntryPages, firstPage + 5);
@@ -1641,30 +1634,6 @@ const visibleEntryPages = useMemo(() => {
     (_, index) => firstPage + index,
   );
 }, [entryPage, totalEntryPages]);
-
-useEffect(() => {
-  if (entryPage >= totalEntryPages) {
-    setEntryPage(totalEntryPages - 1);
-  }
-}, [entryPage, totalEntryPages]);
-
-useEffect(() => {
-  if (profile?.role === "Employee") {
-    if (profile.employee_id) {
-      void loadEmployeeEntries(profile.employee_id);
-    }
-    return;
-  }
-  if (filterEmployee) {
-    void loadEmployeeEntries(filterEmployee);
-  } else {
-    setEntries([]);
-  }
-}, [
-  filterEmployee,
-  profile?.role,
-  profile?.employee_id,
-]);
 
 const groupedEntries = useMemo(
   () => paginatedEntries.reduce<Record<string, TimeEntry[]>>((groups, entry) => {
@@ -1698,7 +1667,9 @@ function resetFilters() {
   setCustomFrom("");
   setCustomTo("");
   setSearch("");
-  setDebouncedSearch("");
+  setEntries([]);
+  setHasSearchedEntries(false);
+  setEntrySearchError("");
   setEntryPage(0);
 }
 
@@ -1963,7 +1934,7 @@ return (
         </select>
         <select
   value={filterClient}
-  disabled={!filterEmployee}
+  disabled={!entryFilterEmployeeId}
   onChange={(event) => {
     setFilterClient(event.target.value);
     setFilterProject("");
@@ -1971,7 +1942,7 @@ return (
   className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
 >
   <option value="">
-    {filterEmployee ? "Select Client" : "Select Employee First"}
+    {entryFilterEmployeeId ? "Select Client" : "Select Employee First"}
   </option>
 
   {selectedEmployeeClients.map((client) => (
@@ -1982,12 +1953,12 @@ return (
 </select>
         <select
   value={filterProject}
-  disabled={!filterEmployee || !filterClient}
+  disabled={!entryFilterEmployeeId || !filterClient}
   onChange={(event) => setFilterProject(event.target.value)}
   className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
 >
   <option value="">
-    {!filterEmployee
+    {!entryFilterEmployeeId
       ? "Select Employee First"
       : !filterClient
         ? "Select Client First"
@@ -2008,9 +1979,22 @@ return (
           <input type="date" value={customTo} onChange={(event) => setCustomTo(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
         </div>
       )}
-      <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
+      <div className="mt-4 flex justify-end gap-3 border-t border-slate-100 pt-4">
+        <button
+          type="button"
+          onClick={() => void searchTimeEntries()}
+          disabled={loadingEntries}
+          className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loadingEntries ? "Searching..." : "Search"}
+        </button>
         <button onClick={resetFilters} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Reset Filters</button>
       </div>
+      {entrySearchError ? (
+        <p role="alert" className="mt-3 text-sm font-semibold text-red-600">
+          {entrySearchError}
+        </p>
+      ) : null}
     </section>
 
     <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2018,18 +2002,15 @@ return (
         <h2 className="text-xl font-bold text-slate-950">Time Entries</h2>
         <p className="mt-1 text-sm text-slate-500">Completed entries grouped by date.</p>
       </div>
-      {isLoadingEntries ? (
+      {loadingEntries ? (
   <div className="px-6 py-16 text-center">
     <h3 className="font-bold text-slate-950">
-      Loading time entries...
+      Searching...
     </h3>
-    <p className="mt-2 text-sm text-slate-500">
-      Large employee histories may take a few seconds.
-    </p>
   </div>
-) : !hasEntryFilters ? (
-        <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">Select an employee to view their time entries.</h3><p className="mt-2 text-sm text-slate-500">After selecting an employee, you can narrow the results by date, assigned client, assigned project, or search.</p></div>
-      ) : filteredEntries.length === 0 ? (
+) : !hasSearchedEntries ? (
+        <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">Select filters and click Search.</h3></div>
+      ) : entries.length === 0 ? (
         <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">No time entries match your filters.</h3><button onClick={resetFilters} className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">Clear Filters</button></div>
       ) : (
         Object.entries(groupedEntries).map(([date, dateEntries]) => {
@@ -2069,7 +2050,7 @@ return (
         })
       )}
       <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">Showing {filteredEntries.length ? entryPage * PAGE_SIZE + 1 : 0}–{Math.min((entryPage + 1) * PAGE_SIZE, filteredEntries.length)} of {filteredEntries.length.toLocaleString()} entries</p>
+        <p className="text-sm text-slate-500">Showing {entries.length ? entryPage * PAGE_SIZE + 1 : 0}–{Math.min((entryPage + 1) * PAGE_SIZE, entries.length)} of {entries.length.toLocaleString()} entries</p>
         <nav aria-label="Time entry pagination" className="flex flex-wrap gap-2">
           <button disabled={entryPage === 0} onClick={() => setEntryPage((page) => Math.max(0, page - 1))} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-40">Previous</button>
           {visibleEntryPages.map((page) => (
