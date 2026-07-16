@@ -1,6 +1,6 @@
 {
   "name": "kairo-desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Secure Mac and Windows tray timer for Kairo",
   "author": "Despacho",
   "private": true,

@@ -4,8 +4,10 @@ Kairo Timer is a locked-down Windows notification-area and macOS menu-bar app.
 It opens the dedicated personal timer at
 `https://kairo.despacho.io/desktop-timer`, keeps running when its window is
 closed, and provides tray actions to open the timer, open the full Kairo site,
-log out, or quit. Server credentials remain on Vercel and are not included in
-the installer.
+log out, or quit. Active timers are stopped and saved during logout or computer
+shutdown. A database heartbeat recovers and saves timers after an unexpected
+power loss. Server credentials remain on Vercel and are not included in the
+installer.
 
 ## Build the Windows installer
 

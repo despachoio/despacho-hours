@@ -9,7 +9,10 @@ declare global {
   interface Window {
     kairoDesktop?: {
       openFullApp: () => Promise<void>;
+      getSessionId: () => Promise<string>;
       onLogoutRequested: (callback: () => void) => () => void;
+      onShutdownRequested: (callback: () => void) => () => void;
+      shutdownComplete: () => void;
     };
   }
 }
@@ -91,7 +94,14 @@ export default function DesktopTimerPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [tick, setTick] = useState(0);
+  const [desktopSessionId, setDesktopSessionId] = useState("");
   const mountedRef = useRef(true);
+  const activeTimerRef = useRef<ActiveTimer | null>(null);
+
+  const storeActiveTimer = useCallback((timer: ActiveTimer | null) => {
+    activeTimerRef.current = timer;
+    setActiveTimer(timer);
+  }, []);
 
   const loadActiveTimer = useCallback(async (employeeId: string) => {
     const { data, error } = await supabase
@@ -110,13 +120,13 @@ export default function DesktopTimerPage() {
       return;
     }
     const timer = (data || null) as ActiveTimer | null;
-    setActiveTimer(timer);
+    storeActiveTimer(timer);
     if (timer) {
       setProjectId(timer.project_id);
       setDescription(timer.description || "");
       setTick(Date.now());
     }
-  }, []);
+  }, [storeActiveTimer]);
 
   const loadWorkspace = useCallback(async () => {
     setMessage("");
@@ -163,6 +173,19 @@ export default function DesktopTimerPage() {
       return;
     }
 
+    let recoveredPreviousTimer = false;
+    if (window.kairoDesktop) {
+      const sessionId = await window.kairoDesktop.getSessionId();
+      const { data: recoveredEntry, error: recoveryError } = await supabase.rpc(
+        "recover_own_desktop_timer",
+        { p_session_id: sessionId },
+      );
+      if (!mountedRef.current) return;
+      setDesktopSessionId(sessionId);
+      recoveredPreviousTimer = Boolean(recoveredEntry);
+      if (recoveryError) setMessage(cleanError(recoveryError.message));
+    }
+
     const projectResult = await supabase
       .from("projects")
       .select(
@@ -196,6 +219,10 @@ export default function DesktopTimerPage() {
           projectResult.error.message || "Unable to load timer projects.",
         ),
       );
+    } else if (recoveredPreviousTimer) {
+      setMessage(
+        "Your previous timer was stopped and saved successfully after restart.",
+      );
     }
     await loadActiveTimer(currentProfile.employee_id);
   }, [loadActiveTimer]);
@@ -208,7 +235,7 @@ export default function DesktopTimerPage() {
       }
       if (event === "SIGNED_OUT" && mountedRef.current) {
         setProfile(null);
-        setActiveTimer(null);
+        storeActiveTimer(null);
         setClients([]);
         setProjects([]);
         setPassword("");
@@ -219,7 +246,7 @@ export default function DesktopTimerPage() {
       mountedRef.current = false;
       data.subscription.unsubscribe();
     };
-  }, [loadWorkspace]);
+  }, [loadWorkspace, storeActiveTimer]);
 
   useEffect(() => {
     if (!activeTimer || activeTimer.status !== "running") return;
@@ -236,15 +263,51 @@ export default function DesktopTimerPage() {
     return () => window.clearInterval(interval);
   }, [loadActiveTimer, profile?.employee_id]);
 
+  useEffect(() => {
+    if (!activeTimer || !window.kairoDesktop || !desktopSessionId) return;
+    const sendHeartbeat = () =>
+      supabase.rpc("heartbeat_own_timer", {
+        p_timer_id: activeTimer.id,
+        p_session_id: desktopSessionId,
+      });
+    void sendHeartbeat();
+    const interval = window.setInterval(() => void sendHeartbeat(), 10000);
+    return () => window.clearInterval(interval);
+  }, [activeTimer, desktopSessionId]);
+
+  const stopActiveTimerForExit = useCallback(async () => {
+    const timer = activeTimerRef.current;
+    if (!timer) return null;
+    const { error } = await supabase.rpc("stop_own_timer", {
+      p_timer_id: timer.id,
+    });
+    if (!error) storeActiveTimer(null);
+    return error;
+  }, [storeActiveTimer]);
+
   const logout = useCallback(async () => {
     setBusy(true);
+    const stopError = await stopActiveTimerForExit();
+    if (stopError) {
+      setMessage(cleanError(stopError.message));
+      setBusy(false);
+      return;
+    }
     await supabase.auth.signOut();
     setBusy(false);
-  }, []);
+  }, [stopActiveTimerForExit]);
 
   useEffect(() => {
     return window.kairoDesktop?.onLogoutRequested(() => void logout());
   }, [logout]);
+
+  useEffect(() => {
+    return window.kairoDesktop?.onShutdownRequested(() => {
+      void stopActiveTimerForExit().finally(() => {
+        window.kairoDesktop?.shutdownComplete();
+      });
+    });
+  }, [stopActiveTimerForExit]);
 
   const filteredProjects = useMemo(
     () =>
@@ -271,14 +334,26 @@ export default function DesktopTimerPage() {
     if (!projectId || busy) return;
     setBusy(true);
     setMessage("");
-    const { data, error } = await supabase.rpc("start_own_timer", {
-      p_project_id: projectId,
-      p_description: description.trim() || null,
-    });
+    const descriptionValue = description.trim() || null;
+    const sessionId = window.kairoDesktop
+      ? desktopSessionId || (await window.kairoDesktop.getSessionId())
+      : "";
+    if (sessionId && !desktopSessionId) setDesktopSessionId(sessionId);
+    const result = window.kairoDesktop
+      ? await supabase.rpc("start_own_desktop_timer", {
+          p_project_id: projectId,
+          p_description: descriptionValue,
+          p_session_id: sessionId,
+        })
+      : await supabase.rpc("start_own_timer", {
+          p_project_id: projectId,
+          p_description: descriptionValue,
+        });
+    const { data, error } = result;
     if (error) {
       setMessage(cleanError(error.message));
     } else {
-      setActiveTimer(data as ActiveTimer);
+      storeActiveTimer(data as ActiveTimer);
       setTick(Date.now());
     }
     setBusy(false);
@@ -294,7 +369,7 @@ export default function DesktopTimerPage() {
     });
     if (error) setMessage(cleanError(error.message));
     else {
-      setActiveTimer(data as ActiveTimer);
+      storeActiveTimer(data as ActiveTimer);
       setTick(Date.now());
     }
     setBusy(false);
@@ -310,7 +385,7 @@ export default function DesktopTimerPage() {
     if (error) {
       setMessage(cleanError(error.message));
     } else {
-      setActiveTimer(null);
+      storeActiveTimer(null);
       setProjectId("");
       setClientId("");
       setDescription("");

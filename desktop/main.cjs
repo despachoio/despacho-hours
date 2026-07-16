@@ -4,12 +4,14 @@ const {
   ipcMain,
   Menu,
   nativeImage,
+  powerMonitor,
   screen,
   session,
   shell,
   Tray,
 } = require("electron");
 const path = require("path");
+const { randomUUID } = require("crypto");
 
 const KAIRO_URL = "https://kairo.despacho.io";
 const TIMER_URL = `${KAIRO_URL}/desktop-timer`;
@@ -19,10 +21,37 @@ const EXTERNAL_HOSTS = new Set([
   "despacho.io",
   "www.despacho.io",
 ]);
+const DESKTOP_SESSION_ID = randomUUID();
 
 let timerWindow = null;
 let tray = null;
-let isQuitting = false;
+let quitRequested = false;
+let quitReady = false;
+let quitTimeout = null;
+
+function completeQuit() {
+  if (quitReady) return;
+  quitReady = true;
+  if (quitTimeout) clearTimeout(quitTimeout);
+  app.quit();
+}
+
+function requestGracefulQuit() {
+  if (quitReady) {
+    app.quit();
+    return;
+  }
+  if (quitRequested) return;
+  quitRequested = true;
+
+  if (!timerWindow || timerWindow.isDestroyed()) {
+    completeQuit();
+    return;
+  }
+
+  timerWindow.webContents.send("kairo:shutdown-requested");
+  quitTimeout = setTimeout(completeQuit, 5000);
+}
 
 function isKairoUrl(rawUrl) {
   try {
@@ -105,6 +134,7 @@ function createTimerWindow() {
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
+      backgroundThrottling: false,
       allowRunningInsecureContent: false,
       devTools: false,
       safeDialogs: true,
@@ -113,10 +143,16 @@ function createTimerWindow() {
 
   timerWindow.once("ready-to-show", showTimerWindow);
   timerWindow.on("close", (event) => {
-    if (isQuitting) return;
+    if (quitReady) return;
     event.preventDefault();
     timerWindow?.hide();
   });
+  timerWindow.on("query-session-end", (event) => {
+    if (quitReady) return;
+    event.preventDefault();
+    requestGracefulQuit();
+  });
+  timerWindow.on("session-end", requestGracefulQuit);
   timerWindow.on("closed", () => {
     timerWindow = null;
   });
@@ -161,10 +197,7 @@ function createTray() {
       { type: "separator" },
       {
         label: "Quit Kairo Timer",
-        click: () => {
-          isQuitting = true;
-          app.quit();
-        },
+        click: requestGracefulQuit,
       },
     ]),
   );
@@ -189,6 +222,13 @@ if (!hasSingleInstanceLock) {
     ipcMain.handle("kairo:open-full-app", () =>
       openAllowedExternalUrl(KAIRO_URL),
     );
+    ipcMain.handle("kairo:get-session-id", () => DESKTOP_SESSION_ID);
+    ipcMain.on("kairo:shutdown-complete", completeQuit);
+    powerMonitor.on("shutdown", (event) => {
+      if (quitReady) return;
+      event.preventDefault();
+      requestGracefulQuit();
+    });
     createTray();
     createTimerWindow();
   });
@@ -202,8 +242,10 @@ app.on(
   },
 );
 
-app.on("before-quit", () => {
-  isQuitting = true;
+app.on("before-quit", (event) => {
+  if (quitReady) return;
+  event.preventDefault();
+  requestGracefulQuit();
 });
 
 app.on("window-all-closed", () => {
