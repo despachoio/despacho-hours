@@ -137,6 +137,8 @@ export default function TimePage() {
   const [projects, setProjects] =
     useState<Project[]>([]);
 
+    const [isLoadingEntries, setIsLoadingEntries] = useState(false);
+
 
   const [entries, setEntries] =
     useState<TimeEntry[]>([]);
