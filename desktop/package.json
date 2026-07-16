@@ -1,7 +1,7 @@
 {
   "name": "kairo-desktop",
-  "version": "0.1.0",
-  "description": "Secure Windows desktop client for Kairo",
+  "version": "0.2.0",
+  "description": "Secure Mac and Windows tray timer for Kairo",
   "author": "Despacho",
   "private": true,
   "main": "main.cjs"

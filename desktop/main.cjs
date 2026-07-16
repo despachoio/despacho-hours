@@ -1,13 +1,28 @@
-const { app, BrowserWindow, Menu, shell, session } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  nativeImage,
+  screen,
+  session,
+  shell,
+  Tray,
+} = require("electron");
+const path = require("path");
 
 const KAIRO_URL = "https://kairo.despacho.io";
+const TIMER_URL = `${KAIRO_URL}/desktop-timer`;
 const KAIRO_ORIGIN = new URL(KAIRO_URL).origin;
 const EXTERNAL_HOSTS = new Set([
+  "kairo.despacho.io",
   "despacho.io",
   "www.despacho.io",
-  "checkout.stripe.com",
-  "pay.stripe.com",
 ]);
+
+let timerWindow = null;
+let tray = null;
+let isQuitting = false;
 
 function isKairoUrl(rawUrl) {
   try {
@@ -31,17 +46,61 @@ async function openAllowedExternalUrl(rawUrl) {
   await shell.openExternal(rawUrl);
 }
 
-function createWindow() {
-  const window = new BrowserWindow({
-    title: "Kairo",
-    width: 1440,
-    height: 920,
-    minWidth: 1024,
-    minHeight: 700,
+function positionTimerWindow() {
+  if (!timerWindow || !tray) return;
+  const trayBounds = tray.getBounds();
+  const windowBounds = timerWindow.getBounds();
+  const display = screen.getDisplayNearestPoint({
+    x: Math.round(trayBounds.x),
+    y: Math.round(trayBounds.y),
+  });
+  const workArea = display.workArea;
+  const x = Math.min(
+    Math.max(
+      Math.round(trayBounds.x + trayBounds.width / 2 - windowBounds.width / 2),
+      workArea.x,
+    ),
+    workArea.x + workArea.width - windowBounds.width,
+  );
+  const y =
+    process.platform === "darwin"
+      ? workArea.y
+      : workArea.y + workArea.height - windowBounds.height;
+  timerWindow.setPosition(x, y, false);
+}
+
+function showTimerWindow() {
+  if (!timerWindow) return;
+  positionTimerWindow();
+  timerWindow.show();
+  timerWindow.focus();
+}
+
+function toggleTimerWindow() {
+  if (!timerWindow) return;
+  if (timerWindow.isVisible() && timerWindow.isFocused()) {
+    timerWindow.hide();
+  } else {
+    showTimerWindow();
+  }
+}
+
+function createTimerWindow() {
+  timerWindow = new BrowserWindow({
+    title: "Kairo Timer",
+    width: 420,
+    height: 700,
+    minWidth: 380,
+    minHeight: 620,
+    maxWidth: 520,
     show: false,
-    backgroundColor: "#f8fafc",
+    resizable: true,
+    fullscreenable: false,
+    maximizable: false,
     autoHideMenuBar: true,
+    backgroundColor: "#f8fafc",
     webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -52,24 +111,64 @@ function createWindow() {
     },
   });
 
-  window.once("ready-to-show", () => window.show());
+  timerWindow.once("ready-to-show", showTimerWindow);
+  timerWindow.on("close", (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    timerWindow?.hide();
+  });
+  timerWindow.on("closed", () => {
+    timerWindow = null;
+  });
 
-  window.webContents.on("will-navigate", (event, targetUrl) => {
+  timerWindow.webContents.on("will-navigate", (event, targetUrl) => {
     if (isKairoUrl(targetUrl)) return;
     event.preventDefault();
     void openAllowedExternalUrl(targetUrl);
   });
-
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isKairoUrl(url)) {
-      void window.loadURL(url);
-    } else {
-      void openAllowedExternalUrl(url);
-    }
+  timerWindow.webContents.setWindowOpenHandler(({ url }) => {
+    void openAllowedExternalUrl(url);
     return { action: "deny" };
   });
 
-  void window.loadURL(KAIRO_URL);
+  void timerWindow.loadURL(TIMER_URL);
+}
+
+function createTray() {
+  const iconFile =
+    process.platform === "darwin" ? "kairo-icon-mac.png" : "kairo-icon.png";
+  const size = process.platform === "darwin" ? 18 : 20;
+  const icon = nativeImage
+    .createFromPath(path.join(process.resourcesPath, "assets", iconFile))
+    .resize({ width: size, height: size });
+  tray = new Tray(icon);
+  tray.setToolTip("Kairo Timer");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Open Timer", click: showTimerWindow },
+      {
+        label: "Open Full Kairo",
+        click: () => void openAllowedExternalUrl(KAIRO_URL),
+      },
+      { type: "separator" },
+      {
+        label: "Logout",
+        click: () => {
+          showTimerWindow();
+          timerWindow?.webContents.send("kairo:logout-requested");
+        },
+      },
+      { type: "separator" },
+      {
+        label: "Quit Kairo Timer",
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]),
+  );
+  tray.on("click", toggleTimerWindow);
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -77,34 +176,36 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
-    const window = BrowserWindow.getAllWindows()[0];
-    if (!window) return;
-    if (window.isMinimized()) window.restore();
-    window.focus();
-  });
-
+  app.on("second-instance", showTimerWindow);
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
+    if (process.platform === "darwin") app.dock?.hide();
 
     session.defaultSession.setPermissionRequestHandler(
       (_webContents, _permission, callback) => callback(false),
     );
     session.defaultSession.setPermissionCheckHandler(() => false);
 
-    createWindow();
-
-    app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    });
+    ipcMain.handle("kairo:open-full-app", () =>
+      openAllowedExternalUrl(KAIRO_URL),
+    );
+    createTray();
+    createTimerWindow();
   });
 }
 
-app.on("certificate-error", (event, _webContents, _url, _error, _certificate, callback) => {
-  event.preventDefault();
-  callback(false);
+app.on(
+  "certificate-error",
+  (event, _webContents, _url, _error, _certificate, callback) => {
+    event.preventDefault();
+    callback(false);
+  },
+);
+
+app.on("before-quit", () => {
+  isQuitting = true;
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  // The timer intentionally remains available from the tray.
 });

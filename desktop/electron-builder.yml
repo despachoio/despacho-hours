@@ -1,5 +1,5 @@
-appId: io.despacho.kairo
-productName: Kairo
+appId: io.despacho.kairo.timer
+productName: Kairo Timer
 electronVersion: 43.1.1
 asar: true
 directories:
@@ -8,13 +8,16 @@ directories:
 files:
   - "**/*"
   - "!electron-builder.yml"
+extraResources:
+  - from: assets
+    to: assets
 win:
   target:
     - target: nsis
       arch:
         - x64
   icon: kairo-icon.png
-  artifactName: Kairo-Setup-${version}.${ext}
+  artifactName: Kairo-Timer-Setup-${version}.${ext}
 mac:
   target:
     - target: dmg
@@ -22,12 +25,12 @@ mac:
         - arm64
   icon: kairo-icon-mac.png
   category: public.app-category.business
-  artifactName: Kairo-${version}-${arch}.${ext}
+  artifactName: Kairo-Timer-${version}-${arch}.${ext}
   hardenedRuntime: true
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: Kairo
+  shortcutName: Kairo Timer
   deleteAppDataOnUninstall: false
