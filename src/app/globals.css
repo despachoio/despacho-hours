@@ -98,6 +98,12 @@ textarea::placeholder {
   color: white;
 }
 
+[data-shortcut-row][data-shortcut-selected="true"] {
+  outline: 3px solid color-mix(in srgb, var(--kairo-blue) 55%, white);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--kairo-blue) 10%, transparent);
+}
+
 * {
   scrollbar-color: #cbd5e1 transparent;
   scrollbar-width: thin;

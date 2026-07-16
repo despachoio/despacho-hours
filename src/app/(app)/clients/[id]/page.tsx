@@ -337,6 +337,9 @@ export default function ClientDetailPage() {
                     <>
                       <button
                         type="button"
+                        data-shortcut-save
+                        data-shortcut-primary
+                        aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
                         onClick={updateClient}
                         className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
                       >
@@ -668,6 +671,7 @@ function ContactModal({
           <div className="absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[#153E90]/60 blur-2xl" />
           <button
             type="button"
+            data-shortcut-overlay-close
             onClick={onClose}
             disabled={saving}
             aria-label="Close contact modal"
@@ -771,6 +775,9 @@ function ContactModal({
           </button>
           <button
             type="button"
+            data-shortcut-save
+            data-shortcut-primary
+            aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
             onClick={onSave}
             disabled={saving}
             className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#123578] disabled:opacity-60"

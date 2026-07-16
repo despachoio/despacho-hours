@@ -238,6 +238,9 @@ export default function CompanySettingsPage() {
             <div className="mt-7 flex justify-end border-t border-slate-100 pt-6">
               <button
                 type="button"
+                data-shortcut-save
+                data-shortcut-primary
+                aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
                 onClick={() => void save()}
                 disabled={saving}
                 className="rounded-2xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800 disabled:opacity-50"

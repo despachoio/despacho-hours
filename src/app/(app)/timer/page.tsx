@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+  ShortcutBadge,
+  useShortcutCommand,
+} from "@/components/shortcuts/ShortcutProvider";
 
 
 type Profile = {
@@ -1721,6 +1725,77 @@ async function toggleTeamTimer(timer: LiveTimer) {
     finishTimerAction(timer.id);
   }
 }
+
+useEffect(() => {
+  if (!canEditTimeEntries) return;
+  const openManualEntry = () => {
+    setShowManualEntry(true);
+    if (profile?.employee_id) setManualEmployeeId(profile.employee_id);
+  };
+  window.addEventListener("kairo:manual-time", openManualEntry);
+  return () => window.removeEventListener("kairo:manual-time", openManualEntry);
+}, [canEditTimeEntries, profile?.employee_id]);
+
+useShortcutCommand({
+  id: "timer.start",
+  label: "Start timer",
+  category: "Timer",
+  shortcut: { code: "KeyS", alt: true, label: "S" },
+  disabled:
+    Boolean(activeTimer) ||
+    startingTimer ||
+    !employeeId ||
+    !timerClient ||
+    !projectId ||
+    !description.trim(),
+  handler: () => void handleStartTimer(),
+});
+
+useShortcutCommand({
+  id: "timer.pause-resume",
+  label: activeTimer?.status === "paused" ? "Resume timer" : "Pause timer",
+  category: "Timer",
+  shortcut: { code: "KeyP", alt: true, label: "P" },
+  disabled: !activeTimer,
+  handler: () => {
+    if (activeTimer?.status === "paused") void resumeTimer();
+    else if (activeTimer) void pauseTimer();
+  },
+});
+
+useShortcutCommand({
+  id: "timer.stop",
+  label: "Stop timer",
+  category: "Timer",
+  shortcut: { code: "KeyX", alt: true, label: "X" },
+  disabled: !activeTimer,
+  handler: () => void stopTimer(),
+});
+
+useShortcutCommand({
+  id: "timer.manual-entry",
+  label: "Add time entry",
+  category: "Timer",
+  shortcut: { code: "KeyM", alt: true, label: "M" },
+  disabled: !canEditTimeEntries,
+  handler: () => {
+    setShowManualEntry(true);
+    if (profile?.employee_id) setManualEmployeeId(profile.employee_id);
+  },
+});
+
+useShortcutCommand({
+  id: "timer.close-overlay",
+  label: "Close current dialog",
+  category: "General",
+  shortcut: { code: "Escape", label: "Esc", allowWhileTyping: true },
+  disabled: !editingEntry && !showManualEntry && !viewingEntry,
+  handler: () => {
+    if (editingEntry) setEditingEntry(null);
+    else if (showManualEntry) setShowManualEntry(false);
+    else if (viewingEntry) setViewingEntry(null);
+  },
+});
 return (
 
 <main className="min-h-screen bg-[#f8fafc] px-6 py-7 sm:px-6 lg:px-8">
@@ -1744,9 +1819,13 @@ return (
               setShowManualEntry(true);
               if (profile.employee_id) setManualEmployeeId(profile.employee_id);
             }}
+            aria-keyshortcuts="Alt+M"
             className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
           >
-            + Add Time
+            <span className="inline-flex items-center gap-2">
+              + Add Time
+              <ShortcutBadge combo={{ code: "KeyM", alt: true, label: "M" }} />
+            </span>
           </button>
         )}
       </div>
@@ -1788,14 +1867,18 @@ return (
               <span className="sr-only">Description</span>
               <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What are you working on?" className="h-full w-full rounded-xl border border-slate-500 px-4 py-3 outline-none focus:border-blue-500" />
             </label>
-           <button
-  type="button"
-  onClick={handleStartTimer}
-  disabled={startingTimer || !projectId}
-  className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
->
-  {startingTimer ? "Starting..." : "Start"}
-</button>
+            <button
+              type="button"
+              onClick={handleStartTimer}
+              disabled={startingTimer || !projectId}
+              aria-keyshortcuts="Alt+S"
+              className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="inline-flex items-center gap-2">
+                {startingTimer ? "Starting..." : "Start"}
+                <ShortcutBadge combo={{ code: "KeyS", alt: true, label: "S" }} />
+              </span>
+            </button>
           </div>
         </>
       ) : (
@@ -1813,11 +1896,11 @@ return (
           <div className="flex flex-wrap items-center gap-3">
             <p className="mr-2 font-mono text-3xl font-bold tracking-tight text-[#153e90]">{formatTimer(elapsedSeconds)}</p>
             {activeTimer.status === "running" ? (
-              <button onClick={pauseTimer} className="rounded-xl border border-slate-300 px-5 py-3 font-bold">Pause</button>
+              <button onClick={pauseTimer} aria-keyshortcuts="Alt+P" className="rounded-xl border border-slate-300 px-5 py-3 font-bold"><span className="inline-flex items-center gap-2">Pause <ShortcutBadge combo={{ code: "KeyP", alt: true, label: "P" }} /></span></button>
             ) : (
-              <button onClick={resumeTimer} className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white">Resume</button>
+              <button onClick={resumeTimer} aria-keyshortcuts="Alt+P" className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white"><span className="inline-flex items-center gap-2">Resume <ShortcutBadge combo={{ code: "KeyP", alt: true, label: "P" }} /></span></button>
             )}
-            <button onClick={stopTimer} className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white">Stop</button>
+            <button onClick={stopTimer} aria-keyshortcuts="Alt+X" className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white"><span className="inline-flex items-center gap-2">Stop <ShortcutBadge combo={{ code: "KeyX", alt: true, label: "X" }} /></span></button>
           </div>
         </div>
       )}
@@ -1971,7 +2054,7 @@ return (
     </option>
   ))}
 </select>
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employee, client, project…" className="rounded-xl border border-slate-500 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
+        <input data-shortcut-search value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employee, client, project…" className="rounded-xl border border-slate-500 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
       </div>
       {filterDateRange === "custom" && (
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:w-1/3">
@@ -2030,7 +2113,7 @@ return (
                     </thead>
                     <tbody>
                       {dateEntries.map((entry, index) => (
-                        <tr key={entry.id} className={"border-b border-slate-100 last:border-0 " + (index % 2 ? "bg-slate-50/60" : "bg-white")}>
+                        <tr key={entry.id} data-shortcut-row className={"border-b border-slate-100 last:border-0 " + (index % 2 ? "bg-slate-50/60" : "bg-white")}>
                           <td className="px-5 py-4 font-semibold">{entry.employees?.name}</td>
                           <td className="px-5 py-4 text-slate-600">{entry.projects?.clients?.name || "—"}</td>
                           <td className="px-5 py-4"><p className="font-semibold">{entry.projects?.name}</p><p className="text-xs text-blue-700">{entry.projects?.project_code}</p></td>
@@ -2041,6 +2124,7 @@ return (
                           <td className="px-5 py-4">
                             <div className="flex justify-end gap-2">
                               <button
+                                data-shortcut-open
                                 onClick={() => setViewingEntry(entry)}
                                 className="rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-100"
                               >
@@ -2049,6 +2133,7 @@ return (
                               {canEditTimeEntries && (
                                 <>
                                   <button
+                                    data-shortcut-edit
                                     onClick={() => beginEdit(entry)}
                                     className="rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-[#153E90] shadow-sm transition hover:border-blue-300 hover:bg-blue-100"
                                   >
@@ -2325,6 +2410,9 @@ return (
         <button
 
   type="button"
+  data-shortcut-primary
+  data-shortcut-save
+  aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
 
   disabled={isSavingManual}
 
@@ -2476,6 +2564,9 @@ return (
         <button
 
   type="button"
+  data-shortcut-primary
+  data-shortcut-save
+  aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
 
   disabled={isSavingEdit}
 

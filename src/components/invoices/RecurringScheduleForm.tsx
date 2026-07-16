@@ -865,6 +865,9 @@ export default function RecurringScheduleForm({
           </KairoButton>
           <KairoButton
             type="button"
+            data-shortcut-save
+            data-shortcut-primary
+            aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
             onClick={() => void save()}
             disabled={saving}
           >

@@ -78,6 +78,7 @@ export default function ReportFilters({
           </select>
         </label>
         <input
+          data-shortcut-search
           value={value.search}
           onChange={(event) => update("search", event.target.value)}
           placeholder="Search reports"

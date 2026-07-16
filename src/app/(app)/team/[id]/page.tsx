@@ -500,6 +500,9 @@ function AdminEditForm(props: {
       <div className="mt-5 flex gap-3">
         <button
           type="button"
+          data-shortcut-save
+          data-shortcut-primary
+          aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
           onClick={props.onSave}
           className="rounded-xl bg-[#153E90] px-5 py-2.5 font-bold text-white"
         >

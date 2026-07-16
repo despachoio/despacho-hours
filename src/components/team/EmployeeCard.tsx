@@ -7,9 +7,11 @@ import { formatTimerDuration, initials, statusLabel } from "./utils";
 export default function EmployeeCard({
   analytics,
   now,
+  canEdit = false,
 }: {
   analytics: EmployeeAnalytics;
   now: number;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const { employee, timer, status } = analytics;
@@ -32,6 +34,9 @@ export default function EmployeeCard({
 
   return (
     <article
+      data-shortcut-row
+      data-shortcut-href={`/team/${employee.id}`}
+      data-shortcut-edit-href={canEdit ? `/team/${employee.id}?action=edit` : undefined}
       className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/15"
       onClick={() => router.push(`/team/${employee.id}`)}
       onKeyDown={(event) => {

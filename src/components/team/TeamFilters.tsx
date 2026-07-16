@@ -68,6 +68,7 @@ export default function TeamFilters({
           onChange={(next) => update("period", next)}
         />
         <input
+          data-shortcut-search
           value={value.search}
           onChange={(event) => update("search", event.target.value)}
           placeholder="Search employees"

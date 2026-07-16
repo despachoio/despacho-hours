@@ -4,6 +4,11 @@ import Image from "next/image";
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import {
+  NavigationShortcutBadge,
+  OpenShortcutHelpButton,
+  ShortcutProvider,
+} from "@/components/shortcuts/ShortcutProvider";
 
 type IconName =
   | "dashboard"
@@ -20,6 +25,7 @@ type MenuItem = {
   path: string;
   roles: string[];
   icon: IconName;
+  shortcutNumber: number;
 };
 
 const allMenu: MenuItem[] = [
@@ -28,48 +34,56 @@ const allMenu: MenuItem[] = [
     path: "/dashboard",
     roles: ["Admin", "Manager", "Employee"],
     icon: "dashboard",
+    shortcutNumber: 1,
   },
   {
     name: "Timer",
     path: "/timer",
     roles: ["Admin", "Manager", "Employee"],
     icon: "time",
+    shortcutNumber: 2,
   },
   {
     name: "Team",
     path: "/team",
     roles: ["Admin", "Manager", "Employee"],
     icon: "team",
+    shortcutNumber: 3,
   },
   {
     name: "Invoices",
     path: "/invoices",
     roles: ["Admin"],
     icon: "invoices",
+    shortcutNumber: 4,
   },
   {
     name: "Clients",
     path: "/clients",
     roles: ["Admin", "Manager"],
     icon: "clients",
+    shortcutNumber: 5,
   },
   {
     name: "Projects",
     path: "/projects",
     roles: ["Admin", "Manager", "Employee"],
     icon: "projects",
+    shortcutNumber: 6,
   },
   {
     name: "Reports",
     path: "/reports",
     roles: ["Admin", "Manager", "Employee"],
     icon: "reports",
+    shortcutNumber: 7,
   },
   {
     name: "Settings",
     path: "/settings",
     roles: ["Admin"],
     icon: "settings",
+    shortcutNumber: 8,
   },
 ];
 
@@ -292,6 +306,7 @@ export default function DashboardLayout({
                 <button
                   type="button"
                   onClick={() => navigate(item.path)}
+                  aria-keyshortcuts={`Alt+${item.shortcutNumber}`}
                   aria-current={active ? "page" : undefined}
                   className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 ${
                     active
@@ -308,6 +323,9 @@ export default function DashboardLayout({
                   {active ? (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-300 shadow-[0_0_0_4px_rgba(147,197,253,0.12)]" />
                   ) : null}
+                  <span className={active ? "" : "ml-auto"}>
+                    <NavigationShortcutBadge number={item.shortcutNumber} />
+                  </span>
                 </button>
               </div>
             );
@@ -365,6 +383,7 @@ export default function DashboardLayout({
                   Settings
                 </button>
               ) : null}
+              <OpenShortcutHelpButton className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none" />
               <button
                 type="button"
                 role="menuitem"
@@ -394,7 +413,15 @@ export default function DashboardLayout({
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <ShortcutProvider
+      role={userRole}
+      navigationItems={menu.map(({ name, path, shortcutNumber }) => ({
+        name,
+        path,
+        shortcutNumber,
+      }))}
+    >
+      <div className="min-h-screen bg-[#f8fafc]">
       <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
         {sidebar}
       </div>
@@ -443,6 +470,7 @@ export default function DashboardLayout({
       </header>
 
       <main className="min-h-screen lg:pl-[288px]">{children}</main>
-    </div>
+      </div>
+    </ShortcutProvider>
   );
 }

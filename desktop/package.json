@@ -1,0 +1,8 @@
+{
+  "name": "kairo-desktop",
+  "version": "0.1.0",
+  "description": "Secure Windows desktop client for Kairo",
+  "author": "Despacho",
+  "private": true,
+  "main": "main.cjs"
+}

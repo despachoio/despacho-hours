@@ -206,6 +206,7 @@ export default function ProjectsPage() {
 
         <div className="relative z-10 -mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60 sm:mx-5 sm:flex-row">
           <input
+            data-shortcut-search
             placeholder="Search projects..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -236,6 +237,13 @@ export default function ProjectsPage() {
                   {clientProjects.map((project) => (
                     <div
                       key={project.id}
+                      data-shortcut-row
+                      data-shortcut-href={`/projects/${project.id}/wallet`}
+                      data-shortcut-edit-href={
+                        role === "Admin"
+                          ? `/projects/${project.id}?action=edit`
+                          : undefined
+                      }
                       onClick={() =>
                         router.push(`/projects/${project.id}/wallet`)
                       }

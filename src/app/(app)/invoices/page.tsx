@@ -194,6 +194,13 @@ function InvoiceTable({
             return (
               <tr
                 key={invoice.id}
+                data-shortcut-row
+                data-shortcut-href={`/invoices/${invoice.id}`}
+                data-shortcut-edit-href={
+                  invoice.status.toLowerCase() === "draft"
+                    ? `/invoices/${invoice.id}/edit`
+                    : undefined
+                }
                 onClick={() => onOpen(invoice.id)}
                 className="cursor-pointer border-b border-slate-100 transition hover:bg-blue-50/30"
               >
@@ -1021,6 +1028,7 @@ function InvoicesPageContent() {
                 ))}
               </select>
               <input
+                data-shortcut-search
                 aria-label="Search invoices"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}

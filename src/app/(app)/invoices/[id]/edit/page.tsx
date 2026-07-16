@@ -699,6 +699,9 @@ export default function EditInvoicePage() {
 
             <KairoButton
               type="button"
+              data-shortcut-save
+              data-shortcut-primary
+              aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
               onClick={saveDraft}
               disabled={saving || loading}
               className="disabled:cursor-not-allowed disabled:opacity-50"

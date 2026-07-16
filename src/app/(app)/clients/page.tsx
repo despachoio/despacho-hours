@@ -146,6 +146,13 @@ export default function ClientsPage() {
   );
   const isAdmin = role.trim().toLowerCase() === "admin";
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    const openNewClient = () => setShowNewClient(true);
+    window.addEventListener("kairo:new-client", openNewClient);
+    return () => window.removeEventListener("kairo:new-client", openNewClient);
+  }, [isAdmin]);
+
   function clearFilters() {
     setSearch("");
     setDebouncedSearch("");
@@ -233,6 +240,8 @@ export default function ClientsPage() {
               />
               <button
                 type="button"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 onClick={() => void addClient()}
                 className="rounded-2xl bg-[#153E90] px-6 py-3.5 font-bold text-white hover:bg-[#123578]"
               >
@@ -266,6 +275,7 @@ export default function ClientsPage() {
                 ⌕
               </span>
               <input
+                data-shortcut-search
                 placeholder="Search clients..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -290,6 +300,8 @@ export default function ClientsPage() {
             return (
               <article
                 key={client.id}
+                data-shortcut-row
+                data-shortcut-href={`/clients/${client.id}`}
                 role="link"
                 tabIndex={0}
                 onClick={() => router.push(`/clients/${client.id}`)}

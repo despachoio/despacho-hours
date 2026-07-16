@@ -343,6 +343,7 @@ export function RecurringInvoicesWorkspace({
             <option value="skipped">Skipped</option>
           </select>
           <input
+            data-shortcut-search
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search schedule or client"
@@ -372,6 +373,17 @@ export function RecurringInvoicesWorkspace({
                 return (
                   <article
                     key={row.id}
+                    data-shortcut-row
+                    data-shortcut-href={
+                      row.generated_invoice_id
+                        ? `/invoices/${row.generated_invoice_id}`
+                        : `/invoices/recurring/${schedule.id}`
+                    }
+                    data-shortcut-edit-href={
+                      row.status === "pending"
+                        ? `/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`
+                        : undefined
+                    }
                     className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
                   >
                     <div className="grid items-center gap-5 xl:grid-cols-[180px_1.3fr_180px_minmax(360px,auto)]">
@@ -475,6 +487,9 @@ export function RecurringInvoicesWorkspace({
             ? visibleSchedules.map((schedule) => (
                 <article
                   key={schedule.id}
+                  data-shortcut-row
+                  data-shortcut-href={`/invoices/recurring/${schedule.id}`}
+                  data-shortcut-edit-href={`/invoices/recurring/${schedule.id}/edit`}
                   className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
@@ -585,9 +600,9 @@ export function RecurringInvoicesWorkspace({
         ) : null}
       </div>
       {skipTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="skip-occurrence-title">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <h2 className="text-xl font-bold">Skip this occurrence?</h2>
+            <h2 id="skip-occurrence-title" className="text-xl font-bold">Skip this occurrence?</h2>
             <p className="mt-2 text-sm text-slate-500">
               The schedule will remain active and later occurrences will not
               change.
@@ -601,12 +616,17 @@ export function RecurringInvoicesWorkspace({
             />
             <div className="mt-5 flex justify-end gap-2">
               <button
+                type="button"
+                data-shortcut-overlay-close
                 onClick={() => setSkipTarget(null)}
                 className="rounded-xl border border-slate-200 px-4 py-2 font-bold"
               >
                 Cancel
               </button>
               <button
+                type="button"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={!skipReason.trim()}
                 onClick={() => void skip()}
                 className="rounded-xl bg-amber-600 px-4 py-2 font-bold text-white disabled:opacity-50"
@@ -618,9 +638,9 @@ export function RecurringInvoicesWorkspace({
         </div>
       ) : null}
       {resumeTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="resume-schedule-title">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <h2 className="text-xl font-bold">Resume schedule</h2>
+            <h2 id="resume-schedule-title" className="text-xl font-bold">Resume schedule</h2>
             <p className="mt-2 text-sm text-slate-500">
               Confirm the next generation date. Missed occurrences will not be
               generated automatically.
@@ -633,12 +653,17 @@ export function RecurringInvoicesWorkspace({
             />
             <div className="mt-5 flex justify-end gap-2">
               <button
+                type="button"
+                data-shortcut-overlay-close
                 onClick={() => setResumeTarget(null)}
                 className="rounded-xl border border-slate-200 px-4 py-2 font-bold"
               >
                 Cancel
               </button>
               <button
+                type="button"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={!resumeDate}
                 onClick={() =>
                   void updateStatus(resumeTarget, "active", resumeDate)
@@ -679,6 +704,7 @@ export function RecurringInvoicesWorkspace({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setCancelTarget(null)}
                 className="rounded-xl border border-slate-200 px-4 py-2 font-bold"
               >
@@ -686,6 +712,8 @@ export function RecurringInvoicesWorkspace({
               </button>
               <button
                 type="button"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={
                   !cancellationReason.trim() || busy === cancelTarget.id
                 }

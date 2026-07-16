@@ -357,6 +357,9 @@ if (clientFromUrl) {
 
             <button
               type="button"
+              data-shortcut-save
+              data-shortcut-primary
+              aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
               disabled={saving}
               onClick={saveProject}
               className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white disabled:opacity-50"

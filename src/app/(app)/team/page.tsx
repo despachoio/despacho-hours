@@ -345,6 +345,8 @@ export default function TeamPage() {
             </div>
             <button
               type="button"
+              data-shortcut-primary
+              aria-keyshortcuts="Control+Enter Meta+Enter"
               onClick={() => void addTeamMember()}
               className="mt-5 rounded-2xl bg-[#153E90] px-6 py-3 font-bold text-white"
             >
@@ -404,6 +406,7 @@ export default function TeamPage() {
                       key={item.employee.id}
                       analytics={item}
                       now={now}
+                      canEdit={isAdmin}
                     />
                   ))}
                 </section>

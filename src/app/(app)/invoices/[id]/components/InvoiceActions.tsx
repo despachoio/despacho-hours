@@ -1107,6 +1107,7 @@ export default function InvoiceActions({
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsDeleteDraftModalOpen(false)}
                 disabled={isDeletingDraft}
                 className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600"
@@ -1115,6 +1116,8 @@ export default function InvoiceActions({
               </button>
               <button
                 type="button"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 onClick={() => void deleteDraft()}
                 disabled={isDeletingDraft}
                 className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
@@ -1140,6 +1143,7 @@ export default function InvoiceActions({
             <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsModalOpen(false)}
                 disabled={isSending}
                 aria-label="Close send invoice"
@@ -1261,6 +1265,8 @@ export default function InvoiceActions({
               ) : (
                 <button
                   type="submit"
+                  data-shortcut-primary
+                  aria-keyshortcuts="Control+Enter Meta+Enter"
                   disabled={isSending}
                   className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#123578] disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -1322,6 +1328,7 @@ export default function InvoiceActions({
             <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-7 py-5">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsStopRemindersModalOpen(false)}
                 disabled={isUpdatingReminders}
                 className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
@@ -1330,6 +1337,8 @@ export default function InvoiceActions({
               </button>
               <button
                 type="submit"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={isUpdatingReminders}
                 className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
               >
@@ -1354,6 +1363,7 @@ export default function InvoiceActions({
             <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsVoidModalOpen(false)}
                 disabled={isVoiding}
                 aria-label="Close void invoice"
@@ -1445,6 +1455,8 @@ export default function InvoiceActions({
               </button>
               <button
                 type="submit"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={isVoiding}
                 className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -1469,6 +1481,7 @@ export default function InvoiceActions({
             <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsReversalModalOpen(false)}
                 disabled={isReversingPayment}
                 aria-label="Close reverse payment"
@@ -1560,6 +1573,8 @@ export default function InvoiceActions({
               </button>
               <button
                 type="submit"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={isReversingPayment}
                 className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -1584,6 +1599,7 @@ export default function InvoiceActions({
             <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsDuplicateModalOpen(false)}
                 disabled={isDuplicating}
                 aria-label="Close duplicate invoice"
@@ -1691,6 +1707,8 @@ export default function InvoiceActions({
               </button>
               <button
                 type="submit"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={isDuplicating}
                 className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123578] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -1715,6 +1733,7 @@ export default function InvoiceActions({
             <div className="relative border-b border-slate-200 px-7 py-6 pr-16">
               <button
                 type="button"
+                data-shortcut-overlay-close
                 onClick={() => setIsPaymentModalOpen(false)}
                 disabled={isRecordingPayment}
                 aria-label="Close record payment"
@@ -1835,6 +1854,8 @@ export default function InvoiceActions({
               </button>
               <button
                 type="submit"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={isRecordingPayment}
                 className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >

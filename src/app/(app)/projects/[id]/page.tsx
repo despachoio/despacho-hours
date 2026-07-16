@@ -949,6 +949,10 @@ No activity yet.
 
     <div className="flex gap-3">
       <button
+        type="button"
+        data-shortcut-save
+        data-shortcut-primary
+        aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
         onClick={saveProject}
         className="rounded-2xl bg-slate-950 px-6 py-3 text-white"
       >
