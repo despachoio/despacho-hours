@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/recurring-invoices",
-      "schedule": "30 2 * * *"
+      "schedule": "30 10 * * *"
     }
   ]
 }
