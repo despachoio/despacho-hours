@@ -2038,7 +2038,32 @@ return (
                           <td className="px-5 py-4 text-center text-sm">{formatTime(entry.started_at)}</td>
                           <td className="px-5 py-4 text-center text-sm">{formatTime(entry.stopped_at)}</td>
                           <td className="px-5 py-4 text-right font-bold">{Number(entry.hours || 0).toFixed(2)}</td>
-                          <td className="px-5 py-4"><div className="flex justify-end gap-1"><button onClick={() => setViewingEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">View</button>{canEditTimeEntries && <><button onClick={() => beginEdit(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Edit</button><button onClick={() => deleteTimeEntry(entry)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">Delete</button></>}</div></td>
+                          <td className="px-5 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => setViewingEntry(entry)}
+                                className="rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-100"
+                              >
+                                View
+                              </button>
+                              {canEditTimeEntries && (
+                                <>
+                                  <button
+                                    onClick={() => beginEdit(entry)}
+                                    className="rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-[#153E90] shadow-sm transition hover:border-blue-300 hover:bg-blue-100"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => deleteTimeEntry(entry)}
+                                    className="rounded-full border border-red-200 bg-red-50 px-3.5 py-1.5 text-xs font-bold text-red-600 shadow-sm transition hover:border-red-300 hover:bg-red-100"
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
