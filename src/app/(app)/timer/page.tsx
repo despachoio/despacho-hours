@@ -255,8 +255,12 @@ const [showMobileFilters, setShowMobileFilters] = useState(false);
 const [viewingEntry, setViewingEntry] = useState<TimeEntry | null>(null);
 
 const normalizedRole = String(profile?.role || "").trim().toLowerCase();
-const canFilterTeamEntries = normalizedRole === "admin" || normalizedRole === "manager";
-const canEditTimeEntries = normalizedRole === "admin";
+const canFilterTeamEntries =
+  normalizedRole === "super admin" ||
+  normalizedRole === "admin" ||
+  normalizedRole === "manager";
+const canEditTimeEntries =
+  normalizedRole === "super admin" || normalizedRole === "admin";
 
 
 
@@ -730,7 +734,8 @@ if (timerData) {
 
 
 if(
-currentProfile?.role==="Admin" ||
+currentProfile?.role === "Super Admin" ||
+currentProfile?.role === "Admin" ||
 currentProfile?.role==="Manager"
 ){
 
@@ -1495,7 +1500,12 @@ useEffect(() => {
 
 
 useEffect(() => {
-  if (profile?.role !== "Admin" && profile?.role !== "Manager") return;
+  if (
+    profile?.role !== "Super Admin" &&
+    profile?.role !== "Admin" &&
+    profile?.role !== "Manager"
+  )
+    return;
 
   const interval = setInterval(async () => {
     const { data: liveData } = await supabase
@@ -1598,7 +1608,11 @@ const selectedEmployeeFilteredProjects = useMemo(() => {
 const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
   let visible: LiveTimer[] = [];
 
-  if (profile?.role === "Admin" || profile?.role === "Manager") {
+  if (
+    profile?.role === "Super Admin" ||
+    profile?.role === "Admin" ||
+    profile?.role === "Manager"
+  ) {
     visible = [...liveTimers];
   } else if (profile?.role === "Employee" && activeTimer) {
     const timerProject = projects.find((project) => project.id === activeTimer.project_id);
@@ -1656,7 +1670,14 @@ const summary = useMemo(() => {
       .reduce((total, entry) => total + Number(entry.hours || 0), 0),
     week: weekEntries.reduce((total, entry) => total + Number(entry.hours || 0), 0),
     projects: new Set(weekEntries.map((entry) => entry.project_id)).size,
-    running: profile?.role === "Admin" || profile?.role === "Manager" ? liveTimers.length : activeTimer ? 1 : 0,
+    running:
+      profile?.role === "Super Admin" ||
+      profile?.role === "Admin" ||
+      profile?.role === "Manager"
+        ? liveTimers.length
+        : activeTimer
+          ? 1
+          : 0,
   };
 }, [personalSummaryEntries, liveTimers.length, activeTimer, profile?.role]);
 
@@ -1810,11 +1831,12 @@ return (
             Track project time and monitor live work.
           </p>
         </div>
-        {profile?.role === "Admin" && (
+        {["Super Admin", "Admin"].includes(profile?.role || "") && (
           <button
             onClick={() => {
               setShowManualEntry(true);
-              if (profile.employee_id) setManualEmployeeId(profile.employee_id);
+              if (profile?.employee_id)
+                setManualEmployeeId(profile.employee_id);
             }}
             aria-keyshortcuts="Alt+M"
             className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
@@ -2187,7 +2209,7 @@ return (
       <h2 className="text-2xl font-bold text-slate-950">Add Time Entry</h2>
 
       <div className="mt-6 space-y-4">
-        {profile?.role === "Admin" ? (
+        {["Super Admin", "Admin"].includes(profile?.role || "") ? (
           <div>
             <label className="text-sm font-semibold text-slate-500">
               Employee

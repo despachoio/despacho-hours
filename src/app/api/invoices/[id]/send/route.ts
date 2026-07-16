@@ -442,7 +442,7 @@ export async function POST(
     if (
       String(profile?.role || "")
         .trim()
-        .toLowerCase() !== "admin"
+        .toLowerCase() !== "super admin"
     ) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }

@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
 
 export type ShortcutPlatform = "mac" | "other";
 
@@ -132,17 +133,23 @@ function creationFor(
   role: string,
   recurringInvoiceTab = false,
 ): CreationCommand | null {
-  const isAdmin = role.trim().toLowerCase() === "admin";
-  if (!isAdmin) return null;
+  const canCreateInvoice = canAccessInvoices(role);
   if (pathname.startsWith("/invoices/recurring")) {
-    return { label: "New recurring schedule", path: "/invoices/recurring/new" };
+    return canCreateInvoice
+      ? { label: "New recurring schedule", path: "/invoices/recurring/new" }
+      : null;
   }
   if (pathname === "/invoices" && recurringInvoiceTab) {
-    return { label: "New recurring schedule", path: "/invoices/recurring/new" };
+    return canCreateInvoice
+      ? { label: "New recurring schedule", path: "/invoices/recurring/new" }
+      : null;
   }
   if (pathname === "/invoices") {
-    return { label: "New invoice", path: "/invoices/new" };
+    return canCreateInvoice
+      ? { label: "New invoice", path: "/invoices/new" }
+      : null;
   }
+  if (!isAdminLevelRole(role)) return null;
   if (pathname === "/projects") return { label: "New project", path: "/projects/new" };
   if (pathname === "/clients") return { label: "New client", event: "kairo:new-client" };
   if (pathname === "/timer") return { label: "Add time entry", event: "kairo:manual-time" };

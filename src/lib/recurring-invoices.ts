@@ -80,7 +80,7 @@ export async function requireAdmin(request: Request) {
   if (
     String(profile?.role || "")
       .trim()
-      .toLowerCase() !== "admin"
+      .toLowerCase() !== "super admin"
   ) {
     return { error: Response.json({ error: "Forbidden" }, { status: 403 }) };
   }

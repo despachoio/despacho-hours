@@ -8,6 +8,7 @@ import {
   OpenShortcutHelpButton,
   ShortcutProvider,
 } from "@/components/shortcuts/ShortcutProvider";
+import { isAdminLevelRole } from "@/lib/roles";
 
 type IconName =
   | "dashboard"
@@ -33,56 +34,56 @@ const allMenu: MenuItem[] = [
   {
     name: "Dashboard",
     path: "/dashboard",
-    roles: ["Admin", "Manager", "Employee"],
+    roles: ["Super Admin", "Admin", "Manager", "Employee"],
     icon: "dashboard",
     shortcutNumber: 1,
   },
   {
     name: "Timer",
     path: "/timer",
-    roles: ["Admin", "Manager", "Employee"],
+    roles: ["Super Admin", "Admin", "Manager", "Employee"],
     icon: "time",
     shortcutNumber: 2,
   },
   {
     name: "Team",
     path: "/team",
-    roles: ["Admin", "Manager", "Employee"],
+    roles: ["Super Admin", "Admin", "Manager", "Employee"],
     icon: "team",
     shortcutNumber: 3,
   },
   {
     name: "Invoices",
     path: "/invoices",
-    roles: ["Admin"],
+    roles: ["Super Admin"],
     icon: "invoices",
     shortcutNumber: 4,
   },
   {
     name: "Clients",
     path: "/clients",
-    roles: ["Admin", "Manager"],
+    roles: ["Super Admin", "Admin", "Manager"],
     icon: "clients",
     shortcutNumber: 5,
   },
   {
     name: "Projects",
     path: "/projects",
-    roles: ["Admin", "Manager", "Employee"],
+    roles: ["Super Admin", "Admin", "Manager", "Employee"],
     icon: "projects",
     shortcutNumber: 6,
   },
   {
     name: "Reports",
     path: "/reports",
-    roles: ["Admin", "Manager", "Employee"],
+    roles: ["Super Admin", "Admin", "Manager", "Employee"],
     icon: "reports",
     shortcutNumber: 7,
   },
   {
     name: "Settings",
     path: "/settings",
-    roles: ["Admin"],
+    roles: ["Super Admin", "Admin"],
     icon: "settings",
     shortcutNumber: 8,
   },
@@ -210,7 +211,7 @@ export default function DashboardLayout({
       setUserName(profile?.full_name || data.user.email?.split("@")[0] || "");
       setUserRole(resolvedRole);
       setAccessState(
-        isMobileBrowser() && resolvedRole.toLowerCase() !== "admin"
+        isMobileBrowser() && !isAdminLevelRole(resolvedRole)
           ? "mobile-blocked"
           : "allowed",
       );
@@ -389,7 +390,7 @@ export default function DashboardLayout({
               aria-label="Profile menu"
               className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
             >
-              {userRole.trim().toLowerCase() === "admin" ? (
+              {isAdminLevelRole(userRole) ? (
                 <button
                   type="button"
                   role="menuitem"

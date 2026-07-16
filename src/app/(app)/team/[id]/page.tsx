@@ -46,7 +46,10 @@ function TeamDetailPageContent() {
   const role = String(profile?.role || "")
     .trim()
     .toLowerCase();
-  const isAdmin = role === "admin";
+  const isSuperAdmin = role === "super admin";
+  const isAdmin = isSuperAdmin || role === "admin";
+  const canManageMember =
+    isAdmin && (isSuperAdmin || accessRole !== "Super Admin");
   const range = useMemo(
     () => dateRange(period, customFrom, customTo),
     [customFrom, customTo, period],
@@ -95,7 +98,7 @@ function TeamDetailPageContent() {
           .eq("employee_id", id)
           .in("status", ["running", "paused"])
           .maybeSingle(),
-        currentRole === "admin"
+        currentRole === "super admin" || currentRole === "admin"
           ? supabase
               .from("profiles")
               .select("role")
@@ -110,6 +113,7 @@ function TeamDetailPageContent() {
       }
       const loaded = memberResult.data as TeamEmployee;
       if (
+        currentRole !== "super admin" &&
         currentRole !== "admin" &&
         String(loaded.status || "").trim().toLowerCase() !== "active"
       ) {
@@ -159,7 +163,7 @@ function TeamDetailPageContent() {
   );
 
   async function saveMember() {
-    if (!isAdmin) return;
+    if (!canManageMember) return;
     const { error: employeeError } = await supabase
       .from("employees")
       .update({
@@ -216,7 +220,7 @@ if (profileError) {
   }
 
   async function updateStatus(status: "active" | "inactive") {
-    if (!isAdmin || statusBusy) return;
+    if (!canManageMember || statusBusy) return;
     setStatusBusy(true);
     setError("");
     const { data: sessionData } = await supabase.auth.getSession();
@@ -257,7 +261,7 @@ if (profileError) {
   }
 
   async function sendPasswordReset() {
-    if (!isAdmin || !member?.email || passwordResetBusy) return;
+    if (!canManageMember || !member?.email || passwordResetBusy) return;
     setPasswordResetBusy(true);
     setError("");
 
@@ -313,7 +317,7 @@ if (profileError) {
       </main>
     );
 
-  const adminActions = isAdmin ? (
+  const adminActions = canManageMember ? (
     <div className="flex flex-wrap gap-2">
       <button
         type="button"
@@ -363,7 +367,7 @@ if (profileError) {
             {error}
           </div>
         ) : null}
-        {action === "edit" && isAdmin ? (
+        {action === "edit" && canManageMember ? (
           <AdminEditForm
             employeeCode={employeeCode}
             setEmployeeCode={setEmployeeCode}
@@ -379,11 +383,12 @@ if (profileError) {
             setHourlyCost={setHourlyCost}
             accessRole={accessRole}
             setAccessRole={setAccessRole}
+            canAssignSuperAdmin={isSuperAdmin}
             onSave={() => void saveMember()}
             onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
-        {action === "deactivate" && isAdmin ? (
+        {action === "deactivate" && canManageMember ? (
           <Confirmation
             text="Deactivate this team member?"
             confirm="Deactivate"
@@ -393,7 +398,7 @@ if (profileError) {
             onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
-        {action === "activate" && isAdmin ? (
+        {action === "activate" && canManageMember ? (
           <Confirmation
             text="Activate this team member?"
             confirm="Activate"
@@ -453,6 +458,7 @@ function AdminEditForm(props: {
   setHourlyCost: Setter;
   accessRole: string;
   setAccessRole: Setter;
+  canAssignSuperAdmin: boolean;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -495,6 +501,7 @@ function AdminEditForm(props: {
           <option>Employee</option>
           <option>Manager</option>
           <option>Admin</option>
+          {props.canAssignSuperAdmin ? <option>Super Admin</option> : null}
         </select>
       </div>
       <div className="mt-5 flex gap-3">

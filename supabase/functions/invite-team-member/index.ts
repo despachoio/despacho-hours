@@ -13,6 +13,11 @@ serve(async (req) => {
   }
 
   try {
+    const authorization = req.headers.get("Authorization");
+    if (!authorization?.startsWith("Bearer ")) {
+      throw new Error("Unauthorized.");
+    }
+
     const {
       email,
       full_name,
@@ -25,22 +30,62 @@ serve(async (req) => {
 
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedName = String(full_name || "").trim();
+    const roleLookup: Record<string, string> = {
+      employee: "Employee",
+      manager: "Manager",
+      admin: "Admin",
+      "super admin": "Super Admin",
+    };
+    const requestedRole =
+      roleLookup[
+        String(access_role || "Employee")
+          .trim()
+          .toLowerCase()
+          .replace(/[_-]+/g, " ")
+          .replace(/\s+/g, " ")
+      ];
 
     if (!normalizedEmail || !normalizedName) {
       throw new Error("Name and email are required.");
     }
+    if (!requestedRole) throw new Error("Select a valid access role.");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error("Supabase Edge Function environment variables are missing.");
-}
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+      throw new Error(
+        "Supabase Edge Function environment variables are missing.",
+      );
+    }
 
-const supabaseAdmin = createClient(
-  supabaseUrl,
-  serviceRoleKey
-);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const token = authorization.slice(7);
+    const {
+      data: { user: caller },
+      error: callerError,
+    } = await callerClient.auth.getUser(token);
+    if (callerError || !caller) throw new Error("Unauthorized.");
+
+    const { data: callerProfile, error: callerProfileError } =
+      await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("user_id", caller.id)
+        .single();
+    if (callerProfileError) throw new Error("Unable to verify permissions.");
+    const callerRole = String(callerProfile?.role || "").trim().toLowerCase();
+    if (!["super admin", "admin"].includes(callerRole)) {
+      throw new Error("Forbidden.");
+    }
+    if (requestedRole === "Super Admin" && callerRole !== "super admin") {
+      throw new Error("Only a Super Admin can assign the Super Admin role.");
+    }
 
     // Check whether this employee already exists in Kairo.
     const { data: existingEmployee, error: lookupError } =
@@ -129,7 +174,7 @@ const supabaseAdmin = createClient(
           user_id: userId,
           employee_id: employeeId,
           full_name: normalizedName,
-          role: access_role || "Employee",
+          role: requestedRole,
         },
         {
           onConflict: "user_id",

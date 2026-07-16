@@ -57,7 +57,7 @@ export async function POST(
     console.error("Duplicate invoice profile lookup failed:", profileError);
     return Response.json({ error: "Unable to verify permissions" }, { status: 500 });
   }
-  if (String(profile?.role || "").trim().toLowerCase() !== "admin") {
+  if (String(profile?.role || "").trim().toLowerCase() !== "super admin") {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -100,7 +100,9 @@ export default function ClientDetailPage() {
     useState<ContactForm>(EMPTY_CONTACT_FORM);
   const [contactError, setContactError] = useState("");
   const [savingContact, setSavingContact] = useState(false);
-  const isAdmin = role.trim().toLowerCase() === "admin";
+  const isAdmin = ["super admin", "admin"].includes(
+    role.trim().toLowerCase(),
+  );
 
   async function loadClient() {
     const { data: userData } = await supabase.auth.getUser();

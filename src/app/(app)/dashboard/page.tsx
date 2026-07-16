@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
 
 type Client = { id: string; status: string };
 
@@ -110,7 +111,8 @@ export default function DashboardPage() {
   const normalizedRole = String(profile?.role || "")
     .trim()
     .toLowerCase();
-  const isAdmin = normalizedRole === "admin";
+  const isAdmin = isAdminLevelRole(profile?.role);
+  const canViewInvoices = canAccessInvoices(profile?.role);
   const canViewTeam = isAdmin || normalizedRole === "manager";
   const isEmployee = normalizedRole === "employee";
 
@@ -198,7 +200,7 @@ export default function DashboardPage() {
         setLiveTimers((timerResult.data || []) as unknown as LiveTimer[]);
       }
 
-      if (role === "admin") {
+      if (canAccessInvoices(currentProfile?.role)) {
         const { data: invoiceData } = await supabase
           .from("invoices")
           .select(
@@ -366,7 +368,7 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {isAdmin ? (
+        {canViewInvoices ? (
           <section className="mt-8">
             <SectionHeading
               eyebrow="Billing intelligence"

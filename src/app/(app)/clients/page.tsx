@@ -144,7 +144,9 @@ export default function ClientsPage() {
     }),
     [clients],
   );
-  const isAdmin = role.trim().toLowerCase() === "admin";
+  const isAdmin = ["super admin", "admin"].includes(
+    role.trim().toLowerCase(),
+  );
 
   useEffect(() => {
     if (!isAdmin) return;

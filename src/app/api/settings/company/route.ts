@@ -47,6 +47,31 @@ const EDITABLE_FIELDS = [
   "time_format",
 ] as const;
 
+const GENERAL_FIELDS = [
+  "company_name",
+  "legal_name",
+  "address_line_1",
+  "address_line_2",
+  "city",
+  "state_province",
+  "postal_code",
+  "country",
+  "business_email",
+  "website",
+  "phone",
+  "logo_url",
+  "timezone",
+  "date_format",
+  "time_format",
+] as const;
+
+function selectFields(
+  settings: Record<string, unknown>,
+  fields: readonly string[],
+) {
+  return Object.fromEntries(fields.map((field) => [field, settings[field]]));
+}
+
 async function requireAdmin(request: Request) {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer "))
@@ -87,13 +112,10 @@ async function requireAdmin(request: Request) {
         { status: 500 },
       ),
     };
-  if (
-    String(profile?.role || "")
-      .trim()
-      .toLowerCase() !== "admin"
-  )
+  const role = String(profile?.role || "").trim().toLowerCase();
+  if (!["super admin", "admin"].includes(role))
     return { response: Response.json({ error: "Forbidden" }, { status: 403 }) };
-  return { user, admin, response: null };
+  return { user, admin, role, response: null };
 }
 
 function text(value: unknown) {
@@ -127,7 +149,17 @@ function validationError(body: Record<string, unknown>) {
 export async function GET(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
-  return Response.json({ settings: await loadCompanySettings(auth.admin) });
+  const settings = await loadCompanySettings(auth.admin);
+  return Response.json({
+    role: auth.role,
+    settings:
+      auth.role === "super admin"
+        ? settings
+        : selectFields(
+            settings as unknown as Record<string, unknown>,
+            GENERAL_FIELDS,
+          ),
+  });
 }
 
 export async function PUT(request: Request) {
@@ -147,7 +179,9 @@ export async function PUT(request: Request) {
     updated_by: auth.user.id,
     updated_at: new Date().toISOString(),
   };
-  for (const field of EDITABLE_FIELDS) {
+  const allowedFields =
+    auth.role === "super admin" ? EDITABLE_FIELDS : GENERAL_FIELDS;
+  for (const field of allowedFields) {
     if (Object.hasOwn(body, field)) payload[field] = body[field];
   }
   const { data, error } = await auth.admin
@@ -167,5 +201,11 @@ export async function PUT(request: Request) {
       { status: 500 },
     );
   }
-  return Response.json({ settings: data });
+  return Response.json({
+    role: auth.role,
+    settings:
+      auth.role === "super admin"
+        ? data
+        : selectFields(data as Record<string, unknown>, GENERAL_FIELDS),
+  });
 }

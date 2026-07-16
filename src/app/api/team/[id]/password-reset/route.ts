@@ -56,11 +56,29 @@ export async function POST(
       { status: 500 },
     );
   }
-  if (String(profile?.role || "").trim().toLowerCase() !== "admin") {
+  if (
+    !["super admin", "admin"].includes(
+      String(profile?.role || "").trim().toLowerCase(),
+    )
+  ) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id: employeeId } = await params;
+  const { data: targetProfile } = await adminClient
+    .from("profiles")
+    .select("role")
+    .eq("employee_id", employeeId)
+    .maybeSingle();
+  if (
+    String(targetProfile?.role || "").trim().toLowerCase() === "super admin" &&
+    String(profile?.role || "").trim().toLowerCase() !== "super admin"
+  ) {
+    return Response.json(
+      { error: "Only a Super Admin can reset a Super Admin password" },
+      { status: 403 },
+    );
+  }
   const { data: employee, error: employeeError } = await adminClient
     .from("employees")
     .select("id,email,user_id")

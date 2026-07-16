@@ -282,7 +282,7 @@ export default function InvoiceDetailPage() {
       setIsAdmin(
         String(profileData?.role || "")
           .trim()
-          .toLowerCase() === "admin",
+          .toLowerCase() === "super admin",
       );
     }
 

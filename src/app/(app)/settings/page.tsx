@@ -51,6 +51,7 @@ const tabs: { id: Tab; label: string; description: string }[] = [
 export default function CompanySettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("company");
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -81,6 +82,7 @@ export default function CompanySettingsPage() {
         });
       } else {
         setSettings(result.settings as Settings);
+        setIsSuperAdmin(result.role === "super admin");
       }
       setLoading(false);
     }
@@ -151,6 +153,12 @@ export default function CompanySettingsPage() {
       </main>
     );
 
+  const availableTabs = isSuperAdmin
+    ? tabs
+    : tabs.filter((tab) =>
+        (["company", "branding", "regional"] as Tab[]).includes(tab.id),
+      );
+
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-7xl">
@@ -175,7 +183,7 @@ export default function CompanySettingsPage() {
             className="h-fit rounded-3xl border border-slate-200 bg-white p-3 shadow-sm"
             aria-label="Settings sections"
           >
-            {tabs.map((tab) => (
+            {availableTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -198,10 +206,10 @@ export default function CompanySettingsPage() {
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="border-b border-slate-100 pb-5">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#153E90]">
-                {tabs.find((tab) => tab.id === activeTab)?.label}
+                {availableTabs.find((tab) => tab.id === activeTab)?.label}
               </p>
               <h2 className="mt-2 text-2xl font-bold text-slate-950">
-                {tabs.find((tab) => tab.id === activeTab)?.description}
+                {availableTabs.find((tab) => tab.id === activeTab)?.description}
               </h2>
             </div>
             <div className="mt-7">
@@ -209,7 +217,11 @@ export default function CompanySettingsPage() {
                 <CompanySection settings={settings} update={update} />
               ) : null}
               {activeTab === "branding" ? (
-                <BrandingSection settings={settings} update={update} />
+                <BrandingSection
+                  settings={settings}
+                  update={update}
+                  canEditInvoiceBranding={isSuperAdmin}
+                />
               ) : null}
               {activeTab === "invoices" ? (
                 <InvoiceSection settings={settings} update={update} />
@@ -371,7 +383,12 @@ function CompanySection(props: SectionProps) {
     </Grid>
   );
 }
-function BrandingSection(props: SectionProps) {
+function BrandingSection(
+  props: SectionProps & { canEditInvoiceBranding: boolean },
+) {
+  const logoFields = props.canEditInvoiceBranding
+    ? ["logo_url", "invoice_logo_url"]
+    : ["logo_url"];
   return (
     <div className="space-y-6">
       <Grid>
@@ -381,15 +398,17 @@ function BrandingSection(props: SectionProps) {
           field="logo_url"
           placeholder="/kairo-logo-full.png"
         />
-        <Field
-          {...props}
-          label="Invoice Logo URL"
-          field="invoice_logo_url"
-          placeholder="/despacho-logo-full.png"
-        />
+        {props.canEditInvoiceBranding ? (
+          <Field
+            {...props}
+            label="Invoice Logo URL"
+            field="invoice_logo_url"
+            placeholder="/despacho-logo-full.png"
+          />
+        ) : null}
       </Grid>
       <div className="grid gap-5 md:grid-cols-2">
-        {["logo_url", "invoice_logo_url"].map((field) => (
+        {logoFields.map((field) => (
           <div
             key={field}
             className="flex min-h-36 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5"

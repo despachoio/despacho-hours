@@ -82,7 +82,8 @@ export default function ReportsPage() {
     .trim()
     .toLowerCase();
   const isEmployee = role === "employee";
-  const canViewTeam = role === "admin" || role === "manager";
+  const canViewTeam =
+    role === "super admin" || role === "admin" || role === "manager";
   const period = useMemo(
     () => dateRange(filters.datePreset, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.datePreset],
@@ -152,7 +153,9 @@ export default function ReportsPage() {
           employeeQuery,
           projectQuery,
           operationalQuery,
-          currentRole === "admin" || currentRole === "manager"
+          currentRole === "super admin" ||
+          currentRole === "admin" ||
+          currentRole === "manager"
             ? supabase
                 .from("active_timers")
                 .select(

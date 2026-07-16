@@ -192,7 +192,7 @@ export default function ProjectsPage() {
               </p>
             </div>
 
-            {role === "Admin" && (
+            {["Super Admin", "Admin"].includes(role) && (
               <button
                 type="button"
                 onClick={() => router.push("/projects/new")}
@@ -240,7 +240,7 @@ export default function ProjectsPage() {
                       data-shortcut-row
                       data-shortcut-href={`/projects/${project.id}/wallet`}
                       data-shortcut-edit-href={
-                        role === "Admin"
+                        ["Super Admin", "Admin"].includes(role)
                           ? `/projects/${project.id}?action=edit`
                           : undefined
                       }
@@ -251,7 +251,7 @@ export default function ProjectsPage() {
                     >
                       <div
                         className={
-                          role === "Admin"
+                          ["Super Admin", "Admin"].includes(role)
                             ? "grid items-center gap-5 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[2fr_.7fr_.7fr_.7fr_auto] xl:px-6"
                             : "grid items-center gap-5 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[2fr_.7fr_.7fr_.7fr] xl:px-6"
                         }
@@ -318,7 +318,7 @@ export default function ProjectsPage() {
 </p>
                         </div>
 
-                        {role === "Admin" && (
+                        {["Super Admin", "Admin"].includes(role) && (
                           <select
                             onClick={(e) => e.stopPropagation()}
                             onChange={(e) => {

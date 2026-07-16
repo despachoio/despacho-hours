@@ -52,7 +52,8 @@ export default function TeamPage() {
     .trim()
     .toLowerCase();
   const isEmployee = role === "employee";
-  const isAdmin = role === "admin";
+  const isSuperAdmin = role === "super admin";
+  const isAdmin = isSuperAdmin || role === "admin";
   const range = useMemo(
     () => dateRange(filters.period, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.period],
@@ -341,6 +342,7 @@ export default function TeamPage() {
                 <option>Employee</option>
                 <option>Manager</option>
                 <option>Admin</option>
+                {isSuperAdmin ? <option>Super Admin</option> : null}
               </select>
             </div>
             <button

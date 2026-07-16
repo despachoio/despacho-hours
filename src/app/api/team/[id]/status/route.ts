@@ -55,7 +55,11 @@ export async function POST(
       { status: 500 },
     );
   }
-  if (String(profile?.role || "").trim().toLowerCase() !== "admin") {
+  if (
+    !["super admin", "admin"].includes(
+      String(profile?.role || "").trim().toLowerCase(),
+    )
+  ) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -75,6 +79,21 @@ export async function POST(
   }
 
   const { id: employeeId } = await params;
+  const { data: targetProfile } = await adminClient
+    .from("profiles")
+    .select("role")
+    .eq("employee_id", employeeId)
+    .maybeSingle();
+  const callerRole = String(profile?.role || "").trim().toLowerCase();
+  if (
+    String(targetProfile?.role || "").trim().toLowerCase() === "super admin" &&
+    callerRole !== "super admin"
+  ) {
+    return Response.json(
+      { error: "Only a Super Admin can modify a Super Admin account" },
+      { status: 403 },
+    );
+  }
   const { data: employee, error: employeeError } = await adminClient
     .from("employees")
     .select("id,status")
