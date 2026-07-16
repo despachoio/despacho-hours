@@ -163,43 +163,37 @@ export default function DesktopTimerPage() {
       return;
     }
 
-    const [clientResult, projectResult] = await Promise.all([
-      supabase
-        .from("clients")
-        .select("id,name")
-        .eq("status", "active")
-        .order("name"),
-      supabase
-        .from("projects")
-        .select(
-          "id,client_id,name,project_code,clients(id,name),project_resources(employee_id)",
-        )
-        .eq("status", "active")
-        .order("name"),
-    ]);
+    const projectResult = await supabase
+      .from("projects")
+      .select(
+        "id,client_id,name,project_code,clients(id,name),project_resources(employee_id)",
+      )
+      .eq("status", "active")
+      .order("name");
 
     if (!mountedRef.current) return;
     const loadedProjects = (projectResult.data || []) as unknown as Project[];
-    const visibleProjects =
-      normalizeRole(currentProfile.role) === "employee"
-        ? loadedProjects.filter((project) =>
-            project.project_resources?.some(
-              (resource) =>
-                resource.employee_id === currentProfile.employee_id,
-            ),
-          )
-        : loadedProjects;
+    const visibleProjects = loadedProjects.filter((project) =>
+      project.project_resources?.some(
+        (resource) => resource.employee_id === currentProfile.employee_id,
+      ),
+    );
+    const visibleClients = Array.from(
+      new Map(
+        visibleProjects
+          .filter((project) => project.clients)
+          .map((project) => [project.clients!.id, project.clients!]),
+      ).values(),
+    ).sort((left, right) => left.name.localeCompare(right.name));
 
     setProfile(currentProfile);
-    setClients((clientResult.data || []) as Client[]);
+    setClients(visibleClients);
     setProjects(visibleProjects);
     setReady(true);
-    if (clientResult.error || projectResult.error) {
+    if (projectResult.error) {
       setMessage(
         cleanError(
-          clientResult.error?.message ||
-            projectResult.error?.message ||
-            "Unable to load timer projects.",
+          projectResult.error.message || "Unable to load timer projects.",
         ),
       );
     }
@@ -464,7 +458,7 @@ export default function DesktopTimerPage() {
                 disabled={Boolean(activeTimer) || busy}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#153E90] disabled:bg-slate-100"
               >
-                <option value="">All clients</option>
+                <option value="">All assigned clients</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>{client.name}</option>
                 ))}
@@ -479,7 +473,9 @@ export default function DesktopTimerPage() {
                 disabled={Boolean(activeTimer) || busy}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#153E90] disabled:bg-slate-100"
               >
-                <option value="">Select project</option>
+                <option value="">
+                  {projects.length ? "Select assigned project" : "No assigned projects"}
+                </option>
                 {filteredProjects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.project_code ? `${project.project_code} · ` : ""}{project.name}
