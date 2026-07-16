@@ -64,8 +64,8 @@ const todayKey = () =>
 
 const money = (currency: string, amount: number) =>
   `${currency} ${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   })}`;
 
 function workedSeconds(timer: LiveTimer, now: number) {
