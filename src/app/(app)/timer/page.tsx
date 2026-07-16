@@ -183,6 +183,9 @@ export default function TimePage() {
 const [editProjectId, setEditProjectId] =
   useState("");
 
+  const [entriesLoading, setEntriesLoading] = useState(false);
+const [totalEntryCount, setTotalEntryCount] = useState(0);
+
 
 const [editDate, setEditDate] =
   useState("");
@@ -656,67 +659,7 @@ filteredProjects as unknown as Project[]
 // Time Entries
 
 
-let entryQuery =
-supabase
 
-.from("time_entries")
-
-.select(`
-id,
-employee_id,
-project_id,
-entry_date,
-started_at,
-stopped_at,
-hours,
-description,
-employees(name),
-projects(
-id,
-name,
-project_code,
-clients(name)
-)
-`)
-
-.order("entry_date", {
-
-  ascending: false,
-
-})
-
-.order("stopped_at", {
-
-  ascending: false,
-
-});
-
-
-
-if(
-currentProfile?.role==="Employee" &&
-currentProfile.employee_id
-){
-
-entryQuery =
-entryQuery.eq(
-"employee_id",
-currentProfile.employee_id
-);
-
-}
-
-
-
-const {data:entryData} =
-await entryQuery;
-
-
-if(entryData)
-
-setEntries(
-entryData as unknown as TimeEntry[]
-);
 
 
 
@@ -829,6 +772,60 @@ setLiveTimers([]);
 }
 
 
+}
+
+async function loadEmployeeEntries(selectedEmployeeId: string) {
+  if (!selectedEmployeeId) {
+    setEntries([]);
+    return;
+  }
+  setIsLoadingEntries(true);
+  try {
+    const allEntries: TimeEntry[] = [];
+    const batchSize = 1000;
+    let from = 0;
+    while (true) {
+      const to = from + batchSize - 1;
+      let query = supabase
+        .from("time_entries")
+        .select(`
+          id,
+          employee_id,
+          project_id,
+          entry_date,
+          started_at,
+          stopped_at,
+          hours,
+          description,
+          employees(name),
+          projects(
+            id,
+            name,
+            project_code,
+            clients(name)
+          )
+        `)
+        .eq("employee_id", selectedEmployeeId)
+        .order("entry_date", { ascending: false })
+        .order("stopped_at", { ascending: false })
+        .range(from, to);
+      const { data, error } = await query;
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      const batch = (data || []) as unknown as TimeEntry[];
+      allEntries.push(...batch);
+      if (batch.length < batchSize) {
+        break;
+      }
+      from += batchSize;
+    }
+    setEntries(allEntries);
+    setEntryPage(0);
+  } finally {
+    setIsLoadingEntries(false);
+  }
 }
 async function handleStartTimer() {
   // Immediate protection against double-clicks.
@@ -1649,6 +1646,24 @@ useEffect(() => {
   }
 }, [entryPage, totalEntryPages]);
 
+useEffect(() => {
+  if (profile?.role === "Employee") {
+    if (profile.employee_id) {
+      void loadEmployeeEntries(profile.employee_id);
+    }
+    return;
+  }
+  if (filterEmployee) {
+    void loadEmployeeEntries(filterEmployee);
+  } else {
+    setEntries([]);
+  }
+}, [
+  filterEmployee,
+  profile?.role,
+  profile?.employee_id,
+]);
+
 const groupedEntries = useMemo(
   () => paginatedEntries.reduce<Record<string, TimeEntry[]>>((groups, entry) => {
     (groups[entry.entry_date] ||= []).push(entry);
@@ -1928,11 +1943,11 @@ return (
     setFilterEmployee(event.target.value);
     setFilterClient("");
     setFilterProject("");
+    setEntryPage(0);
   }}
   className="rounded-xl border border-slate-500 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-blue-500"
 >
   <option value="">Select Employee</option>
-
   {employees.map((employee) => (
     <option key={employee.id} value={employee.id}>
       {employee.name}
@@ -2001,7 +2016,16 @@ return (
         <h2 className="text-xl font-bold text-slate-950">Time Entries</h2>
         <p className="mt-1 text-sm text-slate-500">Completed entries grouped by date.</p>
       </div>
-      {!hasEntryFilters ? (
+      {isLoadingEntries ? (
+  <div className="px-6 py-16 text-center">
+    <h3 className="font-bold text-slate-950">
+      Loading time entries...
+    </h3>
+    <p className="mt-2 text-sm text-slate-500">
+      Large employee histories may take a few seconds.
+    </p>
+  </div>
+) : !hasEntryFilters ? (
         <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">Select an employee to view their time entries.</h3><p className="mt-2 text-sm text-slate-500">After selecting an employee, you can narrow the results by date, assigned client, assigned project, or search.</p></div>
       ) : filteredEntries.length === 0 ? (
         <div className="px-6 py-16 text-center"><h3 className="font-bold text-slate-950">No time entries match your filters.</h3><button onClick={resetFilters} className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">Clear Filters</button></div>
