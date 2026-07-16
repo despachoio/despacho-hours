@@ -821,23 +821,12 @@ export function useShortcutCommand(command: ShortcutCommand) {
   ]);
 }
 
-export function ShortcutBadge({ combo }: { combo: ShortcutCombo }) {
-  const context = useContext(ShortcutContext);
-  if (!context) return null;
-  return <ShortcutKey>{context.formatShortcut(combo)}</ShortcutKey>;
-}
-
-export function NavigationShortcutBadge({ number }: { number: number }) {
-  return <ShortcutBadge combo={{ code: `Digit${number}`, alt: true, label: String(number) }} />;
-}
-
 export function OpenShortcutHelpButton({ className }: { className?: string }) {
   const context = useContext(ShortcutContext);
   return (
     <button type="button" role="menuitem" onClick={context?.openHelp} className={className}>
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.4 2.4 0 1 1 3.7 2c-.9.55-1.5 1.05-1.5 2M12 17h.01" /></svg>
       Keyboard shortcuts
-      <span className="ml-auto"><ShortcutBadge combo={{ code: "Slash", key: "?", shift: true, label: "?" }} /></span>
     </button>
   );
 }

@@ -5,7 +5,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
-  NavigationShortcutBadge,
   OpenShortcutHelpButton,
   ShortcutProvider,
 } from "@/components/shortcuts/ShortcutProvider";
@@ -27,6 +26,8 @@ type MenuItem = {
   icon: IconName;
   shortcutNumber: number;
 };
+
+type AccessState = "checking" | "allowed" | "mobile-blocked";
 
 const allMenu: MenuItem[] = [
   {
@@ -165,6 +166,18 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+function isMobileBrowser() {
+  const userAgent = navigator.userAgent || "";
+  const reportsMobileDevice =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(
+      userAgent,
+    );
+  const isIPadRequestingDesktopSite =
+    /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
+
+  return reportsMobileDevice || isIPadRequestingDesktopSite;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -174,6 +187,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
+  const [accessState, setAccessState] = useState<AccessState>("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
@@ -192,8 +206,14 @@ export default function DashboardLayout({
         .eq("user_id", data.user.id)
         .single();
 
+      const resolvedRole = String(profile?.role || "User").trim();
       setUserName(profile?.full_name || data.user.email?.split("@")[0] || "");
-      setUserRole(profile?.role || "User");
+      setUserRole(resolvedRole);
+      setAccessState(
+        isMobileBrowser() && resolvedRole.toLowerCase() !== "admin"
+          ? "mobile-blocked"
+          : "allowed",
+      );
     }
 
     void checkUser();
@@ -202,11 +222,11 @@ export default function DashboardLayout({
   const menu = allMenu.filter((item) => item.roles.includes(userRole));
 
   useEffect(() => {
-    if (!userRole) return;
+    if (!userRole || accessState !== "allowed") return;
     const allowed = allMenu.find((item) => item.path === pathname);
     if (allowed && !allowed.roles.includes(userRole))
       router.replace("/timer");
-  }, [pathname, router, userRole]);
+  }, [accessState, pathname, router, userRole]);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return;
@@ -323,9 +343,6 @@ export default function DashboardLayout({
                   {active ? (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-300 shadow-[0_0_0_4px_rgba(147,197,253,0.12)]" />
                   ) : null}
-                  <span className={active ? "" : "ml-auto"}>
-                    <NavigationShortcutBadge number={item.shortcutNumber} />
-                  </span>
                 </button>
               </div>
             );
@@ -411,6 +428,79 @@ export default function DashboardLayout({
       </div>
     </aside>
   );
+
+  if (accessState === "checking") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-6">
+        <div role="status" className="text-center" aria-live="polite">
+          <Image
+            src="/kairo-logo-full.png"
+            alt="Kairo"
+            width={164}
+            height={48}
+            priority
+            className="mx-auto h-auto w-[142px]"
+          />
+          <div className="mx-auto mt-6 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#153E90]" />
+          <p className="mt-4 text-sm font-semibold text-slate-500">
+            Verifying access…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (accessState === "mobile-blocked") {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f8fafc] px-5 py-10">
+        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-100/70 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-slate-200/70 blur-3xl" />
+        <section className="relative w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-2xl shadow-slate-300/40 sm:p-10">
+          <Image
+            src="/kairo-logo-full.png"
+            alt="Kairo"
+            width={190}
+            height={56}
+            priority
+            className="mx-auto h-auto w-[164px]"
+          />
+          <div className="mx-auto mt-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#153E90] ring-1 ring-blue-100">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="h-8 w-8"
+            >
+              <rect x="3" y="4" width="18" height="12" rx="2" />
+              <path d="M8 20h8M12 16v4" />
+            </svg>
+          </div>
+          <p className="mt-7 text-xs font-bold uppercase tracking-[0.2em] text-[#153E90]">
+            Desktop access required
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+            Kairo is not available on mobile for your role.
+          </h1>
+          <p className="mt-4 text-sm leading-6 text-slate-600">
+            Manager and Employee accounts must use Kairo from a desktop or
+            laptop browser. Please switch devices to continue.
+          </p>
+          <div className="mt-6 inline-flex rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+            Signed in as {userRole || "User"}
+          </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="mt-8 w-full rounded-2xl bg-[#153E90] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-[#123578] focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+          >
+            Sign out
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <ShortcutProvider

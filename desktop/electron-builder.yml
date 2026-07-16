@@ -15,6 +15,15 @@ win:
         - x64
   icon: kairo-icon.png
   artifactName: Kairo-Setup-${version}.${ext}
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  icon: kairo-icon-mac.png
+  category: public.app-category.business
+  artifactName: Kairo-${version}-${arch}.${ext}
+  hardenedRuntime: true
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

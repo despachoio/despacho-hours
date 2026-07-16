@@ -9,7 +9,11 @@
     "lint": "eslint",
     "desktop:dev": "electron desktop/main.cjs",
     "desktop:pack:win": "electron-builder --projectDir desktop --config electron-builder.yml --win dir --x64",
-    "desktop:build:win": "electron-builder --projectDir desktop --config electron-builder.yml --win nsis --x64"
+    "desktop:build:win": "electron-builder --projectDir desktop --config electron-builder.yml --win nsis --x64",
+    "desktop:pack:mac": "electron-builder --projectDir desktop --config electron-builder.yml --mac dir --arm64",
+    "desktop:build:mac": "electron-builder --projectDir desktop --config electron-builder.yml --mac dmg --arm64",
+    "desktop:build:mac:zip": "electron-builder --projectDir desktop --config electron-builder.yml --mac zip --arm64",
+    "desktop:build:mac:universal": "electron-builder --projectDir desktop --config electron-builder.yml --mac dmg --universal"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",

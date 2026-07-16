@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import {
-  ShortcutBadge,
-  useShortcutCommand,
-} from "@/components/shortcuts/ShortcutProvider";
+import { useShortcutCommand } from "@/components/shortcuts/ShortcutProvider";
 
 
 type Profile = {
@@ -1822,10 +1819,7 @@ return (
             aria-keyshortcuts="Alt+M"
             className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
           >
-            <span className="inline-flex items-center gap-2">
-              + Add Time
-              <ShortcutBadge combo={{ code: "KeyM", alt: true, label: "M" }} />
-            </span>
+            + Add Time
           </button>
         )}
       </div>
@@ -1874,10 +1868,7 @@ return (
               aria-keyshortcuts="Alt+S"
               className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="inline-flex items-center gap-2">
-                {startingTimer ? "Starting..." : "Start"}
-                <ShortcutBadge combo={{ code: "KeyS", alt: true, label: "S" }} />
-              </span>
+              {startingTimer ? "Starting..." : "Start"}
             </button>
           </div>
         </>
@@ -1896,11 +1887,11 @@ return (
           <div className="flex flex-wrap items-center gap-3">
             <p className="mr-2 font-mono text-3xl font-bold tracking-tight text-[#153e90]">{formatTimer(elapsedSeconds)}</p>
             {activeTimer.status === "running" ? (
-              <button onClick={pauseTimer} aria-keyshortcuts="Alt+P" className="rounded-xl border border-slate-300 px-5 py-3 font-bold"><span className="inline-flex items-center gap-2">Pause <ShortcutBadge combo={{ code: "KeyP", alt: true, label: "P" }} /></span></button>
+              <button onClick={pauseTimer} aria-keyshortcuts="Alt+P" className="rounded-xl border border-slate-300 px-5 py-3 font-bold">Pause</button>
             ) : (
-              <button onClick={resumeTimer} aria-keyshortcuts="Alt+P" className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white"><span className="inline-flex items-center gap-2">Resume <ShortcutBadge combo={{ code: "KeyP", alt: true, label: "P" }} /></span></button>
+              <button onClick={resumeTimer} aria-keyshortcuts="Alt+P" className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white">Resume</button>
             )}
-            <button onClick={stopTimer} aria-keyshortcuts="Alt+X" className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white"><span className="inline-flex items-center gap-2">Stop <ShortcutBadge combo={{ code: "KeyX", alt: true, label: "X" }} /></span></button>
+            <button onClick={stopTimer} aria-keyshortcuts="Alt+X" className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white">Stop</button>
           </div>
         </div>
       )}
