@@ -382,7 +382,7 @@ export default function DashboardPage() {
                 label="Total Open"
                 values={invoiceSummary.currencies
                   .filter((row) => row.open > 0)
-                  .map((row) => money(row.currency, row.open))}
+                  .map((row) => money(row.currency, Math.round(row.open)))}
                 note="Sent and overdue invoices"
                 tone="blue"
                 onClick={() =>
@@ -393,12 +393,12 @@ export default function DashboardPage() {
                 label="Total Paid"
                 values={invoiceSummary.currencies
                   .filter((row) => row.paid > 0)
-                  .map((row) => money(row.currency, row.paid))}
+                  .map((row) => money(row.currency, Math.round(row.paid)))}
                 note="Completed collections"
                 tone="green"
                 onClick={() =>
                   router.push("/invoices?tab=all&status=paid")
-                }
+                } 
               />
               <InvoiceCard
                 label={`Invoices in ${invoiceYear}`}
@@ -414,7 +414,7 @@ export default function DashboardPage() {
                 values={[String(invoiceSummary.overdueCount)]}
                 secondaryValues={invoiceSummary.currencies
                   .filter((row) => row.overdue > 0)
-                  .map((row) => money(row.currency, row.overdue))}
+                  .map((row) => money(row.currency, Math.round(row.overdue)))}
                 note="Past due today"
                 tone="red"
                 onClick={() =>
