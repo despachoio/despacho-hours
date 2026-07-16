@@ -63,10 +63,7 @@ const todayKey = () =>
   }).format(new Date());
 
 const money = (currency: string, amount: number) =>
-  `${currency} ${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })}`;
+  `${currency} ${Math.round(amount).toLocaleString("en-US")}`;
 
 function workedSeconds(timer: LiveTimer, now: number) {
   const start = new Date(timer.started_at).getTime();
@@ -382,7 +379,7 @@ export default function DashboardPage() {
                 label="Total Open"
                 values={invoiceSummary.currencies
                   .filter((row) => row.open > 0)
-                  .map((row) => money(row.currency, Math.round(row.open)))}
+                  .map((row) => money(row.currency, row.open))}
                 note="Sent and overdue invoices"
                 tone="blue"
                 onClick={() =>
@@ -393,7 +390,7 @@ export default function DashboardPage() {
                 label="Total Paid"
                 values={invoiceSummary.currencies
                   .filter((row) => row.paid > 0)
-                  .map((row) => money(row.currency, Math.round(row.paid)))}
+                  .map((row) => money(row.currency, row.paid))}
                 note="Completed collections"
                 tone="green"
                 onClick={() =>
@@ -414,7 +411,7 @@ export default function DashboardPage() {
                 values={[String(invoiceSummary.overdueCount)]}
                 secondaryValues={invoiceSummary.currencies
                   .filter((row) => row.overdue > 0)
-                  .map((row) => money(row.currency, Math.round(row.overdue)))}
+                  .map((row) => money(row.currency, row.overdue))}
                 note="Past due today"
                 tone="red"
                 onClick={() =>
