@@ -140,6 +140,10 @@ export default function TimePage() {
 
   const [loadingEntries, setLoadingEntries] = useState(false);
 
+  const [stoppingTimerIds, setStoppingTimerIds] = useState<Set<string>>(
+  new Set(),
+);
+
 
   const [entries, setEntries] =
     useState<TimeEntry[]>([]);
@@ -263,6 +267,21 @@ const canEditTimeEntries =
   normalizedRole === "super admin" || normalizedRole === "admin";
 
 
+function markTimerStopping(timerId: string) {
+  setStoppingTimerIds((current) => {
+    const next = new Set(current);
+    next.add(timerId);
+    return next;
+  });
+}
+
+function unmarkTimerStopping(timerId: string) {
+  setStoppingTimerIds((current) => {
+    const next = new Set(current);
+    next.delete(timerId);
+    return next;
+  });
+}  
 
 function formatDate(date:string){
 
@@ -692,8 +711,6 @@ if (timerError) {
 timerData = data;
 
 
-timerData=data;
-
 }
 
 
@@ -1031,23 +1048,40 @@ async function resumeTimer() {
 }
 async function stopTimer() {
   if (!activeTimer || !beginTimerAction(activeTimer.id)) return;
+
   const timerId = activeTimer.id;
+  markTimerStopping(timerId);
 
   try {
     const latestTimer = await getLatestTimer(timerId);
-    if (!latestTimer) return;
+
+    // Another request may already have stopped and deleted it.
+    if (!latestTimer) {
+      await loadData();
+      return;
+    }
 
     const stoppedAtMs = Date.now();
     const stoppedAt = new Date(stoppedAtMs).toISOString();
-    const workedSeconds = calculateWorkedSeconds(latestTimer, stoppedAtMs);
-    const workedHours = Number((workedSeconds / 3600).toFixed(2));
+
+    const workedSeconds = calculateWorkedSeconds(
+      latestTimer,
+      stoppedAtMs,
+    );
+
+    const workedHours = Number(
+      (workedSeconds / 3600).toFixed(2),
+    );
 
     if (workedHours <= 0) {
       alert("Timer is too short to save.");
       return;
     }
 
-    const selectedProject = projects.find((project) => project.id === latestTimer.project_id);
+    const selectedProject = projects.find(
+      (project) => project.id === latestTimer.project_id,
+    );
+
     if (!selectedProject) {
       alert("Project not found.");
       return;
@@ -1062,43 +1096,116 @@ async function stopTimer() {
         started_at: latestTimer.started_at,
         stopped_at: stoppedAt,
         hours: workedHours,
-        description: latestTimer.description || description || null,
+        description:
+          latestTimer.description || description || null,
+
+        // Prevent the same timer from creating two entries.
+        source_timer_id: latestTimer.id,
       });
 
     if (insertError) {
+      // Another request has already created the entry.
+      if (insertError.code === "23505") {
+  console.warn(
+    `Time entry already exists for timer ${latestTimer.id}`,
+  );
+
+  // Clear a stale active timer left behind by an earlier successful insert.
+  const { error: cleanupError } = await supabase
+    .from("active_timers")
+    .delete()
+    .eq("id", latestTimer.id);
+
+  if (cleanupError) {
+    console.error(
+      "Duplicate entry exists, but timer cleanup failed:",
+      cleanupError,
+    );
+
+    alert(
+      "This time entry was already saved, but the active timer could not be cleared. Please refresh and contact an administrator if it remains visible.",
+    );
+
+    return;
+  }
+
+  await recalculateProjectHours(latestTimer.project_id);
+
+  setActiveTimer(null);
+  setElapsedSeconds(0);
+  setTimerClient("");
+  setProjectId("");
+  setDescription("");
+
+  await loadData();
+  return;
+}
+
       alert(insertError.message);
       return;
     }
 
-    await recalculateProjectHours(latestTimer.project_id);
-
-    await supabase
+    const { error: deleteTimerError } = await supabase
       .from("active_timers")
       .delete()
       .eq("id", latestTimer.id);
+
+    if (deleteTimerError) {
+      console.error(
+        "Time entry saved, but active timer deletion failed:",
+        deleteTimerError,
+      );
+      alert(
+        "Time was saved, but the timer could not be cleared. Please refresh the page.",
+      );
+      return;
+    }
+
+    await recalculateProjectHours(latestTimer.project_id);
 
     setActiveTimer(null);
     setElapsedSeconds(0);
     setTimerClient("");
     setProjectId("");
     setDescription("");
-    loadData();
+
+    await loadData();
   } finally {
     finishTimerAction(timerId);
+      unmarkTimerStopping(timerId);
+
   }
 }
 async function adminStopTimer(timer: LiveTimer) {
   if (!confirm("Stop this timer and save?")) return;
   if (!beginTimerAction(timer.id)) return;
+  markTimerStopping(timer.id);
 
   try {
     const latestTimer = await getLatestTimer(timer.id);
-    if (!latestTimer) return;
+
+    // Employee or another admin may already have stopped it.
+    if (!latestTimer) {
+      await loadData();
+      return;
+    }
 
     const stoppedAtMs = Date.now();
     const stoppedAt = new Date(stoppedAtMs).toISOString();
-    const workedSeconds = calculateWorkedSeconds(latestTimer, stoppedAtMs);
-    const workedHours = Number((workedSeconds / 3600).toFixed(2));
+
+    const workedSeconds = calculateWorkedSeconds(
+      latestTimer,
+      stoppedAtMs,
+    );
+
+    const workedHours = Number(
+      (workedSeconds / 3600).toFixed(2),
+    );
+
+    if (workedHours <= 0) {
+      alert("Timer is too short to save.");
+      return;
+    }
 
     const { error: insertError } = await supabase
       .from("time_entries")
@@ -1110,23 +1217,66 @@ async function adminStopTimer(timer: LiveTimer) {
         stopped_at: stoppedAt,
         hours: workedHours,
         description: latestTimer.description || null,
+
+        // Prevent duplicate entries from the same timer.
+        source_timer_id: latestTimer.id,
       });
 
     if (insertError) {
+      if (insertError.code === "23505") {
+  console.warn(
+    `Time entry already exists for timer ${latestTimer.id}`,
+  );
+
+  const { error: cleanupError } = await supabase
+    .from("active_timers")
+    .delete()
+    .eq("id", latestTimer.id);
+
+  if (cleanupError) {
+    console.error(
+      "Duplicate entry exists, but timer cleanup failed:",
+      cleanupError,
+    );
+
+    alert(
+      "This time entry was already saved, but the active timer could not be cleared.",
+    );
+
+    return;
+  }
+
+  await recalculateProjectHours(latestTimer.project_id);
+  await loadData();
+  return;
+}
+
       alert(insertError.message);
       return;
     }
 
-    await recalculateProjectHours(latestTimer.project_id);
-
-    await supabase
+    const { error: deleteTimerError } = await supabase
       .from("active_timers")
       .delete()
       .eq("id", latestTimer.id);
 
-    loadData();
+    if (deleteTimerError) {
+      console.error(
+        "Time entry saved, but active timer deletion failed:",
+        deleteTimerError,
+      );
+      alert(
+        "Time was saved, but the active timer could not be cleared.",
+      );
+      return;
+    }
+
+    await recalculateProjectHours(latestTimer.project_id);
+    await loadData();
   } finally {
     finishTimerAction(timer.id);
+      unmarkTimerStopping(timer.id);
+
   }
 }
 async function recalculateProjectHours(projectId: string) {
@@ -1786,7 +1936,9 @@ useShortcutCommand({
   label: "Stop timer",
   category: "Timer",
   shortcut: { code: "KeyX", alt: true, label: "X" },
-  disabled: !activeTimer,
+  disabled:
+    !activeTimer ||
+    stoppingTimerIds.has(activeTimer.id),
   handler: () => void stopTimer(),
 });
 
@@ -1913,7 +2065,17 @@ return (
             ) : (
               <button onClick={resumeTimer} aria-keyshortcuts="Alt+P" className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white">Resume</button>
             )}
-            <button onClick={stopTimer} aria-keyshortcuts="Alt+X" className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white">Stop</button>
+            <button
+  type="button"
+  onClick={stopTimer}
+  disabled={stoppingTimerIds.has(activeTimer.id)}
+  aria-keyshortcuts="Alt+X"
+  className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {stoppingTimerIds.has(activeTimer.id)
+    ? "Stopping..."
+    : "Stop"}
+</button>
           </div>
         </div>
       )}
@@ -1986,7 +2148,22 @@ return (
                   <span className={"w-fit rounded-full px-3 py-1.5 text-xs font-bold ring-1 " + (isRunning ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-700 ring-amber-200")}>● {isRunning ? "Running" : "Paused"}</span>
                   <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
                     <button onClick={() => { if (profile?.role === "Employee") { if (isRunning) void pauseTimer(); else void resumeTimer(); } else { void toggleTeamTimer(timer); } }} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">{isRunning ? "Pause" : "Resume"}</button> &nbsp;
-                    <button onClick={() => { if (profile?.role === "Employee") void stopTimer(); else void adminStopTimer(timer); }} className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700">Stop</button> &nbsp;
+                    <button
+  type="button"
+  disabled={stoppingTimerIds.has(timer.id)}
+  onClick={() => {
+    if (profile?.role === "Employee") {
+      void stopTimer();
+    } else {
+      void adminStopTimer(timer);
+    }
+  }}
+  className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {stoppingTimerIds.has(timer.id)
+    ? "Stopping..."
+    : "Stop"}
+</button>
                   </div>
                 </article>
               );
