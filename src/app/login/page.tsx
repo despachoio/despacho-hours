@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [password,setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const loginLockRef = useRef(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
 
   async function login(event: React.FormEvent<HTMLFormElement>){
@@ -27,6 +28,12 @@ export default function LoginPage() {
     setIsLoggingIn(true);
 
     const { error } =
+
+    if (rememberMe) {
+  localStorage.setItem("kairo-remember-me", "true");
+} else {
+  localStorage.removeItem("kairo-remember-me");
+}
       await supabase.auth.signInWithPassword({
 
         email,
@@ -128,6 +135,19 @@ export default function LoginPage() {
             className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 shadow-sm outline-none transition-colors duration-200 placeholder:text-slate-400 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15"
 
           />
+
+          <label className="flex cursor-pointer items-center gap-3">
+  <input
+    type="checkbox"
+    checked={rememberMe}
+    onChange={(event) => setRememberMe(event.target.checked)}
+    className="h-4 w-4 rounded border-slate-300"
+  />
+
+  <span className="text-sm font-medium text-slate-700">
+    Remember me on this device
+  </span>
+</label>
 
           <div className="flex justify-end">
             <Link
