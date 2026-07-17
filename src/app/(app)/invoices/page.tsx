@@ -335,26 +335,14 @@ function InvoicesPageContent() {
   const [tableLoading, setTableLoading] = useState(false);
   const filterMount = useRef(true);
 
-  const updateUrl = useCallback(
-    (nextTab: InvoiceTab, year = selectedYear, currency = chartCurrency) => {
-      const params = new URLSearchParams(window.location.search);
-      params.set("tab", nextTab);
-      if (year) params.set("year", String(year));
-      if (currency) params.set("currency", currency);
-      router.replace(`/invoices?${params.toString()}`, {
-        scroll: false,
-      });
-    },
-    [chartCurrency, router, selectedYear],
-  );
+  
   function selectTab(next: InvoiceTab) {
-    if (next === "all" && tab !== "all") {
-      setStatusFilter("");
-    }
-
-    setTab(next);
-    updateUrl(next);
+  if (next === "all" && tab !== "all") {
+    setStatusFilter("");
   }
+
+  setTab(next);
+}
 
   useEffect(() => {
     const timer = window.setTimeout(
@@ -482,7 +470,7 @@ function InvoicesPageContent() {
       setChartLoading(false);
     }
     void loadChart();
-    updateUrl(tab, selectedYear, chartCurrency);
+    
   }, [chartCurrency, selectedYear]);
 
   const loadAllInvoices = useCallback(async () => {
@@ -574,42 +562,59 @@ function InvoicesPageContent() {
     statusFilter,
   ]);
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("tab", tab);
-    params.set("year", String(selectedYear));
-    if (chartCurrency) params.set("currency", chartCurrency);
-    const values: Record<string, string> = {
-      client: clientFilter,
-      period,
-      status: statusFilter,
-      filterCurrency: currencyFilter,
-      q: search,
-      from: customFrom,
-      to: customTo,
-      page: String(page),
-    };
-    Object.entries(values).forEach(([key, value]) =>
-      value && value !== "all" && value !== "1"
-        ? params.set(key, value)
-        : params.delete(key),
-    );
-    router.replace(`/invoices?${params.toString()}`, {
+  const params = new URLSearchParams(window.location.search);
+
+  params.set("tab", tab);
+  params.set("year", String(selectedYear));
+
+  if (chartCurrency) {
+    params.set("currency", chartCurrency);
+  } else {
+    params.delete("currency");
+  }
+
+  const values: Record<string, string> = {
+    client: clientFilter,
+    period,
+    status: statusFilter,
+    filterCurrency: currencyFilter,
+    q: debouncedSearch,
+    from: customFrom,
+    to: customTo,
+    page: String(page),
+  };
+
+  Object.entries(values).forEach(([key, value]) => {
+    if (value && value !== "all" && value !== "1") {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+  });
+
+  const nextUrl = `/invoices?${params.toString()}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+  // Avoid triggering another navigation when the URL is already correct.
+  if (nextUrl !== currentUrl) {
+    router.replace(nextUrl, {
       scroll: false,
     });
-  }, [
-    chartCurrency,
-    clientFilter,
-    currencyFilter,
-    customFrom,
-    customTo,
-    page,
-    period,
-    search,
-    selectedYear,
-    statusFilter,
-    tab,
-    router,
-  ]);
+  }
+}, [
+  chartCurrency,
+  clientFilter,
+  currencyFilter,
+  customFrom,
+  customTo,
+  page,
+  period,
+  search,
+  selectedYear,
+  statusFilter,
+  tab,
+  router,
+]);
 
   useEffect(() => {
     const choices = dimensions
