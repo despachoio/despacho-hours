@@ -123,15 +123,17 @@ function rawReminder({
   return base64Url(lines.join("\r\n"));
 }
 
-function configuredReminderDates(dueDate: string, settings: CompanySettings) {
-  return [
-    ...settings.default_reminder_before_due_days.map((days) =>
-      businessDate(addDays(dueDate, -Math.abs(Number(days)))),
-    ),
-    ...settings.default_reminder_after_due_days.map((days) =>
-      businessDate(addDays(dueDate, Math.abs(Number(days)))),
-    ),
-  ].sort();
+function configuredReminderDates(
+  dueDate: string,
+  settings: CompanySettings,
+) {
+  return settings.default_reminder_after_due_days
+    .map((days) => Math.abs(Number(days)))
+    // A reminder must be at least one day after the due date.
+    .filter((days) => Number.isFinite(days) && days >= 1)
+    .map((days) => businessDate(addDays(dueDate, days)))
+    .filter((date, index, dates) => dates.indexOf(date) === index)
+    .sort();
 }
 
 function reminderContent(
@@ -203,14 +205,16 @@ export async function GET(request: Request) {
   const now = new Date();
   const today = businessDate(now);
   const { data: invoices, error } = await admin
-    .from("invoices")
-    .select(
-      "id,invoice_number,status,due_date,currency,total_amount,public_payment_token,sent_to,sent_cc,reminders_enabled,reminder_count,next_reminder_at,clients(name)",
-    )
-    .in("status", ["sent", "overdue"])
-    .eq("reminders_enabled", true)
-    .lte("next_reminder_at", now.toISOString())
-    .not("sent_to", "is", null);
+  .from("invoices")
+  .select(
+    "id,invoice_number,status,due_date,currency,total_amount,public_payment_token,sent_to,sent_cc,reminders_enabled,reminder_count,next_reminder_at,clients(name)",
+  )
+  .in("status", ["sent", "overdue"])
+  .eq("reminders_enabled", true)
+  .lt("due_date", today)
+  .lte("next_reminder_at", now.toISOString())
+  .not("next_reminder_at", "is", null)
+  .not("sent_to", "is", null);
   if (error)
     return Response.json(
       { error: `Reminder query failed: ${error.message}` },
@@ -226,23 +230,47 @@ export async function GET(request: Request) {
   const { buffer: logo } = await loadCompanyLogo(settings);
   for (const invoice of invoices || []) {
     try {
-      const { data: latest } = await admin
-        .from("invoices")
-        .select(
-          "status,reminders_enabled,next_reminder_at,sent_to,sent_cc,reminder_count",
-        )
-        .eq("id", invoice.id)
-        .single();
-      if (
-        !latest ||
-        !["sent", "overdue"].includes(String(latest.status).toLowerCase()) ||
-        latest.reminders_enabled !== true ||
-        !latest.next_reminder_at
-      ) {
-        summary.skipped++;
-        continue;
-      }
+      const { data: latest, error: latestError } = await admin
+  .from("invoices")
+  .select(
+    "status,due_date,reminders_enabled,next_reminder_at,sent_to,sent_cc,reminder_count",
+  )
+  .eq("id", invoice.id)
+  .single();
+
+if (latestError) {
+  throw new Error(
+    `Unable to reload invoice ${invoice.invoice_number}: ${latestError.message}`,
+  );
+}
+
+if (
+  !latest ||
+  !["sent", "overdue"].includes(String(latest.status).toLowerCase()) ||
+  latest.reminders_enabled !== true ||
+  !latest.next_reminder_at
+) {
+  summary.skipped++;
+  continue;
+}
+
+      // Absolute safety check: never send before or on the due date.
+if (!latest.due_date || latest.due_date >= today) {
+  console.log(
+    `Skipping invoice ${invoice.invoice_number}: due date ${latest.due_date || "missing"} has not passed.`,
+  );
+  summary.skipped++;
+  continue;
+}
       const scheduledFor = businessDate(new Date(latest.next_reminder_at));
+
+      if (scheduledFor > today) {
+  console.log(
+    `Skipping invoice ${invoice.invoice_number}: next reminder is scheduled for ${scheduledFor}.`,
+  );
+  summary.skipped++;
+  continue;
+}
       const reminderNumber = Number(latest.reminder_count || 0) + 1;
       const to = emails(latest.sent_to);
       const cc = emails(latest.sent_cc);
