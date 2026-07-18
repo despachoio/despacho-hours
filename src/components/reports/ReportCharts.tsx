@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import type { ChartDatum, DailyDatum } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { formatDate } from "./utils";
 
 export function HoursBarChart({
@@ -47,7 +48,7 @@ export function HoursBarChart({
             />
             <Tooltip
               formatter={(value) => [
-                `${Number(value).toFixed(2)} hrs`,
+                `${formatDecimalHours(Number(value))} hrs`,
                 "Hours",
               ]}
             />
@@ -85,7 +86,7 @@ export function DailyTrendChart({ data }: { data: DailyDatum[] }) {
             <Tooltip
               labelFormatter={(value) => formatDate(String(value))}
               formatter={(value) => [
-                `${Number(value).toFixed(2)} hrs`,
+                `${formatDecimalHours(Number(value))} hrs`,
                 "Hours",
               ]}
             />

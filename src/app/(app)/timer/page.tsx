@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { useShortcutCommand } from "@/components/shortcuts/ShortcutProvider";
 
 
@@ -2083,8 +2084,8 @@ return (
 
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {[
-        { label: "Today’s Hours", value: summary.today.toFixed(2), note: "Recorded today", accent: "bg-blue-50 text-blue-700" },
-        { label: "This Week’s Hours", value: summary.week.toFixed(2), note: "Recorded this week", accent: "bg-indigo-50 text-indigo-700" },
+        { label: "Today’s Hours", value: formatDecimalHours(summary.today), note: "Recorded today", accent: "bg-blue-50 text-blue-700" },
+        { label: "This Week’s Hours", value: formatDecimalHours(summary.week), note: "Recorded this week", accent: "bg-indigo-50 text-indigo-700" },
         { label: "Running Timers", value: String(summary.running), note: "Live right now", accent: "bg-emerald-50 text-emerald-700" },
         { label: "Projects Worked", value: String(summary.projects), note: "Worked this week", accent: "bg-violet-50 text-violet-700" },
       ].map((card) => (
@@ -2293,7 +2294,7 @@ return (
             <div key={date} className="border-b border-slate-100 last:border-0">
               <button onClick={() => setCollapsedDates((current) => { const next = new Set(current); if (expanded) next.add(date); else next.delete(date); return next; })} className="flex w-full items-center justify-between bg-slate-50/80 px-5 py-3 text-left hover:bg-slate-100">
                 <span className="font-bold text-slate-900">{expanded ? "⌄" : "›"} <span className="ml-2">{formatDate(date)}</span></span>
-                <span className="text-sm font-bold text-[#153e90]">{totalHours.toFixed(2)} Hours</span>
+                <span className="text-sm font-bold text-[#153e90]">{formatDecimalHours(totalHours)} Hours</span>
               </button>
               {expanded && (
                 <div className="max-h-[560px] overflow-auto">
@@ -2310,7 +2311,7 @@ return (
                           <td className="max-w-xs px-5 py-4 text-sm text-slate-600">{entry.description || "—"}</td>
                           <td className="px-5 py-4 text-center text-sm">{formatTime(entry.started_at)}</td>
                           <td className="px-5 py-4 text-center text-sm">{formatTime(entry.stopped_at)}</td>
-                          <td className="px-5 py-4 text-right font-bold">{Number(entry.hours || 0).toFixed(2)}</td>
+                          <td className="px-5 py-4 text-right font-bold">{formatDecimalHours(entry.hours)}</td>
                           <td className="px-5 py-4">
                             <div className="flex justify-end gap-2">
                               <button
@@ -2373,7 +2374,7 @@ return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onClick={() => setViewingEntry(null)}>
         <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
           <div className="flex items-center justify-between"><h2 className="text-xl font-bold">Time Entry</h2><button onClick={() => setViewingEntry(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">✕</button></div>
-          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-400">Employee</dt><dd className="mt-1 font-bold">{viewingEntry.employees?.name}</dd></div><div><dt className="text-slate-400">Date</dt><dd className="mt-1 font-bold">{formatDate(viewingEntry.entry_date)}</dd></div><div><dt className="text-slate-400">Client</dt><dd className="mt-1 font-bold">{viewingEntry.projects?.clients?.name}</dd></div><div><dt className="text-slate-400">Project</dt><dd className="mt-1 font-bold">{viewingEntry.projects?.name}</dd></div><div><dt className="text-slate-400">Time</dt><dd className="mt-1 font-bold">{formatTime(viewingEntry.started_at)} – {formatTime(viewingEntry.stopped_at)}</dd></div><div><dt className="text-slate-400">Hours</dt><dd className="mt-1 font-bold">{Number(viewingEntry.hours || 0).toFixed(2)}</dd></div><div className="col-span-2"><dt className="text-slate-400">Description</dt><dd className="mt-1 font-medium">{viewingEntry.description || "—"}</dd></div></dl>
+          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-400">Employee</dt><dd className="mt-1 font-bold">{viewingEntry.employees?.name}</dd></div><div><dt className="text-slate-400">Date</dt><dd className="mt-1 font-bold">{formatDate(viewingEntry.entry_date)}</dd></div><div><dt className="text-slate-400">Client</dt><dd className="mt-1 font-bold">{viewingEntry.projects?.clients?.name}</dd></div><div><dt className="text-slate-400">Project</dt><dd className="mt-1 font-bold">{viewingEntry.projects?.name}</dd></div><div><dt className="text-slate-400">Time</dt><dd className="mt-1 font-bold">{formatTime(viewingEntry.started_at)} – {formatTime(viewingEntry.stopped_at)}</dd></div><div><dt className="text-slate-400">Hours</dt><dd className="mt-1 font-bold">{formatDecimalHours(viewingEntry.hours)}</dd></div><div className="col-span-2"><dt className="text-slate-400">Description</dt><dd className="mt-1 font-medium">{viewingEntry.description || "—"}</dd></div></dl>
         </div>
       </div>
     )}

@@ -1,4 +1,5 @@
 import KpiCard from "./KpiCard";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 export type ManagerMetrics = {
   today: number;
@@ -33,25 +34,25 @@ export default function ManagerDashboard({
     ? [
         {
           label: "Today’s Hours",
-          value: `${metrics.today.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.today)} hrs`,
           comparison: todayComparison,
         },
         {
           label: "Yesterday’s Hours",
-          value: `${metrics.yesterday.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.yesterday)} hrs`,
         },
         {
           label: "This Week’s Hours",
-          value: `${metrics.week.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.week)} hrs`,
           comparison: weekComparison,
         },
         {
           label: "This Month’s Hours",
-          value: `${metrics.month.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.month)} hrs`,
         },
         {
           label: "Average Session",
-          value: `${metrics.averageSession.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.averageSession)} hrs`,
         },
         {
           label: "Weekly Utilisation",
@@ -61,21 +62,21 @@ export default function ManagerDashboard({
     : [
         {
           label: "Today’s Hours",
-          value: `${metrics.today.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.today)} hrs`,
           comparison: todayComparison,
         },
         {
           label: "Yesterday’s Hours",
-          value: `${metrics.yesterday.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.yesterday)} hrs`,
         },
         {
           label: "This Week’s Hours",
-          value: `${metrics.week.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.week)} hrs`,
           comparison: weekComparison,
         },
         {
           label: "This Month’s Hours",
-          value: `${metrics.month.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.month)} hrs`,
         },
         {
           label: "Running Timers",
@@ -95,12 +96,12 @@ export default function ManagerDashboard({
         { label: "Clients Served Today", value: String(metrics.clientsToday) },
         {
           label: "Tracked Hours",
-          value: `${metrics.trackedHours.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.trackedHours)} hrs`,
           note: "No billable field is configured",
         },
         {
           label: "Average Session",
-          value: `${metrics.averageSession.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.averageSession)} hrs`,
         },
         {
           label: "Average Utilisation",
@@ -109,7 +110,7 @@ export default function ManagerDashboard({
         },
         {
           label: "Remaining Project Hours",
-          value: `${metrics.remainingHours.toFixed(2)} hrs`,
+          value: `${formatDecimalHours(metrics.remainingHours)} hrs`,
           accent: "amber" as const,
         },
       ];

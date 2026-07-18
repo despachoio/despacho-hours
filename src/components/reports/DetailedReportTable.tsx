@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AggregateRow } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { formatDate, formatTime } from "./utils";
 
 type SortKey =
@@ -202,14 +203,14 @@ function ReportRows({
           <p className="text-xs font-bold text-[#153E90]">{row.projectCode}</p>
         </td>
         <td className="px-4 py-4 text-right font-bold">
-          {row.totalHours.toFixed(2)}
+          {formatDecimalHours(row.totalHours)}
         </td>
         <td className="px-4 py-4 text-right">{row.entries}</td>
         <td className="px-4 py-4 text-right">
-          {row.averageSession.toFixed(2)}
+          {formatDecimalHours(row.averageSession)}
         </td>
         <td className="px-4 py-4 text-right">
-          {row.longestSession.toFixed(2)}
+          {formatDecimalHours(row.longestSession)}
         </td>
         <td className="px-4 py-4 text-right font-semibold">
           {row.utilisation.toFixed(1)}%
@@ -236,7 +237,7 @@ function ReportRows({
                         <p>{formatTime(entry.started_at)}</p>
                         <p>{formatTime(entry.stopped_at)}</p>
                         <p className="text-right font-bold">
-                          {Number(entry.hours).toFixed(2)} hrs
+                          {formatDecimalHours(entry.hours)} hrs
                         </p>
                       </div>
                     ))}

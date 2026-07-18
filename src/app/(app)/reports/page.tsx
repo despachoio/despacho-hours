@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 import ManagerDashboard, {
   type ManagerMetrics,
 } from "@/components/reports/ManagerDashboard";
@@ -446,7 +447,7 @@ export default function ReportsPage() {
           )
         : 0;
     return [
-      { label: "Hours", value: `${totalHours.toFixed(2)} hrs` },
+      { label: "Hours", value: `${formatDecimalHours(totalHours)} hrs` },
       { label: "Entries", value: String(sessions) },
       {
         label: "Employees",
@@ -472,15 +473,15 @@ export default function ReportsPage() {
       },
       {
         label: "Avg Daily Hours",
-        value: `${(calendarDays ? totalHours / calendarDays : 0).toFixed(2)} hrs`,
+        value: `${formatDecimalHours(calendarDays ? totalHours / calendarDays : 0)} hrs`,
       },
       {
         label: "Avg Session",
-        value: `${(sessions ? totalHours / sessions : 0).toFixed(2)} hrs`,
+        value: `${formatDecimalHours(sessions ? totalHours / sessions : 0)} hrs`,
       },
       {
         label: "Longest Session",
-        value: `${Math.max(0, ...filteredEntries.map((entry) => Number(entry.hours || 0))).toFixed(2)} hrs`,
+        value: `${formatDecimalHours(Math.max(0, ...filteredEntries.map((entry) => Number(entry.hours || 0))))} hrs`,
       },
     ];
   }, [filteredEntries, period.from, period.to, totalHours]);

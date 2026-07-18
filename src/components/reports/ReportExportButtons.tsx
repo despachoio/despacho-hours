@@ -9,6 +9,7 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import * as XLSX from "xlsx";
+import { formatDecimalHours } from "@/lib/format-hours";
 import type { AggregateRow, ReportFiltersValue, SummaryMetric } from "./types";
 
 function download(blob: Blob, filename: string) {
@@ -29,10 +30,10 @@ function exportRows(rows: AggregateRow[], employeeColumn: boolean) {
     Client: row.clientName,
     "Project Code": row.projectCode || "",
     Project: row.projectName,
-    "Total Hours": Number(row.totalHours.toFixed(2)),
+    "Total Hours": formatDecimalHours(row.totalHours),
     Entries: row.entries,
-    "Average Session": Number(row.averageSession.toFixed(2)),
-    "Longest Session": Number(row.longestSession.toFixed(2)),
+    "Average Session": formatDecimalHours(row.averageSession),
+    "Longest Session": formatDecimalHours(row.longestSession),
     "Utilisation %": Number(row.utilisation.toFixed(1)),
   }));
 }
@@ -223,10 +224,10 @@ function ReportPdf({
             ) : null}
             <Text style={styles.cell}>{row.clientName}</Text>
             <Text style={styles.cell}>{row.projectName}</Text>
-            <Text style={styles.number}>{row.totalHours.toFixed(2)}</Text>
+            <Text style={styles.number}>{formatDecimalHours(row.totalHours)}</Text>
             <Text style={styles.number}>{row.entries}</Text>
-            <Text style={styles.number}>{row.averageSession.toFixed(2)}</Text>
-            <Text style={styles.number}>{row.longestSession.toFixed(2)}</Text>
+            <Text style={styles.number}>{formatDecimalHours(row.averageSession)}</Text>
+            <Text style={styles.number}>{formatDecimalHours(row.longestSession)}</Text>
             <Text style={styles.number}>{row.utilisation.toFixed(1)}%</Text>
           </View>
         ))}

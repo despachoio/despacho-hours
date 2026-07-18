@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { EmployeeAnalytics } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { formatTimerDuration, initials, statusLabel } from "./utils";
 
 export default function EmployeeCard({
@@ -60,10 +61,10 @@ export default function EmployeeCard({
             </span>
           </div>
         </div>
-        <Metric label="Period" value={`${analytics.hours.toFixed(2)} hrs`} />
+        <Metric label="Period" value={`${formatDecimalHours(analytics.hours)} hrs`} />
         <Metric
           label="Expected"
-          value={`${analytics.expectedHours.toFixed(2)} hrs`}
+          value={`${formatDecimalHours(analytics.expectedHours)} hrs`}
         />
         <div>
           <Metric
@@ -79,7 +80,7 @@ export default function EmployeeCard({
         </div>
         <Metric
           label="Avg daily"
-          value={`${analytics.averageDailyHours.toFixed(2)} hrs`}
+          value={`${formatDecimalHours(analytics.averageDailyHours)} hrs`}
         />
         <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">
           {timer ? (

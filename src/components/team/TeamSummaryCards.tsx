@@ -1,4 +1,5 @@
 import type { TeamMetrics } from "@/lib/metrics/types";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 export default function TeamSummaryCards({
   metrics: summary,
@@ -9,7 +10,7 @@ export default function TeamSummaryCards({
 }) {
   const metrics = personal
     ? [
-        ["My Hours", `${summary.totalHoursLogged.toFixed(2)} hrs`],
+        ["My Hours", `${formatDecimalHours(summary.totalHoursLogged)} hrs`],
         [
           "My Utilisation",
           `${summary.aggregateUtilization.toFixed(0)}%`,
@@ -18,7 +19,7 @@ export default function TeamSummaryCards({
         ["Clients", String(summary.clientsServed)],
         [
           "Average Session",
-          `${summary.averageSessionHours.toFixed(2)} hrs`,
+          `${formatDecimalHours(summary.averageSessionHours)} hrs`,
         ],
       ]
     : [
@@ -28,12 +29,12 @@ export default function TeamSummaryCards({
           "Average Utilisation",
           `${summary.aggregateUtilization.toFixed(0)}%`,
         ],
-        ["Hours Logged", `${summary.totalHoursLogged.toFixed(2)} hrs`],
+        ["Hours Logged", `${formatDecimalHours(summary.totalHoursLogged)} hrs`],
         ["Projects Worked", String(summary.projectsWorked)],
         ["Clients Served", String(summary.clientsServed)],
         [
           "Average Daily Hours",
-          `${summary.averageDailyHours.toFixed(2)} hrs`,
+          `${formatDecimalHours(summary.averageDailyHours)} hrs`,
         ],
       ];
   return (

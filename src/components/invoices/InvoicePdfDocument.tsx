@@ -7,6 +7,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { DEFAULT_COMPANY_SETTINGS } from "@/lib/settings/companySettingsDefaults";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 type ClientSummary = {
   id: string;
@@ -621,7 +622,7 @@ export function InvoicePdfDocument({
                   {item.description}
                 </Text>
                 <Text style={[styles.rowText, styles.hoursCell]}>
-                  {formatNumber(item.hours)}
+                  {formatDecimalHours(item.hours)}
                 </Text>
                 <Text style={[styles.amountText, styles.amountCell]}>
                   {formatMoney(invoice.currency, item.amount)}

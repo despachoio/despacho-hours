@@ -1,4 +1,5 @@
 import type { TeamEntry } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 export function ProjectSummary({ entries }: { entries: TeamEntry[] }) {
   return (
@@ -62,7 +63,7 @@ function Allocation({
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-[#153E90]">
-                      {row.hours.toFixed(2)} hrs
+                      {formatDecimalHours(row.hours)} hrs
                     </p>
                     <p className="text-xs text-slate-400">
                       {percentage.toFixed(1)}%

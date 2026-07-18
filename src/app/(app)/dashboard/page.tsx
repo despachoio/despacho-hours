@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
 import { dateRange, currentBusinessYear } from "@/lib/metrics/date-ranges";
 import { getTeamMetrics } from "@/lib/metrics/team-metrics";
@@ -259,7 +260,7 @@ export default function DashboardPage() {
               />
               <MetricCard
                 label="My Hours This Week"
-                value={teamMetrics ? teamMetrics.totalHoursLogged.toFixed(2) : "—"}
+                value={teamMetrics ? formatDecimalHours(teamMetrics.totalHoursLogged) : "—"}
                 href="/timer"
               />
               <MetricCard
@@ -282,7 +283,7 @@ export default function DashboardPage() {
               />
               <MetricCard
                 label="Hours This Week"
-                value={teamMetrics ? teamMetrics.totalHoursLogged.toFixed(2) : "—"}
+                value={teamMetrics ? formatDecimalHours(teamMetrics.totalHoursLogged) : "—"}
                 href="/timer"
               />
               <MetricCard
@@ -450,7 +451,7 @@ export default function DashboardPage() {
                 .map((project) => ({
                   id: project.id,
                   title: `[${project.project_code}] ${project.name}`,
-                  detail: `${Number(project.remaining_hours).toFixed(2)} hrs remaining`,
+                  detail: `${formatDecimalHours(project.remaining_hours)} hrs remaining`,
                 }))}
             />
             <HealthCard
@@ -461,7 +462,7 @@ export default function DashboardPage() {
                 .map((item) => ({
                   id: item.employee.id,
                   title: item.employee.name,
-                  detail: `${item.hours.toFixed(2)} hrs this week`,
+                  detail: `${formatDecimalHours(item.hours)} hrs this week`,
                 }))}
             />
           </section>

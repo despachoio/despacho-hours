@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 type ContactType = "primary" | "billing" | "manager" | "general";
 
@@ -595,7 +596,7 @@ export default function ClientDetailPage() {
                         Purchased
                       </span>
                       <b className="mt-1 block text-lg text-slate-900">
-                        {project.purchased_hours}
+                        {formatDecimalHours(project.purchased_hours)}
                       </b>
                     </div>
                     <div className="border-x border-slate-200 p-4">
@@ -603,7 +604,7 @@ export default function ClientDetailPage() {
                         Used
                       </span>
                       <b className="mt-1 block text-lg text-slate-900">
-                        {project.used_hours}
+                        {formatDecimalHours(project.used_hours)}
                       </b>
                     </div>
                     <div className="p-4">
@@ -611,7 +612,7 @@ export default function ClientDetailPage() {
                         Remaining
                       </span>
                       <b className="mt-1 block text-lg text-[#153E90]">
-                        {project.remaining_hours}
+                        {formatDecimalHours(project.remaining_hours)}
                       </b>
                     </div>
                   </div>

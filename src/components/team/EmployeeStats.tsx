@@ -1,4 +1,5 @@
 import type { EmployeeAnalytics } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 export default function EmployeeStats({
   analytics,
@@ -6,13 +7,13 @@ export default function EmployeeStats({
   analytics: EmployeeAnalytics;
 }) {
   const metrics = [
-    ["Hours", `${analytics.hours.toFixed(2)} hrs`],
+    ["Hours", `${formatDecimalHours(analytics.hours)} hrs`],
     ["Entries", String(analytics.entries.length)],
-    ["Average Session", `${analytics.averageSession.toFixed(2)} hrs`],
-    ["Longest Session", `${analytics.longestSession.toFixed(2)} hrs`],
+    ["Average Session", `${formatDecimalHours(analytics.averageSession)} hrs`],
+    ["Longest Session", `${formatDecimalHours(analytics.longestSession)} hrs`],
     ["Projects Worked", String(analytics.projects)],
     ["Clients Worked", String(analytics.clients)],
-    ["Average Daily Hours", `${analytics.averageDailyHours.toFixed(2)} hrs`],
+    ["Average Daily Hours", `${formatDecimalHours(analytics.averageDailyHours)} hrs`],
   ];
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">

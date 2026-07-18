@@ -1,4 +1,5 @@
 import type { TeamEntry } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { formatDate, formatTime } from "@/components/reports/utils";
 
 export default function EmployeeTimeline({
@@ -54,7 +55,7 @@ export default function EmployeeTimeline({
                         </p>
                       </div>
                       <p className="font-bold text-[#153E90]">
-                        {Number(entry.hours).toFixed(2)}h
+                        {formatDecimalHours(entry.hours)}h
                       </p>
                     </div>
                   ))}

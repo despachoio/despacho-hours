@@ -7,6 +7,7 @@ import type {
   InvoiceReminder,
   InvoiceActivity,
 } from "../page";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 type Props = {
   invoice: Invoice;
@@ -169,7 +170,7 @@ export default function InvoiceTimeline({
     events.push({
       key: "wallet-credit",
       title: "Service Wallet credited",
-      description: `${totalHours.toFixed(2)} hours across ${projectCount} ${
+      description: `${formatDecimalHours(totalHours)} hours across ${projectCount} ${
         projectCount === 1 ? "project" : "projects"
       }`,
       date: originalCredits[0]?.created_at || null,
@@ -188,7 +189,7 @@ export default function InvoiceTimeline({
     events.push({
       key: "wallet-credit-reversal",
       title: "Service Wallet credit reversed",
-      description: `${totalHours.toFixed(2)} hours removed across ${projectCount} ${
+      description: `${formatDecimalHours(totalHours)} hours removed across ${projectCount} ${
         projectCount === 1 ? "project" : "projects"
       }`,
       date: reversalCredits[0]?.created_at || null,

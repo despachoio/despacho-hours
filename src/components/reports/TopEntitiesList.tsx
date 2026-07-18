@@ -1,4 +1,5 @@
 import type { ChartDatum } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 export default function TopEntitiesList({
   title,
@@ -28,7 +29,7 @@ export default function TopEntitiesList({
                     </p>
                   </div>
                   <p className="shrink-0 text-sm font-bold text-[#153E90]">
-                    {item.hours.toFixed(2)} hrs
+                    {formatDecimalHours(item.hours)} hrs
                   </p>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">

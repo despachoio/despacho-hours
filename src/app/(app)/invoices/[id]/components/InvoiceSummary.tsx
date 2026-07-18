@@ -1,6 +1,7 @@
 "use client";
 
 import { Invoice } from "../page";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 type Props = {
   invoice: Invoice;
@@ -24,9 +25,7 @@ export default function InvoiceSummary({
           </span>
 
           <span className="font-semibold">
-            {Number(
-              invoice.hours_purchased
-            ).toFixed(2)}
+            {formatDecimalHours(invoice.hours_purchased)}
           </span>
         </div>
 

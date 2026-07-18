@@ -224,7 +224,7 @@ if (clientFromUrl) {
 
   <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
     <p className="text-lg font-bold text-slate-900">
-      0 hrs
+      00:00 hrs
     </p>
 
     <p className="mt-1 text-sm text-slate-500">

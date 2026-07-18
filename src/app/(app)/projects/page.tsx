@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import KairoSegmentedControl from "@/components/ui/KairoSegmentedControl";
@@ -333,7 +334,7 @@ export default function ProjectsPage() {
                           </p>
 
                           <p className="mt-1 text-xl font-bold text-slate-950">
-                            {Number(project.purchased_hours || 0).toFixed(2)}
+                            {formatDecimalHours(project.purchased_hours)}
                           </p>
                         </div>
 
@@ -343,7 +344,7 @@ export default function ProjectsPage() {
                           </p>
 
                           <p className="mt-1 text-xl font-bold text-slate-950">
-                            {Number(project.used_hours || 0).toFixed(2)}
+                            {formatDecimalHours(project.used_hours)}
                           </p>
                         </div>
 
@@ -362,7 +363,7 @@ export default function ProjectsPage() {
       : "text-slate-950"
   }`}
 >
-  {Number(project.remaining_hours || 0).toFixed(2)}
+  {formatDecimalHours(project.remaining_hours)}
 </p>
                         </div>
 

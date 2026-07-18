@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 type Project = {
   id: string;
@@ -89,7 +90,7 @@ export default function ProjectWalletPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   function formatHours(value: number) {
-    return Number(value || 0).toFixed(2);
+    return formatDecimalHours(value);
   }
 
   function formatDate(date: string) {

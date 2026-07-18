@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 import KairoButton from "@/components/ui/KairoButton";
 import KairoCard from "@/components/ui/KairoCard";
 import KairoInput from "@/components/ui/KairoInput";
@@ -675,7 +676,7 @@ export default function EditInvoicePage() {
             <div className="w-full rounded-2xl bg-slate-950 p-6 text-white sm:w-96">
               <div className="flex items-center justify-between text-sm text-slate-300">
                 <span>Total Hours</span>
-                <span className="font-bold text-white">{totalHours.toFixed(2)}</span>
+                <span className="font-bold text-white">{formatDecimalHours(totalHours)}</span>
               </div>
 
               <div className="mt-4 flex items-end justify-between gap-4 border-t border-slate-700 pt-4">

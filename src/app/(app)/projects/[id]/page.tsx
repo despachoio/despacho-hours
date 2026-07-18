@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { formatDecimalHours } from "@/lib/format-hours";
 import {
   useParams,
   useRouter,
@@ -673,7 +674,7 @@ Purchased
 
 <p className="text-2xl font-bold">
 
-{project.purchased_hours}
+{formatDecimalHours(project.purchased_hours)}
 
 </p>
 
@@ -690,7 +691,7 @@ Used
 
 <p className="text-2xl font-bold">
 
-{Number(project.used_hours || 0).toFixed(2)}
+{formatDecimalHours(project.used_hours)}
 
 </p>
 
@@ -708,7 +709,7 @@ Remaining
 
 <p className="text-2xl font-bold">
 
-{Number(project.remaining_hours || 0).toFixed(2)}
+{formatDecimalHours(project.remaining_hours)}
 
 </p>
 
@@ -904,7 +905,7 @@ No activity yet.
 
   <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
     <p className="text-lg font-bold text-slate-900">
-      {project.purchased_hours || 0} hrs
+      {formatDecimalHours(project.purchased_hours)} hrs
     </p>
 
     <p className="mt-1 text-sm text-slate-500">

@@ -1,4 +1,5 @@
 import type { EmployeeAnalytics } from "./types";
+import { formatDecimalHours } from "@/lib/format-hours";
 import { initials, statusLabel } from "./utils";
 
 export default function EmployeeHeader({
@@ -52,7 +53,7 @@ export default function EmployeeHeader({
               Period Hours
             </p>
             <p className="mt-1 text-2xl font-bold">
-              {analytics.hours.toFixed(2)}
+              {formatDecimalHours(analytics.hours)}
             </p>
           </div>
           <div className="rounded-2xl bg-white/10 px-5 py-3">

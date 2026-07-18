@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Invoice, InvoicePayment } from "../page";
+import { formatDecimalHours } from "@/lib/format-hours";
 
 type Props = { invoice: Invoice; payments: InvoicePayment[]; isAdmin: boolean };
 
@@ -82,7 +83,7 @@ export default function PaymentCard({ invoice, payments, isAdmin }: Props) {
         {isPaid && invoice.paid_at ? <Row label="Payment Date">{formatDate(invoice.paid_at)}</Row> : null}
         {isPaid && invoice.payment_method ? <Row label="Payment Method">{formatPaymentMethod(invoice.payment_method)}</Row> : null}
         {isPaid && invoice.payment_reference ? <Row label="Reference"><span className="break-all">{invoice.payment_reference}</span></Row> : null}
-        <Row label="Hours Purchased">{Number(invoice.hours_purchased).toFixed(2)}</Row>
+        <Row label="Hours Purchased">{formatDecimalHours(invoice.hours_purchased)}</Row>
         <Row label="Status"><span className="capitalize">{invoice.status}</span></Row>
         <Row label="Stripe Status"><span className="capitalize">{invoice.stripe_checkout_status || "Not started"}</span></Row>
         {invoice.stripe_payment_intent_id ? <Row label="PaymentIntent"><span className="font-mono text-xs">{`${invoice.stripe_payment_intent_id.slice(0, 10)}…${invoice.stripe_payment_intent_id.slice(-4)}`}</span></Row> : null}
