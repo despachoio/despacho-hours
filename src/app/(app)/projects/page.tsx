@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import KairoSegmentedControl from "@/components/ui/KairoSegmentedControl";
 
 type Project = {
@@ -193,13 +194,12 @@ export default function ProjectsPage() {
             </div>
 
             {["Super Admin", "Admin"].includes(role) && (
-              <button
-                type="button"
-                onClick={() => router.push("/projects/new")}
+              <Link
+                href="/projects/new"
                 className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
               >
                 + New Project
-              </button>
+              </Link>
             )}
           </div>
         </div>
@@ -244,10 +244,7 @@ export default function ProjectsPage() {
                           ? `/projects/${project.id}?action=edit`
                           : undefined
                       }
-                      onClick={() =>
-                        router.push(`/projects/${project.id}/wallet`)
-                      }
-                      className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md"
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md"
                     >
                       <div
                         className={
@@ -261,14 +258,17 @@ export default function ProjectsPage() {
                             {projectInitials(project.name)}
                           </div>
                           <div className="min-w-0">
-                            <h3 className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold">
+                            <Link
+                              href={`/projects/${project.id}/wallet`}
+                              className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+                            >
                               <span className="shrink-0 text-[#153E90]">
                                 [{project.project_code}]
                               </span>
                               <span className="truncate text-slate-950 transition group-hover:text-[#153E90]">
                                 {project.name}
                               </span>
-                            </h3>
+                            </Link>
                             <span
                               className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${project.status === "archived" ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"}`}
                             >

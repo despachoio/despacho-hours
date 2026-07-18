@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Client = {
@@ -144,13 +145,12 @@ if (clientFromUrl) {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
       <div className="mx-auto max-w-3xl">
-        <button
-          type="button"
-          onClick={() => router.push("/projects")}
+        <Link
+          href="/projects"
           className="mb-6 text-sm font-semibold text-slate-500 hover:text-slate-950"
         >
           ← Back to Projects
-        </button>
+        </Link>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-3xl font-bold text-slate-950">

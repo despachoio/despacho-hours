@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { EmployeeAnalytics } from "./types";
 import { formatTimerDuration, initials, statusLabel } from "./utils";
 
@@ -13,7 +13,6 @@ export default function EmployeeCard({
   now: number;
   canEdit?: boolean;
 }) {
-  const router = useRouter();
   const { employee, timer, status } = analytics;
   const isActive = String(employee.status || "").toLowerCase() === "active";
   const isOnline = status === "working" || status === "paused";
@@ -37,16 +36,7 @@ export default function EmployeeCard({
       data-shortcut-row
       data-shortcut-href={`/team/${employee.id}`}
       data-shortcut-edit-href={canEdit ? `/team/${employee.id}?action=edit` : undefined}
-      className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/15"
-      onClick={() => router.push(`/team/${employee.id}`)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          router.push(`/team/${employee.id}`);
-        }
-      }}
-      role="link"
-      tabIndex={0}
+      className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md"
     >
       <div className="grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_1fr_.75fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
@@ -57,16 +47,12 @@ export default function EmployeeCard({
             ) : null}
           </div>
           <div className="min-w-0">
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                router.push(`/team/${employee.id}`);
-              }}
+            <Link
+              href={`/team/${employee.id}`}
               className="truncate text-left font-bold text-slate-950 group-hover:text-[#153E90]"
             >
               {employee.name}
-            </button>
+            </Link>
             <span
               className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
             >

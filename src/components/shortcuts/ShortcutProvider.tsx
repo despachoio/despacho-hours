@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
 
 export type ShortcutPlatform = "mac" | "other";
@@ -30,6 +31,7 @@ export type ShortcutCommand = {
   label: string;
   category: string;
   handler: () => void;
+  href?: string;
   shortcut?: ShortcutCombo;
   disabled?: boolean;
 };
@@ -281,6 +283,7 @@ export function ShortcutProvider({
           label: String(item.shortcutNumber),
         },
         handler: () => router.push(item.path),
+        href: item.path,
       })),
     [navigationItems, router],
   );
@@ -293,6 +296,7 @@ export function ShortcutProvider({
         label: creation.label,
         category: "Create",
         shortcut: { code: "KeyN", label: "N" },
+        href: "path" in creation ? creation.path : undefined,
         handler: () => {
           if ("path" in creation) router.push(creation.path);
           else window.dispatchEvent(new CustomEvent(creation.event));
@@ -319,6 +323,7 @@ export function ShortcutProvider({
         category: "Page",
         shortcut: { code: "Backspace", label: "Backspace" },
         handler: () => router.push(parent),
+        href: parent,
       });
     }
     commands.push({
@@ -713,24 +718,45 @@ export function ShortcutProvider({
               />
             </div>
             <div id="kairo-command-list" role="listbox" className="max-h-[55vh] overflow-y-auto p-2">
-              {filteredCommands.length ? filteredCommands.map((command, index) => (
-                <button
-                  id={command.id}
-                  key={command.id}
-                  type="button"
-                  role="option"
-                  aria-selected={index === resolvedActiveIndex}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => runCommand(command)}
-                  className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left ${index === resolvedActiveIndex ? "bg-blue-50 text-[#153E90]" : "text-slate-700 hover:bg-slate-50"}`}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold">{command.label}</span>
-                    <span className="text-xs text-slate-400">{command.category}</span>
-                  </span>
-                  {command.shortcut ? <ShortcutKey>{formatShortcut(command.shortcut)}</ShortcutKey> : null}
-                </button>
-              )) : <p className="px-5 py-10 text-center text-sm text-slate-500">No matching commands.</p>}
+              {filteredCommands.length ? filteredCommands.map((command, index) => {
+                const content = (
+                  <>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-bold">{command.label}</span>
+                      <span className="text-xs text-slate-400">{command.category}</span>
+                    </span>
+                    {command.shortcut ? <ShortcutKey>{formatShortcut(command.shortcut)}</ShortcutKey> : null}
+                  </>
+                );
+                const className = `flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left ${index === resolvedActiveIndex ? "bg-blue-50 text-[#153E90]" : "text-slate-700 hover:bg-slate-50"}`;
+                return command.href ? (
+                  <Link
+                    id={command.id}
+                    key={command.id}
+                    href={command.href}
+                    role="option"
+                    aria-selected={index === resolvedActiveIndex}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={closeOverlay}
+                    className={className}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <button
+                    id={command.id}
+                    key={command.id}
+                    type="button"
+                    role="option"
+                    aria-selected={index === resolvedActiveIndex}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={() => runCommand(command)}
+                    className={className}
+                  >
+                    {content}
+                  </button>
+                );
+              }) : <p className="px-5 py-10 text-center text-sm text-slate-500">No matching commands.</p>}
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
               <span>↑↓ Select · Enter Run · Esc Close</span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import KairoButton from "@/components/ui/KairoButton";
 import KairoCard from "@/components/ui/KairoCard";
@@ -264,13 +265,12 @@ export default function NewInvoicePage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
       <div className="mx-auto max-w-6xl">
-        <button
-          type="button"
-          onClick={() => router.push("/invoices")}
+        <Link
+          href="/invoices"
           className="mb-6 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
         >
           ← Back to Invoices
-        </button>
+        </Link>
 
         <KairoPageHeader
           title="New Invoice"

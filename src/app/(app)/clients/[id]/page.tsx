@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type ContactType = "primary" | "billing" | "manager" | "general";
@@ -301,13 +302,12 @@ export default function ClientDetailPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <button
-          type="button"
-          onClick={() => router.push("/clients")}
+        <Link
+          href="/clients"
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
         >
           ← Back to Clients
-        </button>
+        </Link>
 
         <div className="space-y-6">
           <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
@@ -367,15 +367,12 @@ export default function ClientDetailPage() {
                       Edit Client
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      router.push(`/projects/new?client=${client.id}`)
-                    }
+                  <Link
+                    href={`/projects/new?client=${client.id}`}
                     className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
                   >
                     + Project
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     disabled={updatingClientStatus}
@@ -563,12 +560,15 @@ export default function ClientDetailPage() {
                   <div className="p-5">
                     <div className="flex justify-between gap-4">
                       <div>
-                        <p className="text-lg font-bold text-slate-950">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="block text-lg font-bold text-slate-950 hover:text-[#153E90]"
+                        >
                           {project.project_code
                             ? `[${project.project_code}] `
                             : ""}
                           {project.name}
-                        </p>
+                        </Link>
                         <span
                           className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${
                             project.status === "active"
@@ -581,15 +581,12 @@ export default function ClientDetailPage() {
                           {project.status}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push(`/projects/${project.id}`)
-                        }
+                      <Link
+                        href={`/projects/${project.id}`}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-[#153E90] hover:text-[#153E90]"
                       >
                         View
-                      </button>
+                      </Link>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 border-t border-slate-200 bg-white text-center">

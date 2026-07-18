@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Tab = "upcoming" | "active" | "paused";
@@ -59,7 +59,6 @@ export function RecurringInvoicesWorkspace({
 }: {
   embedded?: boolean;
 }) {
-  const router = useRouter();
   const [tab, setTab] = useState<Tab>("upcoming");
   const [clients, setClients] = useState<Client[]>([]);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
@@ -272,13 +271,12 @@ export function RecurringInvoicesWorkspace({
                 Plan, review, and generate editable invoice Drafts.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => router.push("/invoices/recurring/new")}
+            <Link
+              href="/invoices/recurring/new"
               className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg"
             >
               + New Schedule
-            </button>
+            </Link>
           </div>
         ) : null}
         <div className="mt-7 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2">
@@ -396,9 +394,14 @@ export function RecurringInvoicesWorkspace({
                         </p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold">
-                          {schedule.clients?.name}
-                        </p>
+                        {schedule.clients?.name ? (
+                          <Link
+                            href={`/clients/${schedule.client_id}`}
+                            className="text-lg font-bold hover:text-[#153E90] hover:underline"
+                          >
+                            {schedule.clients.name}
+                          </Link>
+                        ) : null}
                         <p className="mt-1 text-xs font-semibold capitalize text-slate-400">
                           Every{" "}
                           {schedule.interval_count > 1
@@ -423,16 +426,12 @@ export function RecurringInvoicesWorkspace({
                       <div className="flex flex-wrap items-start justify-end gap-2">
                         {row.status === "pending" ? (
                           <>
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`,
-                                )
-                              }
+                            <Link
+                              href={`/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`}
                               className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"
                             >
                               Preview / Edit
-                            </button>
+                            </Link>
                             <button
                               onClick={() => {
                                 setSkipTarget(row);
@@ -442,16 +441,12 @@ export function RecurringInvoicesWorkspace({
                             >
                               Skip
                             </button>
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/invoices/recurring/${schedule.id}/edit`,
-                                )
-                              }
+                            <Link
+                              href={`/invoices/recurring/${schedule.id}/edit`}
                               className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"
                             >
                               Edit Schedule
-                            </button>
+                            </Link>
                             <button
                               onClick={() =>
                                 void updateStatus(schedule, "paused")
@@ -462,16 +457,12 @@ export function RecurringInvoicesWorkspace({
                             </button>
                           </>
                         ) : row.generated_invoice_id ? (
-                          <button
-                            onClick={() =>
-                              router.push(
-                                `/invoices/${row.generated_invoice_id}`,
-                              )
-                            }
+                          <Link
+                            href={`/invoices/${row.generated_invoice_id}`}
                             className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white"
                           >
                             Invoice #{row.invoices?.invoice_number}
-                          </button>
+                          </Link>
                         ) : (
                           <span className="text-xs text-slate-500">
                             {row.skip_reason}
@@ -494,36 +485,36 @@ export function RecurringInvoicesWorkspace({
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/invoices/recurring/${schedule.id}`,
-                          )
-                        }
+                      <Link
+                        href={`/invoices/recurring/${schedule.id}`}
                         className="text-left text-lg font-bold hover:text-[#153E90]"
                       >
                         {schedule.name}
-                      </button>
+                      </Link>
                       <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase">
                         {schedule.status}
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
-                      {schedule.clients?.name} · {schedule.frequency} · Next{" "}
+                      {schedule.clients?.name ? (
+                        <Link
+                          href={`/clients/${schedule.client_id}`}
+                          className="hover:text-[#153E90] hover:underline"
+                        >
+                          {schedule.clients.name}
+                        </Link>
+                      ) : null}{" "}
+                      · {schedule.frequency} · Next{" "}
                       {formatDate(schedule.next_generation_date)}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/invoices/recurring/${schedule.id}/edit`,
-                        )
-                      }
+                    <Link
+                      href={`/invoices/recurring/${schedule.id}/edit`}
                       className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold"
                     >
                       Edit Schedule
-                    </button>
+                    </Link>
                     <button
                       onClick={() => {
                         if (schedule.status === "active")

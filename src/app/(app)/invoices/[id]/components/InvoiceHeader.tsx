@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Invoice } from "../page";
 
 type Props = {
@@ -10,8 +10,6 @@ type Props = {
 export default function InvoiceHeader({
   invoice,
 }: Props) {
-  const router = useRouter();
-
   const statusColor = {
     draft: "bg-yellow-100 text-yellow-700",
     sent: "bg-blue-100 text-blue-700",
@@ -23,14 +21,12 @@ export default function InvoiceHeader({
 
   return (
     <>
-      <button
-        onClick={() =>
-          router.push("/invoices")
-        }
+      <Link
+        href="/invoices"
         className="text-sm font-semibold text-slate-500 hover:text-slate-900"
       >
         ← Invoices
-      </button>
+      </Link>
 
       <div className="mt-5 flex items-start justify-between">
         <div>
@@ -42,9 +38,14 @@ export default function InvoiceHeader({
             #{invoice.invoice_number}
           </h1>
 
-          <p className="mt-2 text-lg text-slate-600">
-            {invoice.clients?.name}
-          </p>
+          {invoice.clients?.id ? (
+            <Link
+              href={`/clients/${invoice.clients.id}`}
+              className="mt-2 block text-lg text-slate-600 hover:text-[#153E90] hover:underline"
+            >
+              {invoice.clients.name}
+            </Link>
+          ) : null}
         </div>
 
         <span

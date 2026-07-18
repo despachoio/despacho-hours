@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { normalizeRole } from "@/lib/roles";
@@ -395,14 +396,6 @@ export default function DesktopTimerPage() {
     setBusy(false);
   }
 
-  function openFullKairo() {
-    if (window.kairoDesktop) {
-      void window.kairoDesktop.openFullApp();
-      return;
-    }
-    window.open("/dashboard", "_blank", "noopener,noreferrer");
-  }
-
   if (!ready) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500">
@@ -464,15 +457,14 @@ export default function DesktopTimerPage() {
             >
               {busy ? "Signing in…" : "Sign in to Timer"}
             </button>
-            <button
-              type="button"
-              onClick={() =>
-                window.open("/forgot-password", "_blank", "noopener,noreferrer")
-              }
+            <Link
+              href="/forgot-password"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full text-xs font-semibold text-[#153E90] hover:underline"
             >
               Forgot password?
-            </button>
+            </Link>
           </form>
         </section>
       </main>
@@ -616,13 +608,14 @@ export default function DesktopTimerPage() {
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              onClick={openFullKairo}
-              className="rounded-xl bg-[#153E90] px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-800"
+            <Link
+              href="/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl bg-[#153E90] px-3 py-2.5 text-center text-xs font-bold text-white hover:bg-blue-800"
             >
               Open Full Kairo
-            </button>
+            </Link>
             <button
               type="button"
               onClick={() => void logout()}

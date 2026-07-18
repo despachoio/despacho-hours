@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Invoice } from "../page";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_COMPANY_SETTINGS } from "@/lib/settings/companySettingsDefaults";
@@ -934,16 +935,21 @@ export default function InvoiceActions({
         <h2 className="text-lg font-bold text-slate-950">Actions</h2>
 
         <div className="mt-6 space-y-3">
-          <button
-            type="button"
-            onClick={() =>
-              router.push(`/invoices/${invoice.id}/edit`)
-            }
-            disabled={invoice.status.toLowerCase() !== "draft"}
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-semibold transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-          >
-            Edit Draft
-          </button>
+          {invoice.status.toLowerCase() === "draft" ? (
+            <Link
+              href={`/invoices/${invoice.id}/edit`}
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-left font-semibold transition hover:bg-slate-50"
+            >
+              Edit Draft
+            </Link>
+          ) : (
+            <span
+              aria-disabled="true"
+              className="block w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-400"
+            >
+              Edit Draft
+            </span>
+          )}
 
           <button
             type="button"
@@ -983,17 +989,12 @@ export default function InvoiceActions({
           {isAdmin &&
           !invoice.generated_from_recurring &&
           ["draft", "sent", "paid"].includes(normalizedStatus) ? (
-            <button
-              type="button"
-              onClick={() =>
-                router.push(
-                  `/invoices/recurring/new?sourceInvoiceId=${invoice.id}`,
-                )
-              }
+            <Link
+              href={`/invoices/recurring/new?sourceInvoiceId=${invoice.id}`}
               className="w-full rounded-xl border border-violet-200 px-4 py-3 text-left font-semibold text-violet-700 transition hover:bg-violet-50"
             >
               Make Recurring
-            </button>
+            </Link>
           ) : null}
 
           {canRecordPayment ? (

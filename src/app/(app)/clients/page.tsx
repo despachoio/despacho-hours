@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import KairoSegmentedControl from "@/components/ui/KairoSegmentedControl";
 import { supabase } from "@/lib/supabase";
 
@@ -42,7 +42,6 @@ function clientInitials(name: string) {
 }
 
 export default function ClientsPage() {
-  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [role, setRole] = useState("");
   const [search, setSearch] = useState("");
@@ -300,19 +299,11 @@ export default function ClientsPage() {
             ).length;
             const isArchived = client.status?.toLowerCase() === "archived";
             return (
-              <article
+              <Link
                 key={client.id}
+                href={`/clients/${client.id}`}
                 data-shortcut-row
                 data-shortcut-href={`/clients/${client.id}`}
-                role="link"
-                tabIndex={0}
-                onClick={() => router.push(`/clients/${client.id}`)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    router.push(`/clients/${client.id}`);
-                  }
-                }}
                 className="group flex min-h-[96px] cursor-pointer items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 sm:px-6"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#153E90] text-sm font-bold text-white shadow-md shadow-blue-200">
@@ -342,7 +333,7 @@ export default function ClientsPage() {
                 >
                   ›
                 </span>
-              </article>
+              </Link>
             );
           })}
         </section>

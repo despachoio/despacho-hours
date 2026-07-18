@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   useParams,
@@ -593,13 +594,9 @@ return (
 <div className="mx-auto max-w-5xl">
 
 
-<button
+<Link
 
-onClick={()=>
-router.push(
-"/projects"
-)
-}
+href="/projects"
 
 className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
 
@@ -607,7 +604,7 @@ className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate
 
 ← Back to Projects
 
-</button>
+</Link>
 
 
 
@@ -638,17 +635,9 @@ Project Code: {project.project_code}
 
 {project.clients && (
 
-<button
+<Link
 
-onClick={()=>
-
-router.push(
-
-`/clients/${project.clients?.id}`
-
-)
-
-}
+href={`/clients/${project.clients.id}`}
 
 className="mt-3 text-sm font-semibold text-slate-300 underline decoration-blue-400 underline-offset-4 hover:text-white"
 
@@ -656,7 +645,7 @@ className="mt-3 text-sm font-semibold text-slate-300 underline decoration-blue-4
 
 Client: {project.clients.name}
 
-</button>
+</Link>
 
 )}
 
@@ -1195,11 +1184,9 @@ No activity yet.
 
 
 
-      <button
+      <Link
 
-        onClick={() =>
-          router.push("/projects")
-        }
+        href="/projects"
 
         className="rounded-2xl border px-6 py-3"
 
@@ -1207,7 +1194,7 @@ No activity yet.
 
         Back
 
-      </button>
+      </Link>
 
 
     </div>

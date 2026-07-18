@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import KairoButton from "@/components/ui/KairoButton";
 import KairoCard from "@/components/ui/KairoCard";
@@ -439,12 +440,12 @@ export default function EditInvoicePage() {
               Only draft invoices can be edited.
             </p>
             <div className="mt-6 flex justify-center">
-              <KairoButton
-                type="button"
-                onClick={() => router.push(`/invoices/${invoiceId}`)}
+              <Link
+                href={`/invoices/${invoiceId}`}
+                className="rounded-xl bg-[#0F172A] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#153E90] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 focus-visible:ring-offset-2"
               >
                 View Invoice
-              </KairoButton>
+              </Link>
             </div>
           </KairoCard>
         </div>
@@ -455,13 +456,12 @@ export default function EditInvoicePage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
       <div className="mx-auto max-w-6xl">
-        <button
-          type="button"
-          onClick={() => router.push(`/invoices/${invoiceId}`)}
+        <Link
+          href={`/invoices/${invoiceId}`}
           className="mb-6 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
         >
           ← Back to invoice
-        </button>
+        </Link>
 
         <KairoPageHeader
           title="Edit Draft Invoice"

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import EmployeeHeader from "@/components/team/EmployeeHeader";
 import EmployeePeriodFilter from "@/components/team/EmployeePeriodFilter";
@@ -319,13 +320,12 @@ if (profileError) {
 
   const adminActions = canManageMember ? (
     <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={() => router.push(`/team/${id}?action=edit`)}
+      <Link
+        href={`/team/${id}?action=edit`}
         className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-950"
       >
         Edit
-      </button>
+      </Link>
       <button
         type="button"
         onClick={() => void sendPasswordReset()}
@@ -351,13 +351,12 @@ if (profileError) {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1450px]">
-        <button
-          type="button"
-          onClick={() => router.push("/team")}
+        <Link
+          href="/team"
           className="mb-5 text-sm font-bold text-slate-500 hover:text-[#153E90]"
         >
           ← Back to Team
-        </button>
+        </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
         {error ? (
           <div

@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
+import { dateRange, currentBusinessYear } from "@/lib/metrics/date-ranges";
+import { getTeamMetrics } from "@/lib/metrics/team-metrics";
+import {
+  formatInvoiceMoney as money,
+  getInvoiceMetrics,
+} from "@/lib/metrics/invoice-metrics";
+import type { InvoiceMetrics, TeamMetrics } from "@/lib/metrics/types";
 
 type Client = { id: string; status: string };
 
@@ -15,22 +22,7 @@ type Project = {
   status: string;
 };
 
-type Employee = {
-  id: string;
-  name: string;
-  time_entries: { hours: number; entry_date: string }[];
-};
-
 type Profile = { role: string; employee_id: string | null };
-
-type InvoiceMetricRow = {
-  currency: string;
-  total_amount: number;
-  paid_amount: number | null;
-  status: string;
-  issue_date: string;
-  due_date: string;
-};
 
 type LiveTimer = {
   id: string;
@@ -47,24 +39,6 @@ type LiveTimer = {
     clients: { name: string } | null;
   } | null;
 };
-
-type CurrencySummary = {
-  currency: string;
-  open: number;
-  paid: number;
-  overdue: number;
-};
-
-const todayKey = () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
-const money = (currency: string, amount: number) =>
-  `${currency} ${Math.round(amount).toLocaleString("en-US")}`;
 
 function workedSeconds(timer: LiveTimer, now: number) {
   const start = new Date(timer.started_at).getTime();
@@ -98,15 +72,14 @@ function initials(name: string) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [invoices, setInvoices] = useState<InvoiceMetricRow[]>([]);
+  const [teamMetrics, setTeamMetrics] = useState<TeamMetrics | null>(null);
+  const [invoiceMetrics, setInvoiceMetrics] = useState<InvoiceMetrics | null>(null);
   const [liveTimers, setLiveTimers] = useState<LiveTimer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tick, setTick] = useState(Date.now());
+  const [tick, setTick] = useState(0);
 
   const normalizedRole = String(profile?.role || "")
     .trim()
@@ -136,15 +109,6 @@ export default function DashboardPage() {
         .trim()
         .toLowerCase();
 
-      const employeeQuery = supabase.from("employees").select(`
-        id,
-        name,
-        time_entries(hours,entry_date)
-      `);
-      if (role === "employee" && currentProfile?.employee_id) {
-        employeeQuery.eq("id", currentProfile.employee_id);
-      }
-
       let projectQuery = supabase.from("projects").select(`
         id,
         name,
@@ -157,9 +121,49 @@ export default function DashboardPage() {
         projectQuery = projectQuery.eq("status", "active");
       }
 
-      const requests = [employeeQuery, projectQuery] as const;
-      const [employeeResult, projectResult] = await Promise.all(requests);
-      setEmployees((employeeResult.data || []) as unknown as Employee[]);
+      const week = dateRange("this_week");
+      const teamMetricsPromise = getTeamMetrics({
+        startDate: week.from,
+        endDate: week.to,
+        employeeId:
+          role === "employee" ? currentProfile?.employee_id || undefined : undefined,
+        employeeStatus: "active",
+      });
+      const invoiceMetricsPromise = canAccessInvoices(currentProfile?.role)
+        ? getInvoiceMetrics({ year: currentBusinessYear() })
+        : Promise.resolve(null);
+      const clientPromise =
+        role !== "employee"
+          ? supabase.from("clients").select("id,status")
+          : Promise.resolve({ data: [], error: null });
+      const [projectResult, loadedTeamMetrics, loadedInvoiceMetrics, clientResult] =
+        await Promise.all([
+          projectQuery,
+          teamMetricsPromise,
+          invoiceMetricsPromise,
+          clientPromise,
+        ]);
+      if (projectResult.error || clientResult.error) {
+        console.error(
+          "Unable to load dashboard portfolio metrics",
+          projectResult.error || clientResult.error,
+        );
+      }
+      setTeamMetrics(loadedTeamMetrics);
+      setInvoiceMetrics(loadedInvoiceMetrics);
+      setClients((clientResult.data || []) as Client[]);
+      setLiveTimers(
+        loadedTeamMetrics.employees.flatMap((item) =>
+          item.timer
+            ? [
+                {
+                  ...item.timer,
+                  employees: { name: item.employee.name },
+                } as LiveTimer,
+              ]
+            : [],
+        ),
+      );
 
       const loadedProjects = (projectResult.data ||
         []) as unknown as (Project & {
@@ -176,42 +180,14 @@ export default function DashboardPage() {
           : loadedProjects,
       );
 
-      if (role !== "employee") {
-        const [clientResult, timerResult] = await Promise.all([
-          supabase.from("clients").select("id,status"),
-          supabase
-            .from("active_timers")
-            .select(
-              `
-              id,
-              employee_id,
-              started_at,
-              paused_at,
-              total_paused_seconds,
-              status,
-              description,
-              employees(name),
-              projects(name,project_code,clients(name))
-            `,
-            )
-            .in("status", ["running", "paused"]),
-        ]);
-        setClients((clientResult.data || []) as Client[]);
-        setLiveTimers((timerResult.data || []) as unknown as LiveTimer[]);
-      }
-
-      if (canAccessInvoices(currentProfile?.role)) {
-        const { data: invoiceData } = await supabase
-          .from("invoices")
-          .select(
-            "currency,total_amount,paid_amount,status,issue_date,due_date",
-          );
-        setInvoices((invoiceData || []) as InvoiceMetricRow[]);
-      }
+      setTick(Date.now());
       setLoading(false);
     }
 
-    void loadDashboard();
+    void loadDashboard().catch((dashboardError) => {
+      console.error("Unable to load dashboard metrics", dashboardError);
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -221,67 +197,13 @@ export default function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [canViewTeam, liveTimers]);
 
-  const weeklyHours = (employee: Employee) => {
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setHours(0, 0, 0, 0);
-    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-    return (employee.time_entries || [])
-      .filter((entry) => new Date(`${entry.entry_date}T00:00:00`) >= weekStart)
-      .reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
-  };
-
   const activeClients = clients.filter(
     (client) => client.status === "active",
   ).length;
   const activeProjects = projects.filter(
     (project) => project.status === "active",
   ).length;
-  const totalWeeklyHours = employees.reduce(
-    (sum, employee) => sum + weeklyHours(employee),
-    0,
-  );
-  const totalCapacity = employees.length * 40;
-  const utilization = totalCapacity
-    ? Math.round((totalWeeklyHours / totalCapacity) * 100)
-    : 0;
-
-  const invoiceYear = new Date().getFullYear();
-  const invoiceSummary = useMemo(() => {
-    const summaries = new Map<string, CurrencySummary>();
-    const today = todayKey();
-    let yearCount = 0;
-    let overdueCount = 0;
-
-    for (const invoice of invoices) {
-      const currency = invoice.currency || "USD";
-      const summary = summaries.get(currency) || {
-        currency,
-        open: 0,
-        paid: 0,
-        overdue: 0,
-      };
-      const total = Number(invoice.total_amount || 0);
-      const paid = Number(invoice.paid_amount || 0);
-      const status = String(invoice.status || "").toLowerCase();
-      if (["sent", "overdue"].includes(status)) {
-        summary.open += Math.max(total - paid, 0);
-      }
-      if (status === "paid") summary.paid += paid || total;
-      if (["sent", "overdue"].includes(status) && invoice.due_date < today) {
-        summary.overdue += Math.max(total - paid, 0);
-        overdueCount += 1;
-      }
-      if (Number(invoice.issue_date?.slice(0, 4)) === invoiceYear)
-        yearCount += 1;
-      summaries.set(currency, summary);
-    }
-    return {
-      currencies: Array.from(summaries.values()),
-      yearCount,
-      overdueCount,
-    };
-  }, [invoiceYear, invoices]);
+  const invoiceYear = invoiceMetrics?.selectedYear || currentBusinessYear();
 
   const sortedTimers = useMemo(
     () =>
@@ -329,17 +251,17 @@ export default function DashboardPage() {
               <MetricCard
                 label="My Projects"
                 value={projects.length}
-                onClick={() => router.push("/projects")}
+                href="/projects"
               />
               <MetricCard
                 label="My Hours This Week"
-                value={totalWeeklyHours.toFixed(2)}
-                onClick={() => router.push("/timer")}
+                value={teamMetrics ? teamMetrics.totalHoursLogged.toFixed(2) : "—"}
+                href="/timer"
               />
               <MetricCard
                 label="My Weekly Utilization"
-                value={`${utilization}%`}
-                onClick={() => router.push("/timer")}
+                value={teamMetrics ? `${teamMetrics.aggregateUtilization.toFixed(0)}%` : "—"}
+                href="/timer"
               />
             </>
           ) : (
@@ -347,22 +269,22 @@ export default function DashboardPage() {
               <MetricCard
                 label="Active Clients"
                 value={activeClients}
-                onClick={() => router.push("x /clients")}
+                href="/clients"
               />
               <MetricCard
                 label="Active Projects"
                 value={activeProjects}
-                onClick={() => router.push("/projects")}
+                href="/projects"
               />
               <MetricCard
                 label="Hours This Week"
-                value={totalWeeklyHours.toFixed(2)}
-                onClick={() => router.push("/timer")}
+                value={teamMetrics ? teamMetrics.totalHoursLogged.toFixed(2) : "—"}
+                href="/timer"
               />
               <MetricCard
                 label="Team Utilization"
-                value={`${utilization}%`}
-                onClick={() => router.push("/team")}
+                value={teamMetrics ? `${teamMetrics.aggregateUtilization.toFixed(0)}%` : "—"}
+                href="/team"
               />
             </>
           )}
@@ -374,51 +296,43 @@ export default function DashboardPage() {
               eyebrow="Billing intelligence"
               title="Invoice Overview"
               action="View invoices"
-              onAction={() => router.push("/invoices")}
+              actionHref="/invoices"
             />
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <InvoiceCard
                 label="Total Open"
-                values={invoiceSummary.currencies
-                  .filter((row) => row.open > 0)
-                  .map((row) => money(row.currency, row.open))}
+                values={(invoiceMetrics?.currencies || [])
+                  .filter((row) => row.openAmount > 0)
+                  .map((row) => money(row.currency, row.openAmount))}
                 note="Sent and overdue invoices"
                 tone="blue"
-                onClick={() =>
-                  router.push("/invoices?tab=all&status=open")
-                }
+                href="/invoices?tab=all&status=open"
               />
               <InvoiceCard
                 label="Total Paid"
-                values={invoiceSummary.currencies
-                  .filter((row) => row.paid > 0)
-                  .map((row) => money(row.currency, row.paid))}
+                values={(invoiceMetrics?.currencies || [])
+                  .filter((row) => row.paidAmount > 0)
+                  .map((row) => money(row.currency, row.paidAmount))}
                 note="Completed collections"
                 tone="green"
-                onClick={() =>
-                  router.push("/invoices?tab=all&status=paid")
-                } 
+                href="/invoices?tab=all&status=paid"
               />
               <InvoiceCard
                 label={`Invoices in ${invoiceYear}`}
-                values={[String(invoiceSummary.yearCount)]}
+                values={[invoiceMetrics ? String(invoiceMetrics.invoiceCount) : "—"]}
                 note="Draft, sent, overdue, and paid"
                 tone="navy"
-                onClick={() =>
-                  router.push(`/invoices?tab=all&year=${invoiceYear}`)
-                }
+                href={`/invoices?tab=all&year=${invoiceYear}`}
               />
               <InvoiceCard
                 label="Overdue"
-                values={[String(invoiceSummary.overdueCount)]}
-                secondaryValues={invoiceSummary.currencies
-                  .filter((row) => row.overdue > 0)
-                  .map((row) => money(row.currency, row.overdue))}
+                values={[invoiceMetrics ? String(invoiceMetrics.overdueCount) : "—"]}
+                secondaryValues={(invoiceMetrics?.currencies || [])
+                  .filter((row) => row.overdueAmount > 0)
+                  .map((row) => money(row.currency, row.overdueAmount))}
                 note="Past due today"
                 tone="red"
-                onClick={() =>
-                  router.push("/invoices?tab=all&status=overdue")
-                }
+                href="/invoices?tab=all&status=overdue"
               />
             </div>
           </section>
@@ -445,13 +359,12 @@ export default function DashboardPage() {
                   }{" "}
                   Running
                 </span>
-                <button
-                  type="button"
-                  onClick={() => router.push("/timer")}
+                <Link
+                  href="/timer"
                   className="ml-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-[#153E90] shadow-sm hover:border-blue-200"
                 >
                   Open Time
-                </button>
+                </Link>
               </div>
             </div>
             {sortedTimers.length ? (
@@ -535,12 +448,12 @@ export default function DashboardPage() {
             <HealthCard
               title="Team Capacity"
               healthyText="Team capacity looks healthy"
-              items={employees
-                .filter((employee) => weeklyHours(employee) > 40)
-                .map((employee) => ({
-                  id: employee.id,
-                  title: employee.name,
-                  detail: `${weeklyHours(employee).toFixed(2)} hrs this week`,
+              items={(teamMetrics?.employees || [])
+                .filter((item) => item.hours > 40)
+                .map((item) => ({
+                  id: item.employee.id,
+                  title: item.employee.name,
+                  detail: `${item.hours.toFixed(2)} hrs this week`,
                 }))}
             />
           </section>
@@ -559,16 +472,15 @@ export default function DashboardPage() {
 function MetricCard({
   label,
   value,
-  onClick,
+  href,
 }: {
   label: string;
   value: number | string;
-  onClick: () => void;
+  href: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Link
+      href={href}
       className="group rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-lg shadow-slate-200/50 transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
     >
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -580,7 +492,7 @@ function MetricCard({
       <p className="mt-3 text-xs font-semibold text-slate-400 group-hover:text-[#153E90]">
         View details →
       </p>
-    </button>
+    </Link>
   );
 }
 
@@ -588,12 +500,12 @@ function SectionHeading({
   eyebrow,
   title,
   action,
-  onAction,
+  actionHref,
 }: {
   eyebrow: string;
   title: string;
   action?: string;
-  onAction?: () => void;
+  actionHref?: string;
 }) {
   return (
     <div className="flex items-end justify-between gap-4">
@@ -605,14 +517,13 @@ function SectionHeading({
           {title}
         </h2>
       </div>
-      {action ? (
-        <button
-          type="button"
-          onClick={onAction}
+      {action && actionHref ? (
+        <Link
+          href={actionHref}
           className="text-sm font-bold text-[#153E90] hover:text-blue-800"
         >
           {action} →
-        </button>
+        </Link>
       ) : null}
     </div>
   );
@@ -624,14 +535,14 @@ function InvoiceCard({
   secondaryValues = [],
   note,
   tone,
-  onClick,
+  href,
 }: {
   label: string;
   values: string[];
   secondaryValues?: string[];
   note: string;
   tone: "blue" | "green" | "navy" | "red";
-  onClick: () => void;
+  href: string;
 }) {
   const valueColor = {
     blue: "text-[#153E90]",
@@ -640,9 +551,8 @@ function InvoiceCard({
     red: "text-red-700",
   }[tone];
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Link
+      href={href}
       className={`min-h-48 rounded-3xl border bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${tone === "red" ? "border-red-100 hover:border-red-200" : "border-slate-200 hover:border-blue-200"}`}
     >
       <p
@@ -676,7 +586,7 @@ function InvoiceCard({
       <p className="mt-5 text-xs font-semibold text-slate-400">
         {note} · View all →
       </p>
-    </button>
+    </Link>
   );
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Schedule = {
@@ -38,7 +39,6 @@ const formatDate = (value: string) =>
 
 export default function RecurringScheduleDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,12 +81,12 @@ export default function RecurringScheduleDetailPage() {
   return (
     <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <button
-          onClick={() => router.push("/invoices?tab=recurring")}
+        <Link
+          href="/invoices?tab=recurring"
           className="text-sm font-bold text-slate-500"
         >
           ← Recurring Invoices
-        </button>
+        </Link>
         <div className="mt-5 flex flex-col gap-4 rounded-3xl bg-[#0F172A] p-7 text-white sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-blue-200">
@@ -100,14 +100,12 @@ export default function RecurringScheduleDetailPage() {
               {formatDate(schedule.next_generation_date)}
             </p>
           </div>
-          <button
-            onClick={() =>
-              router.push(`/invoices/recurring/${id}/edit`)
-            }
+          <Link
+            href={`/invoices/recurring/${id}/edit`}
             className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#153E90]"
           >
             Edit Schedule
-          </button>
+          </Link>
         </div>
         <section className="mt-7 rounded-3xl border border-slate-200 bg-white p-6">
           <h2 className="text-xl font-bold">Occurrence History</h2>
@@ -143,16 +141,12 @@ export default function RecurringScheduleDetailPage() {
                   )}
                 </div>
                 {occurrence.generated_invoice_id ? (
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `/invoices/${occurrence.generated_invoice_id}`,
-                      )
-                    }
+                  <Link
+                    href={`/invoices/${occurrence.generated_invoice_id}`}
                     className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold"
                   >
                     Open Invoice
-                  </button>
+                  </Link>
                 ) : null}
               </div>
             ))}

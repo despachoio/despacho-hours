@@ -1,57 +1,39 @@
-import type { EmployeeAnalytics } from "./types";
+import type { TeamMetrics } from "@/lib/metrics/types";
 
 export default function TeamSummaryCards({
-  analytics,
+  metrics: summary,
   personal,
 }: {
-  analytics: EmployeeAnalytics[];
+  metrics: TeamMetrics;
   personal: boolean;
 }) {
-  const hours = analytics.reduce((sum, item) => sum + item.hours, 0);
-  const expected = analytics.reduce((sum, item) => sum + item.expectedHours, 0);
-  const projects = new Set(
-    analytics.flatMap((item) => item.entries.map((entry) => entry.project_id)),
-  ).size;
-  const clients = new Set(
-    analytics.flatMap((item) =>
-      item.entries.map((entry) => entry.projects?.clients?.id).filter(Boolean),
-    ),
-  ).size;
-  const entries = analytics.flatMap((item) => item.entries);
   const metrics = personal
     ? [
-        ["My Hours", `${hours.toFixed(2)} hrs`],
+        ["My Hours", `${summary.totalHoursLogged.toFixed(2)} hrs`],
         [
           "My Utilisation",
-          `${(expected ? (hours / expected) * 100 : 0).toFixed(0)}%`,
+          `${summary.aggregateUtilization.toFixed(0)}%`,
         ],
-        ["Projects", String(projects)],
-        ["Clients", String(clients)],
+        ["Projects", String(summary.projectsWorked)],
+        ["Clients", String(summary.clientsServed)],
         [
           "Average Session",
-          `${(entries.length ? hours / entries.length : 0).toFixed(2)} hrs`,
+          `${summary.averageSessionHours.toFixed(2)} hrs`,
         ],
       ]
     : [
-        ["Employees", String(analytics.length)],
-        [
-          "Currently Working",
-          String(
-            analytics.filter(
-              (item) => item.status === "working" || item.status === "paused",
-            ).length,
-          ),
-        ],
+        ["Employees", String(summary.employeeCount)],
+        ["Currently Working", String(summary.currentlyWorkingCount)],
         [
           "Average Utilisation",
-          `${(expected ? (hours / expected) * 100 : 0).toFixed(0)}%`,
+          `${summary.aggregateUtilization.toFixed(0)}%`,
         ],
-        ["Hours Logged", `${hours.toFixed(2)} hrs`],
-        ["Projects Worked", String(projects)],
-        ["Clients Served", String(clients)],
+        ["Hours Logged", `${summary.totalHoursLogged.toFixed(2)} hrs`],
+        ["Projects Worked", String(summary.projectsWorked)],
+        ["Clients Served", String(summary.clientsServed)],
         [
           "Average Daily Hours",
-          `${(analytics.length ? analytics.reduce((sum, item) => sum + item.averageDailyHours, 0) / analytics.length : 0).toFixed(2)} hrs`,
+          `${summary.averageDailyHours.toFixed(2)} hrs`,
         ],
       ];
   return (

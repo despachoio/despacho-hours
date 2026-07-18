@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { LiveTimer } from "./types";
 import { formatDuration, timerSeconds } from "./utils";
 
@@ -11,7 +11,6 @@ export default function LiveOperationsSnapshot({
   timers: LiveTimer[];
   now: number;
 }) {
-  const router = useRouter();
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -26,13 +25,12 @@ export default function LiveOperationsSnapshot({
             Top five running and paused timers. View-only.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push("/timer")}
+        <Link
+          href="/timer"
           className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-bold text-[#153E90] hover:bg-blue-50"
         >
           View all in Time Tracking →
-        </button>
+        </Link>
       </div>
       {timers.length ? (
         <div className="mt-5 overflow-x-auto">

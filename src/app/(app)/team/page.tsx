@@ -6,13 +6,18 @@ import TeamFilters from "@/components/team/TeamFilters";
 import TeamSummaryCards from "@/components/team/TeamSummaryCards";
 import EmployeeCard from "@/components/team/EmployeeCard";
 import type {
+  EmployeeAnalytics,
   TeamEmployee,
-  TeamEntry,
   TeamFilterValue,
   TeamProfile,
   TeamTimer,
 } from "@/components/team/types";
-import { dateRange, employeeAnalytics } from "@/components/team/utils";
+import { dateRange } from "@/lib/metrics/date-ranges";
+import {
+  calculateTeamMetrics,
+  getTeamMetrics,
+} from "@/lib/metrics/team-metrics";
+import type { TeamMetrics } from "@/lib/metrics/types";
 
 const initialFilters: TeamFilterValue = {
   employeeId: "",
@@ -23,18 +28,15 @@ const initialFilters: TeamFilterValue = {
   customTo: "",
   search: "",
 };
-const EMPTY_ENTRIES: TeamEntry[] = [];
+const EMPTY_ANALYTICS: EmployeeAnalytics[] = [];
 
 export default function TeamPage() {
   const [profile, setProfile] = useState<TeamProfile | null>(null);
-  const [employees, setEmployees] = useState<TeamEmployee[]>([]);
-  const [entries, setEntries] = useState<TeamEntry[]>([]);
-  const [timers, setTimers] = useState<TeamTimer[]>([]);
+  const [teamMetrics, setTeamMetrics] = useState<TeamMetrics | null>(null);
   const [filters, setFilters] = useState(initialFilters);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [entriesLoading, setEntriesLoading] = useState(true);
-  const [loadedRange, setLoadedRange] = useState("");
+  const [metricsLoading, setMetricsLoading] = useState(true);
   const [error, setError] = useState("");
   const [employmentView, setEmploymentView] = useState<
     "active" | "inactive" | "all"
@@ -57,6 +59,18 @@ export default function TeamPage() {
   const range = useMemo(
     () => dateRange(filters.period, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.period],
+  );
+  const analytics = teamMetrics?.employees || EMPTY_ANALYTICS;
+  const employees = useMemo<TeamEmployee[]>(
+    () => analytics.map((item) => item.employee),
+    [analytics],
+  );
+  const timers = useMemo<TeamTimer[]>(
+    () =>
+      analytics
+        .map((item) => item.timer)
+        .filter((timer): timer is TeamTimer => Boolean(timer)),
+    [analytics],
   );
 
   useEffect(() => {
@@ -97,34 +111,6 @@ export default function TeamPage() {
         setLoading(false);
         return;
       }
-      let employeeQuery = supabase
-        .from("employees")
-        .select(
-          "id,employee_code,name,email,role,department,status,hourly_cost",
-        )
-        .order("created_at", { ascending: true });
-      let timerQuery = supabase
-        .from("active_timers")
-        .select(
-          "id,employee_id,project_id,started_at,paused_at,total_paused_seconds,status,description,projects(id,name,project_code,clients(id,name))",
-        )
-        .in("status", ["running", "paused"]);
-      if (currentRole === "employee" && current.employee_id) {
-        employeeQuery = employeeQuery
-          .eq("id", current.employee_id)
-          .eq("status", "active");
-        timerQuery = timerQuery.eq("employee_id", current.employee_id);
-      } else if (currentRole === "manager") {
-        employeeQuery = employeeQuery.eq("status", "active");
-      }
-      const [employeeResult, timerResult] = await Promise.all([
-        employeeQuery,
-        timerQuery,
-      ]);
-      const loadError = employeeResult.error || timerResult.error;
-      if (loadError) setError(loadError.message);
-      setEmployees((employeeResult.data || []) as TeamEmployee[]);
-      setTimers((timerResult.data || []) as unknown as TeamTimer[]);
       setNow(Date.now());
       setLoading(false);
     }
@@ -132,47 +118,35 @@ export default function TeamPage() {
   }, []);
 
   useEffect(() => {
-    if (!profile || !range.from || !range.to) {
-      return;
+    if (!profile || !range.from || !range.to) return;
+    let cancelled = false;
+    async function loadMetrics() {
+      setMetricsLoading(true);
+      try {
+        const currentRole = String(profile?.role || "").trim().toLowerCase();
+        const metrics = await getTeamMetrics({
+          startDate: range.from,
+          endDate: range.to,
+          employeeId:
+            currentRole === "employee" ? profile?.employee_id || undefined : undefined,
+          employeeStatus:
+            currentRole === "employee" || currentRole === "manager"
+              ? "active"
+              : undefined,
+        });
+        if (!cancelled) setTeamMetrics(metrics);
+      } catch (metricError) {
+        console.error("Unable to load team metrics", metricError);
+        if (!cancelled) setError("Unable to load team metrics right now.");
+      } finally {
+        if (!cancelled) setMetricsLoading(false);
+      }
     }
-    async function loadEntries() {
-      setEntriesLoading(true);
-      let query = supabase
-        .from("time_entries")
-        .select(
-          "id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,projects(id,name,project_code,clients(id,name))",
-        )
-        .gte("entry_date", range.from)
-        .lte("entry_date", range.to)
-        .order("entry_date", { ascending: false });
-      if (isEmployee && profile?.employee_id)
-        query = query.eq("employee_id", profile.employee_id);
-      const result = await query;
-      if (result.error) setError(result.error.message);
-      setEntries((result.data || []) as unknown as TeamEntry[]);
-      setLoadedRange(`${range.from}:${range.to}`);
-      setEntriesLoading(false);
-    }
-    void loadEntries();
-  }, [isEmployee, profile, range.from, range.to]);
-
-  const effectiveEntries =
-    range.from && range.to && loadedRange === `${range.from}:${range.to}`
-      ? entries
-      : EMPTY_ENTRIES;
-  const analytics = useMemo(
-    () =>
-      employees.map((employee) =>
-        employeeAnalytics(
-          employee,
-          effectiveEntries.filter((entry) => entry.employee_id === employee.id),
-          timers.find((timer) => timer.employee_id === employee.id) || null,
-          range.from,
-          range.to,
-        ),
-      ),
-    [effectiveEntries, employees, range.from, range.to, timers],
-  );
+    void loadMetrics();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, range.from, range.to]);
   const visibleAnalytics = useMemo(
     () =>
       analytics.filter((item) => {
@@ -238,6 +212,10 @@ export default function TeamPage() {
         ),
       ).sort(),
     [employees],
+  );
+  const visibleMetrics = useMemo(
+    () => calculateTeamMetrics(visibleAnalytics),
+    [visibleAnalytics],
   );
 
   async function addTeamMember() {
@@ -364,7 +342,7 @@ export default function TeamPage() {
             departments={departments}
             showEmployee={!isEmployee}
           />
-          {loading || entriesLoading ? (
+          {loading || metricsLoading ? (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
@@ -376,7 +354,7 @@ export default function TeamPage() {
           ) : (
             <>
               <TeamSummaryCards
-                analytics={visibleAnalytics}
+                metrics={visibleMetrics}
                 personal={isEmployee}
               />
               {isAdmin ? (

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Project = {
@@ -633,15 +634,12 @@ export default function ProjectWalletPage() {
               </p>
             )}
 
-            <button
-              type="button"
-              onClick={() =>
-                router.push("/projects")
-              }
+            <Link
+              href="/projects"
               className="mt-6 rounded-xl border px-5 py-3 font-bold"
             >
               Back to Projects
-            </button>
+            </Link>
           </div>
         </div>
       </main>
@@ -650,15 +648,12 @@ export default function ProjectWalletPage() {
     return (
     <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
       <div className="mx-auto max-w-6xl">
-        <button
-          type="button"
-          onClick={() =>
-            router.push("/projects")
-          }
+        <Link
+          href="/projects"
           className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
         >
           ← Back to Projects
-        </button>
+        </Link>
 
         <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
@@ -684,19 +679,18 @@ export default function ProjectWalletPage() {
               {project.name}
             </h1>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (project.clients?.id) {
-                  router.push(
-                    `/clients/${project.clients.id}`
-                  );
-                }
-              }}
-              className="mt-2 text-sm font-semibold text-slate-300 hover:text-white hover:underline"
-            >
-              Client: {project.clients?.name || "No client"}
-            </button>
+            {project.clients?.id ? (
+              <Link
+                href={`/clients/${project.clients.id}`}
+                className="mt-2 inline-block text-sm font-semibold text-slate-300 hover:text-white hover:underline"
+              >
+                Client: {project.clients.name}
+              </Link>
+            ) : (
+              <p className="mt-2 text-sm font-semibold text-slate-300">
+                Client: No client
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3">

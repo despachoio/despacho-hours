@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -260,10 +261,9 @@ export default function DashboardLayout({
     router.refresh();
   }
 
-  function navigate(path: string) {
+  function closeNavigation() {
     setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
-    router.push(path);
   }
 
   function isActive(path: string) {
@@ -277,9 +277,9 @@ export default function DashboardLayout({
       <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-blue-100/60 blur-3xl" />
       <div className="relative border-b border-slate-100 px-7 pb-6 pt-7">
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate("/dashboard")}
+          <Link
+            href="/dashboard"
+            onClick={closeNavigation}
             className="rounded-xl text-left transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
             aria-label="Go to dashboard"
           >
@@ -291,7 +291,7 @@ export default function DashboardLayout({
               priority
               className="h-auto w-[142px]"
             />
-          </button>
+          </Link>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -324,9 +324,9 @@ export default function DashboardLayout({
             const active = isActive(item.path);
             return (
               <div key={item.path}>
-                <button
-                  type="button"
-                  onClick={() => navigate(item.path)}
+                <Link
+                  href={item.path}
+                  onClick={closeNavigation}
                   aria-keyshortcuts={`Alt+${item.shortcutNumber}`}
                   aria-current={active ? "page" : undefined}
                   className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 ${
@@ -344,7 +344,7 @@ export default function DashboardLayout({
                   {active ? (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-300 shadow-[0_0_0_4px_rgba(147,197,253,0.12)]" />
                   ) : null}
-                </button>
+                </Link>
               </div>
             );
           })}
@@ -391,15 +391,15 @@ export default function DashboardLayout({
               className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
             >
               {isAdminLevelRole(userRole) ? (
-                <button
-                  type="button"
+                <Link
+                  href="/settings"
                   role="menuitem"
-                  onClick={() => navigate("/settings")}
+                  onClick={closeNavigation}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                 >
                   <NavigationIcon name="settings" />
                   Settings
-                </button>
+                </Link>
               ) : null}
               <OpenShortcutHelpButton className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none" />
               <button

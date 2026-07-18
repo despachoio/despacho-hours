@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Invoice } from "../page";
 
 type Props = {
@@ -45,9 +46,14 @@ export default function InvoiceInfoCard({
             Client
           </p>
 
-          <p className="mt-1 text-sm font-semibold text-slate-900">
-            {invoice.clients?.name}
-          </p>
+          {invoice.clients?.id ? (
+            <Link
+              href={`/clients/${invoice.clients.id}`}
+              className="mt-1 block text-sm font-semibold text-slate-900 hover:text-[#153E90] hover:underline"
+            >
+              {invoice.clients.name}
+            </Link>
+          ) : null}
         </div>
 
         {invoice.sent_at ? (

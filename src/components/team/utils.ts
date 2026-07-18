@@ -1,12 +1,14 @@
-import { dateRange, weekdays } from "@/components/reports/utils";
+import { dateRange } from "@/lib/metrics/date-ranges";
+import {
+  employeeAnalytics,
+  employeeStatus,
+} from "@/lib/metrics/team-metrics";
 import type {
   EmployeeAnalytics,
-  TeamEmployee,
-  TeamEntry,
   TeamTimer,
 } from "./types";
 
-export { dateRange };
+export { dateRange, employeeAnalytics, employeeStatus };
 
 export function initials(name: string) {
   return name
@@ -16,53 +18,6 @@ export function initials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
-
-export function employeeStatus(
-  employee: TeamEmployee,
-  timer: TeamTimer | null,
-): EmployeeAnalytics["status"] {
-  if (
-    ["on_leave", "leave"].includes(String(employee.status || "").toLowerCase())
-  )
-    return "on_leave";
-  if (timer?.status === "running") return "working";
-  if (timer?.status === "paused") return "paused";
-  return "offline";
-}
-
-export function employeeAnalytics(
-  employee: TeamEmployee,
-  entries: TeamEntry[],
-  timer: TeamTimer | null,
-  from: string,
-  to: string,
-): EmployeeAnalytics {
-  const hours = entries.reduce(
-    (sum, entry) => sum + Number(entry.hours || 0),
-    0,
-  );
-  const workdays = weekdays(from, to);
-  const expectedHours = workdays * 8;
-  return {
-    employee,
-    entries,
-    timer,
-    hours,
-    expectedHours,
-    utilisation: expectedHours ? (hours / expectedHours) * 100 : 0,
-    projects: new Set(entries.map((entry) => entry.project_id)).size,
-    clients: new Set(
-      entries.map((entry) => entry.projects?.clients?.id).filter(Boolean),
-    ).size,
-    averageDailyHours: workdays ? hours / workdays : 0,
-    averageSession: entries.length ? hours / entries.length : 0,
-    longestSession: Math.max(
-      0,
-      ...entries.map((entry) => Number(entry.hours || 0)),
-    ),
-    status: employeeStatus(employee, timer),
-  };
 }
 
 export const statusLabel = (status: EmployeeAnalytics["status"]) =>

@@ -4,40 +4,13 @@ import type {
   DailyDatum,
   ReportEntry,
 } from "./types";
+import {
+  dateKey,
+  dateRange,
+  weekdays,
+} from "@/lib/metrics/date-ranges";
 
-export function dateKey(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
-export function dateRange(preset: string, customFrom = "", customTo = "") {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = new Date(today);
-  const end = new Date(today);
-  if (preset === "custom") return { from: customFrom, to: customTo };
-  if (preset === "yesterday") {
-    start.setDate(start.getDate() - 1);
-    end.setDate(end.getDate() - 1);
-  } else if (["this_week", "last_week"].includes(preset)) {
-    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
-    if (preset === "last_week") start.setDate(start.getDate() - 7);
-    end.setTime(start.getTime());
-    end.setDate(end.getDate() + 6);
-  } else if (["this_month", "last_month"].includes(preset)) {
-    start.setDate(1);
-    if (preset === "last_month") start.setMonth(start.getMonth() - 1);
-    end.setTime(start.getTime());
-    end.setMonth(end.getMonth() + 1, 0);
-  } else if (["this_quarter", "last_quarter"].includes(preset)) {
-    const quarterStart = Math.floor(start.getMonth() / 3) * 3;
-    start.setMonth(quarterStart, 1);
-    if (preset === "last_quarter") start.setMonth(start.getMonth() - 3);
-    end.setTime(start.getTime());
-    end.setMonth(end.getMonth() + 3, 0);
-  }
-  return { from: dateKey(start), to: dateKey(end) };
-}
+export { dateKey, dateRange, weekdays };
 
 export function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -84,19 +57,6 @@ export function formatDuration(seconds: number) {
   ]
     .map((part) => String(part).padStart(2, "0"))
     .join(":");
-}
-
-export function weekdays(from: string, to: string) {
-  if (!from || !to || from > to) return 0;
-  const current = new Date(`${from}T00:00:00Z`);
-  const end = new Date(`${to}T00:00:00Z`);
-  let count = 0;
-  while (current <= end) {
-    const day = current.getUTCDay();
-    if (day !== 0 && day !== 6) count += 1;
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-  return count;
 }
 
 export function aggregateEntries(

@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Bar,
   BarChart,
@@ -19,6 +20,11 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/lib/supabase";
+import {
+  formatInvoiceMoney as money,
+  getInvoiceMetrics,
+} from "@/lib/metrics/invoice-metrics";
+import type { InvoiceMetrics } from "@/lib/metrics/types";
 import { RecurringInvoicesWorkspace } from "./recurring/page";
 
 type InvoiceTab = "overview" | "all" | "recurring";
@@ -36,14 +42,6 @@ type Invoice = {
   clients: { name: string } | null;
 };
 type Client = { id: string; name: string };
-type Kpi = {
-  currency: string;
-  open_amount: number;
-  paid_amount: number;
-  overdue_count: number;
-  overdue_amount: number;
-  invoices_in_year: number;
-};
 type Monthly = {
   month_number: number;
   month: string;
@@ -76,9 +74,6 @@ const MONTHS = [
 ];
 const PAGE_SIZE = 10;
 
-function money(currency: string, value: number) {
-  return `${currency} ${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
@@ -153,11 +148,9 @@ function periodRange(period: string) {
 function InvoiceTable({
   invoices,
   loading,
-  onOpen,
 }: {
   invoices: Invoice[];
   loading: boolean;
-  onOpen: (id: string) => void;
 }) {
   if (loading)
     return (
@@ -201,13 +194,15 @@ function InvoiceTable({
                     ? `/invoices/${invoice.id}/edit`
                     : undefined
                 }
-                onClick={() => onOpen(invoice.id)}
-                className="cursor-pointer border-b border-slate-100 transition hover:bg-blue-50/30"
+                className="border-b border-slate-100 transition hover:bg-blue-50/30"
               >
                 <td className="px-5 py-4">
-                  <span className="font-bold text-slate-950">
+                  <Link
+                    href={`/invoices/${invoice.id}`}
+                    className="font-bold text-slate-950 hover:text-[#153E90] hover:underline"
+                  >
                     #{invoice.invoice_number}
-                  </span>
+                  </Link>
                   {invoice.generated_from_recurring ? (
                     <span className="ml-2 rounded-full bg-violet-50 px-2 py-1 text-[9px] font-bold uppercase text-violet-700">
                       Recurring
@@ -215,7 +210,16 @@ function InvoiceTable({
                   ) : null}
                 </td>
                 <td className="px-5 py-4 font-semibold text-slate-700">
-                  {invoice.clients?.name || "—"}
+                  {invoice.clients?.name ? (
+                    <Link
+                      href={`/clients/${invoice.client_id}`}
+                      className="hover:text-[#153E90] hover:underline"
+                    >
+                      {invoice.clients.name}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-500">
                   {formatDate(invoice.issue_date)}
@@ -298,12 +302,11 @@ function InvoicesPageContent() {
   const [selectedYear, setSelectedYear] = useState(
     Number(searchParams.get("year")) || currentYear,
   );
-  const [actualOverdueCount, setActualOverdueCount] = useState(0);
   const [chartCurrency, setChartCurrency] = useState(
     searchParams.get("currency") || "",
   );
   const [dimensions, setDimensions] = useState<Dimension[]>([]);
-  const [kpis, setKpis] = useState<Kpi[]>([]);
+  const [invoiceMetrics, setInvoiceMetrics] = useState<InvoiceMetrics | null>(null);
   const [monthly, setMonthly] = useState<Monthly[]>([]);
   const [recent, setRecent] = useState<Invoice[]>([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
@@ -397,53 +400,23 @@ function InvoicesPageContent() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadKpis() {
       setOverviewLoading(true);
-
-      const today = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date());
-
-      const [kpiResult, overdueResult] = await Promise.all([
-        supabase.rpc("get_invoice_kpi_summary", {
-          p_year: selectedYear,
-        }),
-
-        supabase
-          .from("invoices")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["sent", "overdue"])
-          .lt("due_date", today),
-      ]);
-
-      if (kpiResult.error) {
-        setError(kpiResult.error.message);
+      try {
+        const metrics = await getInvoiceMetrics({ year: selectedYear });
+        if (!cancelled) setInvoiceMetrics(metrics);
+      } catch (metricError) {
+        console.error("Unable to load invoice metrics", metricError);
+        if (!cancelled) setError("Unable to load invoice metrics right now.");
+      } finally {
+        if (!cancelled) setOverviewLoading(false);
       }
-
-      if (overdueResult.error) {
-        setError(overdueResult.error.message);
-      }
-
-      const rows = (kpiResult.data || []) as RpcRow[];
-
-      setKpis(
-        rows.map((row) => ({
-          ...row,
-          open_amount: Number(row.open_amount),
-          paid_amount: Number(row.paid_amount),
-          overdue_count: Number(row.overdue_count),
-          overdue_amount: Number(row.overdue_amount),
-          invoices_in_year: Number(row.invoices_in_year),
-        })) as Kpi[],
-      );
-
-      setActualOverdueCount(overdueResult.count || 0);
-      setOverviewLoading(false);
     }
     void loadKpis();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedYear]);
 
   useEffect(() => {
@@ -638,10 +611,7 @@ function InvoicesPageContent() {
     () => Array.from(new Set(dimensions.map((row) => row.currency))).sort(),
     [dimensions],
   );
-  const invoiceYearCount = kpis.reduce(
-    (sum, row) => sum + row.invoices_in_year,
-    0,
-  );
+  const invoiceYearCount = invoiceMetrics?.invoiceCount || 0;
 
   function resetFilters() {
     setClientFilter("");
@@ -747,17 +717,17 @@ function InvoicesPageContent() {
                     Total Open
                   </p>
                   <div className="mt-4 space-y-2">
-                    {kpis
-                      .filter((row) => row.open_amount > 0)
+                    {invoiceMetrics?.currencies
+                      .filter((row) => row.openAmount > 0)
                       .map((row) => (
                         <p
                           key={row.currency}
                           className="text-2xl font-bold text-[#153E90]"
                         >
-                          {money(row.currency, row.open_amount)}
+                          {money(row.currency, row.openAmount)}
                         </p>
                       ))}
-                    {!kpis.some((row) => row.open_amount > 0) ? (
+                    {!invoiceMetrics?.currencies.some((row) => row.openAmount > 0) ? (
                       <p className="text-2xl font-bold">—</p>
                     ) : null}
                   </div>
@@ -774,17 +744,17 @@ function InvoicesPageContent() {
                     Total Paid
                   </p>
                   <div className="mt-4 space-y-2">
-                    {kpis
-                      .filter((row) => row.paid_amount > 0)
+                    {invoiceMetrics?.currencies
+                      .filter((row) => row.paidAmount > 0)
                       .map((row) => (
                         <p
                           key={row.currency}
                           className="text-2xl font-bold text-emerald-700"
                         >
-                          {money(row.currency, row.paid_amount)}
+                          {money(row.currency, row.paidAmount)}
                         </p>
                       ))}
-                    {!kpis.some((row) => row.paid_amount > 0) ? (
+                    {!invoiceMetrics?.currencies.some((row) => row.paidAmount > 0) ? (
                       <p className="text-2xl font-bold">—</p>
                     ) : null}
                   </div>
@@ -816,17 +786,17 @@ function InvoicesPageContent() {
                     Overdue
                   </p>
                   <p className="mt-4 text-3xl font-bold text-red-700">
-                    {actualOverdueCount}
+                    {invoiceMetrics?.overdueCount || 0}
                   </p>
                   <div className="mt-3 space-y-1">
-                    {kpis
-                      .filter((row) => row.overdue_amount > 0)
+                    {invoiceMetrics?.currencies
+                      .filter((row) => row.overdueAmount > 0)
                       .map((row) => (
                         <p
                           key={row.currency}
                           className="text-sm font-bold text-red-600"
                         >
-                          {money(row.currency, row.overdue_amount)}
+                          {money(row.currency, row.overdueAmount)}
                         </p>
                       ))}
                   </div>
@@ -967,7 +937,6 @@ function InvoicesPageContent() {
                 <InvoiceTable
                   invoices={recent}
                   loading={overviewLoading}
-                  onOpen={(id) => router.push(`/invoices/${id}`)}
                 />
               )}
             </section>
@@ -1080,7 +1049,6 @@ function InvoicesPageContent() {
                 <InvoiceTable
                   invoices={allInvoices}
                   loading={tableLoading}
-                  onOpen={(id) => router.push(`/invoices/${id}`)}
                 />
               )}
             </div>
@@ -1175,8 +1143,8 @@ function InvoicesPageContent() {
               </button>
             </div>
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
-              <button
-                onClick={() => router.push("/invoices/new")}
+              <Link
+                href="/invoices/new"
                 className="group rounded-2xl border border-slate-200 p-5 text-left hover:border-blue-300 hover:bg-blue-50/30"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#153E90]">
@@ -1197,9 +1165,9 @@ function InvoicesPageContent() {
                 <span className="mt-5 inline-flex text-sm font-bold text-[#153E90]">
                   Create One-Time Invoice →
                 </span>
-              </button>
-              <button
-                onClick={() => router.push("/invoices/recurring/new")}
+              </Link>
+              <Link
+                href="/invoices/recurring/new"
                 className="group rounded-2xl border border-slate-200 p-5 text-left hover:border-violet-300 hover:bg-violet-50/30"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
@@ -1221,7 +1189,7 @@ function InvoicesPageContent() {
                 <span className="mt-5 inline-flex text-sm font-bold text-violet-700">
                   Create Recurring Invoice →
                 </span>
-              </button>
+              </Link>
             </div>
             <div className="mt-6 flex justify-end">
               <button
