@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { supabase } from "@/lib/supabase";
 import {
+  fetchOverdueInvoices,
   formatInvoiceMoney as money,
   getInvoiceMetrics,
 } from "@/lib/metrics/invoice-metrics";
@@ -458,6 +459,42 @@ function InvoicesPageContent() {
         .ilike("name", `%${debouncedSearch}%`);
       matchingClientIds = (clientsResult.data || []).map((client) => client.id);
     }
+    if (matchingClientIds && !matchingClientIds.length) {
+      setAllInvoices([]);
+      setInvoiceCount(0);
+      setTableLoading(false);
+      return;
+    }
+    const range =
+      period === "custom"
+        ? customFrom || customTo
+          ? { start: customFrom, end: customTo }
+          : null
+        : periodRange(period);
+    if (statusFilter === "overdue") {
+      try {
+        const overdueInvoices = await fetchOverdueInvoices({
+          clientId: clientFilter || undefined,
+          currency: currencyFilter || undefined,
+          issueDateFrom: range?.start,
+          issueDateTo: range?.end,
+          invoiceNumber:
+            debouncedSearch && /^\d+$/.test(numericSearch)
+              ? Number(numericSearch)
+              : undefined,
+          clientIds: matchingClientIds || undefined,
+        });
+        const from = (page - 1) * PAGE_SIZE;
+        setAllInvoices(overdueInvoices.slice(from, from + PAGE_SIZE));
+        setInvoiceCount(overdueInvoices.length);
+      } catch (overdueError) {
+        console.error("Unable to load overdue invoices", overdueError);
+        setError("Unable to load overdue invoices right now.");
+      } finally {
+        setTableLoading(false);
+      }
+      return;
+    }
     let query = supabase
       .from("invoices")
       .select(
@@ -467,37 +504,13 @@ function InvoicesPageContent() {
     if (clientFilter) query = query.eq("client_id", clientFilter);
     if (statusFilter === "open")
       query = query.in("status", ["draft", "sent", "overdue"]);
-    else if (statusFilter === "overdue")
-      query = query.in("status", ["sent", "overdue"]).lt(
-        "due_date",
-        new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Asia/Kolkata",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(new Date()),
-      );
     else if (statusFilter) query = query.eq("status", statusFilter);
     if (currencyFilter) query = query.eq("currency", currencyFilter);
-    const range =
-      period === "custom"
-        ? customFrom || customTo
-          ? { start: customFrom, end: customTo }
-          : null
-        : periodRange(period);
     if (range?.start) query = query.gte("issue_date", range.start);
     if (range?.end) query = query.lte("issue_date", range.end);
     if (debouncedSearch && /^\d+$/.test(numericSearch))
       query = query.eq("invoice_number", Number(numericSearch));
-    else if (matchingClientIds) {
-      if (!matchingClientIds.length) {
-        setAllInvoices([]);
-        setInvoiceCount(0);
-        setTableLoading(false);
-        return;
-      }
-      query = query.in("client_id", matchingClientIds);
-    }
+    else if (matchingClientIds) query = query.in("client_id", matchingClientIds);
     const from = (page - 1) * PAGE_SIZE;
     const result = await query
       .order("invoice_number", { ascending: false })
@@ -801,7 +814,7 @@ function InvoicesPageContent() {
                       ))}
                   </div>
                   <p className="mt-3 text-xs text-slate-400">
-                    Past due today · View all →
+                    Past due · View all →
                   </p>
                 </button>
               </div>

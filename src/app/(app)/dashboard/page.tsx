@@ -330,7 +330,7 @@ export default function DashboardPage() {
                 secondaryValues={(invoiceMetrics?.currencies || [])
                   .filter((row) => row.overdueAmount > 0)
                   .map((row) => money(row.currency, row.overdueAmount))}
-                note="Past due today"
+                note="Past due"
                 tone="red"
                 href="/invoices?tab=all&status=overdue"
               />

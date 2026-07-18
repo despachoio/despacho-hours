@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -117,19 +117,34 @@ export default function ProjectsPage() {
     void loadProjects();
   }, []);
 
-  const filtered = projects.filter((project) => {
-    const q = search.toLowerCase();
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
 
-    const matchesSearch =
-      project.name.toLowerCase().includes(q) ||
-      (project.project_code || "").toLowerCase().includes(q) ||
-      (project.clients?.name || "").toLowerCase().includes(q);
+    return projects.filter((project) => {
+      const matchesSearch =
+        project.name.toLowerCase().includes(q) ||
+        (project.project_code || "").toLowerCase().includes(q) ||
+        (project.clients?.name || "").toLowerCase().includes(q);
+      const matchesStatus =
+        statusFilter === "all" ||
+        project.status?.toLowerCase() === statusFilter;
 
-    const matchesStatus =
-      statusFilter === "all" || project.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [projects, search, statusFilter]);
 
-    return matchesSearch && matchesStatus;
-  });
+  const metrics = useMemo(
+    () => ({
+      total: projects.length,
+      active: projects.filter(
+        (project) => project.status?.toLowerCase() === "active",
+      ).length,
+      archived: projects.filter(
+        (project) => project.status?.toLowerCase() === "archived",
+      ).length,
+    }),
+    [projects],
+  );
 
   const groupedProjects = Object.entries(
     filtered.reduce(
@@ -204,22 +219,55 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        <div className="relative z-10 -mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60 sm:mx-5 sm:flex-row">
-          <input
-            data-shortcut-search
-            placeholder="Search projects..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
-          />
+        <section className="relative z-10 -mt-3 grid grid-cols-3 gap-4 px-3 lg:px-6">
+          {[
+            ["Total Projects", metrics.total],
+            ["Active", metrics.active],
+            ["Archived", metrics.archived],
+          ].map(([label, value]) => (
+            <article
+              key={label}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-200/60"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">
+                {label}
+              </p>
+              <p className="mt-3 text-2xl font-bold text-[#153E90] sm:text-3xl">
+                {value}
+              </p>
+            </article>
+          ))}
+        </section>
 
-          <KairoSegmentedControl
-            options={STATUS_OPTIONS}
-            value={statusFilter}
-            onChange={setStatusFilter}
-            ariaLabel="Filter projects by status"
-          />
-        </div>
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="shrink-0 lg:w-44">
+              <h2 className="font-bold text-slate-950">Project portfolio</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {filtered.length} {filtered.length === 1 ? "project" : "projects"}{" "}
+                shown
+              </p>
+            </div>
+            <label className="relative block min-w-0 flex-1">
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+                ⌕
+              </span>
+              <input
+                data-shortcut-search
+                placeholder="Search projects..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+            <KairoSegmentedControl
+              options={STATUS_OPTIONS}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              ariaLabel="Filter projects by status"
+            />
+          </div>
+        </section>
 
         <div className="mt-8 space-y-8">
           {groupedProjects.length ? (
