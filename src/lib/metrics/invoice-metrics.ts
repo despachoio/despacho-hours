@@ -65,6 +65,7 @@ function currencySummary(
     currency: key,
     openAmount: 0,
     paidAmount: 0,
+    paidInYearAmount: 0,
     overdueCount: 0,
     overdueAmount: 0,
     invoicesInYear: 0,
@@ -91,6 +92,12 @@ export function calculateInvoiceMetrics(
 
     if (["sent", "overdue"].includes(status)) summary.openAmount += total;
     if (status === "paid") summary.paidAmount += paid || total;
+    if (
+      status === "paid" &&
+      invoice.paid_at?.slice(0, 4) === String(selectedYear)
+    ) {
+      summary.paidInYearAmount += paid || total;
+    }
     if (
       invoice.issue_date?.slice(0, 4) === String(selectedYear) &&
       !["void", "voided", "cancelled", "canceled"].includes(status)
@@ -173,7 +180,7 @@ export async function getInvoiceMetrics(
   filters: InvoiceMetricFilters,
 ): Promise<InvoiceMetrics> {
   const invoices = await fetchAllInvoiceRows<InvoiceMetricRow>(
-    "id,currency,total_amount,paid_amount,status,issue_date,due_date,invoice_number",
+    "id,currency,total_amount,paid_amount,paid_at,status,issue_date,due_date,invoice_number",
   );
   return calculateInvoiceMetrics(invoices, filters.year);
 }

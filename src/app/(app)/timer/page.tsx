@@ -2299,7 +2299,7 @@ return (
                 <div className="max-h-[560px] overflow-auto">
                   <table className="w-full min-w-[1050px]">
                     <thead className="sticky top-0 z-10 bg-slate-950 text-xs uppercase tracking-wide text-white">
-                      <tr><th className="px-5 py-3 text-left">Employee</th><th className="px-5 py-3 text-left">Client</th><th className="px-5 py-3 text-left">Project</th><th className="px-5 py-3 text-left">Description</th><th className="px-5 py-3 text-center">Start</th><th className="px-5 py-3 text-center">End</th><th className="px-5 py-3 text-right">Hours</th><th className="px-5 py-3 text-right">Actions</th></tr>
+                      <tr><th className="px-5 py-3 text-left">Employee</th><th className="px-5 py-3 text-left">Client</th><th className="px-5 py-3 text-left">Project</th><th className="px-5 py-3 text-left">Description</th><th className="px-5 py-3 text-center">Start</th><th className="px-5 py-3 text-center">End</th><th className="px-5 py-3 text-right">Hours</th><th className="px-5 py-3 text-center">Actions</th></tr>
                     </thead>
                     <tbody>
                       {dateEntries.map((entry, index) => (

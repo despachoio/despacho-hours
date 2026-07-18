@@ -30,6 +30,7 @@ export type InvoiceMetricRow = {
   currency: string | null;
   total_amount: number | null;
   paid_amount: number | null;
+  paid_at: string | null;
   status: string | null;
   issue_date: string | null;
   due_date: string | null;
@@ -63,6 +64,7 @@ export type CurrencyInvoiceSummary = {
   currency: string;
   openAmount: number;
   paidAmount: number;
+  paidInYearAmount: number;
   overdueCount: number;
   overdueAmount: number;
   invoicesInYear: number;

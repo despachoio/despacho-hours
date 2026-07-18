@@ -6,10 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
 import { dateRange, currentBusinessYear } from "@/lib/metrics/date-ranges";
 import { getTeamMetrics } from "@/lib/metrics/team-metrics";
-import {
-  formatInvoiceMoney as money,
-  getInvoiceMetrics,
-} from "@/lib/metrics/invoice-metrics";
+import { getInvoiceMetrics } from "@/lib/metrics/invoice-metrics";
 import type { InvoiceMetrics, TeamMetrics } from "@/lib/metrics/types";
 
 type Client = { id: string; status: string };
@@ -69,6 +66,13 @@ function initials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function wholeMoney(currency: string, value: number) {
+  return `${currency} ${Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
 }
 
 export default function DashboardPage() {
@@ -303,7 +307,7 @@ export default function DashboardPage() {
                 label="Total Open"
                 values={(invoiceMetrics?.currencies || [])
                   .filter((row) => row.openAmount > 0)
-                  .map((row) => money(row.currency, row.openAmount))}
+                  .map((row) => wholeMoney(row.currency, row.openAmount))}
                 note="Sent and overdue invoices"
                 tone="blue"
                 href="/invoices?tab=all&status=open"
@@ -312,24 +316,28 @@ export default function DashboardPage() {
                 label="Total Paid"
                 values={(invoiceMetrics?.currencies || [])
                   .filter((row) => row.paidAmount > 0)
-                  .map((row) => money(row.currency, row.paidAmount))}
+                  .map((row) => wholeMoney(row.currency, row.paidAmount))}
                 note="Completed collections"
                 tone="green"
                 href="/invoices?tab=all&status=paid"
               />
               <InvoiceCard
-                label={`Invoices in ${invoiceYear}`}
-                values={[invoiceMetrics ? String(invoiceMetrics.invoiceCount) : "—"]}
-                note="Draft, sent, overdue, and paid"
+                label={`Invoices Paid in ${invoiceYear}`}
+                values={(invoiceMetrics?.currencies || [])
+                  .filter((row) => row.paidInYearAmount > 0)
+                  .map((row) =>
+                    wholeMoney(row.currency, row.paidInYearAmount),
+                  )}
+                note={`Paid during ${invoiceYear}`}
                 tone="navy"
-                href={`/invoices?tab=all&year=${invoiceYear}`}
+                href={`/invoices?tab=all&status=paid&year=${invoiceYear}`}
               />
               <InvoiceCard
                 label="Overdue"
                 values={[invoiceMetrics ? String(invoiceMetrics.overdueCount) : "—"]}
                 secondaryValues={(invoiceMetrics?.currencies || [])
                   .filter((row) => row.overdueAmount > 0)
-                  .map((row) => money(row.currency, row.overdueAmount))}
+                  .map((row) => wholeMoney(row.currency, row.overdueAmount))}
                 note="Past due"
                 tone="red"
                 href="/invoices?tab=all&status=overdue"
