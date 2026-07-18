@@ -329,7 +329,7 @@ export default function DashboardPage() {
                     wholeMoney(row.currency, row.paidInYearAmount),
                   )}
                 note={`Paid during ${invoiceYear}`}
-                tone="navy"
+                tone="green"
                 href={`/invoices?tab=all&status=paid&year=${invoiceYear}`}
               />
               <InvoiceCard

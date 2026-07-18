@@ -624,7 +624,9 @@ function InvoicesPageContent() {
     () => Array.from(new Set(dimensions.map((row) => row.currency))).sort(),
     [dimensions],
   );
-  const invoiceYearCount = invoiceMetrics?.invoiceCount || 0;
+  const paidInYearTotals = (invoiceMetrics?.currencies || []).filter(
+    (row) => row.paidInYearAmount > 0,
+  );
 
   function resetFilters() {
     setClientFilter("");
@@ -777,17 +779,28 @@ function InvoicesPageContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => showFilteredInvoices("", selectedYear)}
+                  onClick={() => showFilteredInvoices("paid")}
                   className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg"
                 >
                   <p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">
-                    Invoices in {selectedYear}
+                    Invoices Paid in {selectedYear}
                   </p>
-                  <p className="mt-4 text-3xl font-bold text-slate-950">
-                    {invoiceYearCount}
-                  </p>
+                  <div className="mt-4 space-y-2">
+                    {paidInYearTotals.length ? (
+                      paidInYearTotals.map((row) => (
+                        <p
+                          key={row.currency}
+                          className="text-2xl font-bold text-emerald-700"
+                        >
+                          {money(row.currency, row.paidInYearAmount)}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-2xl font-bold text-slate-950">—</p>
+                    )}
+                  </div>
                   <p className="mt-4 text-xs text-slate-400">
-                    Draft, sent, overdue, and paid · View →
+                    Paid during {selectedYear} · View →
                   </p>
                 </button>
                 <button

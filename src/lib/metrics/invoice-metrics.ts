@@ -26,8 +26,8 @@ const OVERDUE_EXCLUDED_STATUSES = new Set([
 
 export function formatInvoiceMoney(currency: string, value: number) {
   return `${currency} ${Number(value || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   })}`;
 }
 
