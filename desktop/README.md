@@ -55,3 +55,24 @@ npm run desktop:build:mac:zip
 
 Never add Supabase service-role, Stripe secret, Google private-key, cron, or
 other server credentials to this directory or to Electron configuration.
+
+## Full Kairo desktop app
+
+The full desktop app uses `main-full.cjs` and `electron-builder-full.yml`. It
+has a separate application ID from Kairo Timer, so both applications can be
+installed and used on the same computer.
+
+Build the full Windows installer with:
+
+```sh
+npm run desktop:full:build:win
+```
+
+Build the full Apple Silicon Mac ZIP with:
+
+```sh
+npm run desktop:full:build:mac:zip
+```
+
+Full-app packages are written to `dist-desktop-full/`; timer packages remain
+in `dist-desktop/`.

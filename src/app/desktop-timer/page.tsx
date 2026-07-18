@@ -310,12 +310,18 @@ export default function DesktopTimerPage() {
     });
   }, [stopActiveTimerForExit]);
 
+  const selectedClientId = activeTimer
+    ? projects.find((project) => project.id === activeTimer.project_id)
+        ?.client_id || ""
+    : clientId;
   const filteredProjects = useMemo(
     () =>
-      clientId
-        ? projects.filter((project) => project.client_id === clientId)
-        : projects,
-    [clientId, projects],
+      selectedClientId
+        ? projects.filter(
+            (project) => project.client_id === selectedClientId,
+          )
+        : [],
+    [projects, selectedClientId],
   );
 
   async function login(event: React.FormEvent<HTMLFormElement>) {
@@ -474,9 +480,6 @@ export default function DesktopTimerPage() {
   const currentProject = projects.find(
     (project) => project.id === activeTimer?.project_id,
   );
-  const selectedClientId = activeTimer
-    ? currentProject?.client_id || clientId
-    : clientId;
   const seconds = activeTimer
     ? elapsedSeconds(activeTimer, tick || new Date(activeTimer.started_at).getTime())
     : 0;
@@ -525,7 +528,7 @@ export default function DesktopTimerPage() {
                 disabled={Boolean(activeTimer) || busy}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#153E90] disabled:bg-slate-100"
               >
-                <option value="">All assigned clients</option>
+                <option value="">Select client</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>{client.name}</option>
                 ))}
@@ -537,11 +540,15 @@ export default function DesktopTimerPage() {
               <select
                 value={projectId}
                 onChange={(event) => setProjectId(event.target.value)}
-                disabled={Boolean(activeTimer) || busy}
+                disabled={!selectedClientId || Boolean(activeTimer) || busy}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#153E90] disabled:bg-slate-100"
               >
                 <option value="">
-                  {projects.length ? "Select assigned project" : "No assigned projects"}
+                  {!selectedClientId
+                    ? "Select client first"
+                    : filteredProjects.length
+                      ? "Select assigned project"
+                      : "No assigned projects for this client"}
                 </option>
                 {filteredProjects.map((project) => (
                   <option key={project.id} value={project.id}>

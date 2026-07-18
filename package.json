@@ -13,7 +13,10 @@
     "desktop:pack:mac": "electron-builder --projectDir desktop --config electron-builder.yml --mac dir --arm64",
     "desktop:build:mac": "electron-builder --projectDir desktop --config electron-builder.yml --mac dmg --arm64",
     "desktop:build:mac:zip": "electron-builder --projectDir desktop --config electron-builder.yml --mac zip --arm64",
-    "desktop:build:mac:universal": "electron-builder --projectDir desktop --config electron-builder.yml --mac dmg --universal"
+    "desktop:build:mac:universal": "electron-builder --projectDir desktop --config electron-builder.yml --mac dmg --universal",
+    "desktop:full:dev": "electron desktop/main-full.cjs",
+    "desktop:full:build:win": "electron-builder --projectDir desktop --config electron-builder-full.yml --win nsis --x64",
+    "desktop:full:build:mac:zip": "electron-builder --projectDir desktop --config electron-builder-full.yml --mac zip --arm64"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",

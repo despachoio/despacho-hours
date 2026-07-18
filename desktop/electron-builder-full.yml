@@ -1,0 +1,37 @@
+appId: io.despacho.kairo
+productName: Kairo
+electronVersion: 43.1.1
+asar: true
+extraMetadata:
+  name: kairo-desktop
+  main: main-full.cjs
+directories:
+  output: ../dist-desktop-full
+  buildResources: assets
+files:
+  - "**/*"
+  - "!electron-builder.yml"
+  - "!electron-builder-full.yml"
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: kairo-icon.png
+  artifactName: Kairo-Setup-${version}.${ext}
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  icon: kairo-icon-mac.png
+  category: public.app-category.business
+  artifactName: Kairo-${version}-${arch}.${ext}
+  hardenedRuntime: true
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Kairo
+  deleteAppDataOnUninstall: false
