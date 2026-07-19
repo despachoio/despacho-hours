@@ -30,7 +30,7 @@ export default function TeamSummaryCards({
         ["Hours Logged", `${formatDecimalHours(summary.totalHoursLogged)} hrs`],
         [
           "Billable Hours",
-          `${formatDecimalHours(summary.totalBillableHours)}`,
+          `${formatDecimalHours(summary.totalBillableHours)} hrs`,
         ],
         [
           "Average Utilisation",
