@@ -15,7 +15,7 @@ import InvoiceTimeline from "./components/InvoiceTimeline";
 
 export type Invoice = {
   id: string;
-  invoice_number: number;
+  invoice_number: number | null;
   created_at: string;
 
   issue_date: string;

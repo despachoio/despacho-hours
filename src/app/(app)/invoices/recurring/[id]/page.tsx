@@ -21,7 +21,7 @@ type Occurrence = {
   skip_reason: string | null;
   generated_invoice_id: string | null;
   invoices: {
-    invoice_number: number;
+    invoice_number: number | null;
     status: string;
     total_amount: number;
     currency: string;
@@ -125,7 +125,9 @@ export default function RecurringScheduleDetailPage() {
                   {occurrence.invoices ? (
                     <>
                       <p className="font-bold">
-                        Invoice #{occurrence.invoices.invoice_number} ·{" "}
+                        {occurrence.invoices.invoice_number
+                          ? `Invoice #${occurrence.invoices.invoice_number}`
+                          : "Draft invoice"} ·{" "}
                         {occurrence.invoices.currency}{" "}
                         {Number(occurrence.invoices.total_amount).toFixed(2)}
                       </p>

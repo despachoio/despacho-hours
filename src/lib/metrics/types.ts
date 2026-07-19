@@ -40,7 +40,7 @@ export type InvoiceListRow = Omit<
   InvoiceMetricRow,
   "currency" | "total_amount" | "status" | "issue_date" | "due_date"
 > & {
-  invoice_number: number;
+  invoice_number: number | null;
   client_id: string;
   currency: string;
   total_amount: number;

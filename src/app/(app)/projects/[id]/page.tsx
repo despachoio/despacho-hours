@@ -52,6 +52,7 @@ type Project = {
   remaining_hours: number;
 
   status: string;
+  is_billable: boolean;
 
 
   clients: {
@@ -140,6 +141,9 @@ useState("");
 
 const [startDate,setStartDate] =
 useState("");
+
+const [isBillable,setIsBillable] =
+useState(true);
 
 
 
@@ -263,6 +267,8 @@ setStartDate(
 data.start_date || ""
 );
 
+setIsBillable(data.is_billable !== false);
+
 
 
 
@@ -368,6 +374,7 @@ async function saveProject() {
       project_code: projectCode,
       name: projectName,
       start_date: startDate || null,
+      is_billable: isBillable,
       purchased_hours: purchased,
       remaining_hours: purchased - project.used_hours,
     })
@@ -631,6 +638,10 @@ Project Code: {project.project_code}
 {project.name}
 
 </h1>
+
+<span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${project.is_billable ? "bg-blue-100 text-blue-800" : "bg-violet-100 text-violet-800"}`}>
+  {project.is_billable ? "Billable" : "Non-billable"}
+</span>
 
 
 
@@ -896,6 +907,20 @@ No activity yet.
         onChange={(e) => setStartDate(e.target.value)}
         className="w-full rounded-2xl border px-5 py-3"
       />
+    </div>
+
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-slate-600">
+        Billing Type
+      </label>
+      <select
+        value={isBillable ? "billable" : "non_billable"}
+        onChange={(event) => setIsBillable(event.target.value === "billable")}
+        className="w-full rounded-2xl border px-5 py-3"
+      >
+        <option value="billable">Billable</option>
+        <option value="non_billable">Non-billable</option>
+      </select>
     </div>
 
     <div>

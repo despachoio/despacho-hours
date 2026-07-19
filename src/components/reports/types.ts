@@ -15,6 +15,7 @@ export type ReportEntry = {
     name: string;
     project_code: string | null;
     remaining_hours: number;
+    is_billable: boolean;
     clients: { id: string; name: string } | null;
   } | null;
 };
@@ -33,6 +34,7 @@ export type LiveTimer = {
     id: string;
     name: string;
     project_code: string | null;
+    is_billable: boolean;
     clients: { id: string; name: string } | null;
   } | null;
 };
@@ -41,6 +43,7 @@ export type ReportFiltersValue = {
   employeeId: string;
   clientId: string;
   projectId: string;
+  billingType: "all" | "billable" | "non_billable";
   datePreset: string;
   customFrom: string;
   customTo: string;

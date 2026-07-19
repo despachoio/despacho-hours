@@ -35,7 +35,7 @@ export default function InvoiceHeader({
           </p>
 
           <h1 className="mt-1 text-4xl font-bold tracking-tight text-slate-950">
-            #{invoice.invoice_number}
+            {invoice.invoice_number ? `#${invoice.invoice_number}` : "Draft"}
           </h1>
 
           {invoice.clients?.id ? (

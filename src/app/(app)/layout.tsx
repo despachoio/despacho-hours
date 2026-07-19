@@ -10,6 +10,7 @@ import {
   ShortcutProvider,
 } from "@/components/shortcuts/ShortcutProvider";
 import { isAdminLevelRole } from "@/lib/roles";
+import { requiresAdminMobileAccess } from "@/lib/client-device";
 
 type IconName =
   | "dashboard"
@@ -168,18 +169,6 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function isMobileBrowser() {
-  const userAgent = navigator.userAgent || "";
-  const reportsMobileDevice =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(
-      userAgent,
-    );
-  const isIPadRequestingDesktopSite =
-    /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
-
-  return reportsMobileDevice || isIPadRequestingDesktopSite;
-}
-
 export default function DashboardLayout({
   children,
 }: {
@@ -212,7 +201,7 @@ export default function DashboardLayout({
       setUserName(profile?.full_name || data.user.email?.split("@")[0] || "");
       setUserRole(resolvedRole);
       setAccessState(
-        isMobileBrowser() && !isAdminLevelRole(resolvedRole)
+        requiresAdminMobileAccess() && !isAdminLevelRole(resolvedRole)
           ? "mobile-blocked"
           : "allowed",
       );

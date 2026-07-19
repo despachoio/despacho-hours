@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { requiresAdminMobileAccess } from "@/lib/client-device";
+import { isAdminLevelRole } from "@/lib/roles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const loginLockRef = useRef(false);
 
@@ -30,6 +33,7 @@ export default function LoginPage() {
 
     loginLockRef.current = true;
     setIsLoggingIn(true);
+    setLoginError("");
 
     try {
       if (rememberMe) {
@@ -38,7 +42,7 @@ export default function LoginPage() {
         window.localStorage.removeItem("kairo-remember-me");
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
       });
@@ -46,6 +50,23 @@ export default function LoginPage() {
       if (error) {
         alert(error.message);
         return;
+      }
+
+      if (requiresAdminMobileAccess()) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", authData.user.id)
+          .single();
+
+        if (profileError || !isAdminLevelRole(profile?.role)) {
+          await supabase.auth.signOut();
+          setPassword("");
+          setLoginError(
+            "The Kairo mobile app is available only to Admin and Super Admin accounts.",
+          );
+          return;
+        }
       }
 
       router.replace("/dashboard");
@@ -77,10 +98,19 @@ export default function LoginPage() {
           The Pulse of Despacho
         </p>
 
+        {loginError ? (
+          <div
+            role="alert"
+            className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-6 text-red-700"
+          >
+            {loginError}
+          </div>
+        ) : null}
+
         <form
           onSubmit={login}
           aria-busy={isLoggingIn}
-          className="mt-8 space-y-4"
+          className={`${loginError ? "mt-5" : "mt-8"} space-y-4`}
         >
           <input
             type="email"

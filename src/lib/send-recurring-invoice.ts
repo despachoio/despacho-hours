@@ -38,6 +38,11 @@ function escape(value: string) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
+function applyInvoiceNumber(value: string, invoiceNumber: number) {
+  return value
+    .replaceAll("{{invoice_number}}", String(invoiceNumber))
+    .replaceAll("#null", `#${invoiceNumber}`);
+}
 
 function firstReminderAt(dueDate: string, before: number[], after: number[]) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -94,12 +99,26 @@ export async function sendRecurringInvoice(
   );
   if (!to.length)
     throw new Error("Stored recurring invoice recipients are missing");
-  const subject =
+  let invoiceNumber = Number(invoice.invoice_number || 0);
+  if (!invoiceNumber) {
+    const { data: reservedNumber, error: numberError } = await admin.rpc(
+      "reserve_invoice_number_for_send",
+    );
+    invoiceNumber = Number(reservedNumber || 0);
+    if (numberError || !Number.isSafeInteger(invoiceNumber) || invoiceNumber <= 0)
+      throw new Error("Unable to reserve an invoice number");
+  }
+  const subject = applyInvoiceNumber(
     invoice.draft_email_subject ||
-    `Invoice #${invoice.invoice_number} from ${companySettings.company_name}`;
-  const message =
+      `Invoice #{{invoice_number}} from ${companySettings.company_name}`,
+    invoiceNumber,
+  );
+  const message = applyInvoiceNumber(
     invoice.draft_email_body ||
-    `Hello,\n\nPlease find attached Invoice #${invoice.invoice_number}.\n\nKindly make payment before ${invoice.due_date}.\n\nThank you.\n\nRegards,\n${companySettings.company_name}`;
+      `Hello,\n\nPlease find attached Invoice #{{invoice_number}}.\n\nKindly make payment before ${invoice.due_date}.\n\nThank you.\n\nRegards,\n${companySettings.company_name}`,
+    invoiceNumber,
+  );
+  const numberedInvoice = { ...invoice, invoice_number: invoiceNumber };
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL is not configured");
   if (!invoice.public_payment_token)
@@ -110,7 +129,7 @@ export async function sendRecurringInvoice(
     await loadCompanyLogo(companySettings);
   const pdf = await renderToBuffer(
     createElement(InvoicePdfDocument, {
-      invoice,
+      invoice: numberedInvoice,
       items: items || [],
       logoSrc,
       companySettings,
@@ -118,7 +137,7 @@ export async function sendRecurringInvoice(
   );
   const boundary = `mixed_${crypto.randomUUID()}`;
   const alternative = `alt_${crypto.randomUUID()}`;
-  const html = `<html><body style="font-family:Arial;color:#0f172a;background:#f8fafc;padding:24px"><div style="max-width:620px;margin:auto;background:#fff;padding:32px;border-radius:16px"><img src="cid:despacho-logo" width="180" alt="${escape(companySettings.company_name)}"><h2>Invoice #${invoice.invoice_number}</h2><p style="line-height:1.7;color:#475569">${escape(message).replaceAll("\n", "<br>")}</p><p style="margin:26px 0;text-align:center"><a href="${escape(paymentUrl)}" style="display:inline-block;border-radius:12px;background:#153e90;padding:14px 28px;color:#fff;text-decoration:none;font-weight:700">Pay Invoice</a></p><p style="font-size:11px;color:#94a3b8;word-break:break-all">${escape(paymentUrl)}</p><p style="margin-top:24px;color:#64748b;font-size:12px">Questions? ${escape(companySettings.business_email || GOOGLE_WORKSPACE_SENDER)}<br>${escape(companySettings.website || "https://www.despacho.io")}</p></div></body></html>`;
+  const html = `<html><body style="font-family:Arial;color:#0f172a;background:#f8fafc;padding:24px"><div style="max-width:620px;margin:auto;background:#fff;padding:32px;border-radius:16px"><img src="cid:despacho-logo" width="180" alt="${escape(companySettings.company_name)}"><h2>Invoice #${invoiceNumber}</h2><p style="line-height:1.7;color:#475569">${escape(message).replaceAll("\n", "<br>")}</p><p style="margin:26px 0;text-align:center"><a href="${escape(paymentUrl)}" style="display:inline-block;border-radius:12px;background:#153e90;padding:14px 28px;color:#fff;text-decoration:none;font-weight:700">Pay Invoice</a></p><p style="font-size:11px;color:#94a3b8;word-break:break-all">${escape(paymentUrl)}</p><p style="margin-top:24px;color:#64748b;font-size:12px">Questions? ${escape(companySettings.business_email || GOOGLE_WORKSPACE_SENDER)}<br>${escape(companySettings.website || "https://www.despacho.io")}</p></div></body></html>`;
   const raw = [
     `From: ${header(companySettings.company_name)} <${GOOGLE_WORKSPACE_SENDER}>`,
     `To: ${to.join(", ")}`,
@@ -149,9 +168,9 @@ export async function sendRecurringInvoice(
     "",
     wrap(logo),
     `--${boundary}`,
-    `Content-Type: application/pdf; name="Invoice-${invoice.invoice_number}.pdf"`,
+    `Content-Type: application/pdf; name="Invoice-${invoiceNumber}.pdf"`,
     "Content-Transfer-Encoding: base64",
-    `Content-Disposition: attachment; filename="Invoice-${invoice.invoice_number}.pdf"`,
+    `Content-Disposition: attachment; filename="Invoice-${invoiceNumber}.pdf"`,
     "",
     wrap(pdf),
     `--${boundary}--`,
@@ -171,6 +190,7 @@ export async function sendRecurringInvoice(
   const update = await admin
     .from("invoices")
     .update({
+      invoice_number: invoiceNumber,
       status: "sent",
       sent_at: sentAt,
       sent_to: to.join(", "),

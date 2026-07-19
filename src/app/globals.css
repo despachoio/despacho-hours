@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+html {
+  background: #0f172a;
+}
+
+body {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  background: #f8fafc;
+}
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;

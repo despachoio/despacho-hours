@@ -16,9 +16,15 @@
     "desktop:build:mac:universal": "electron-builder --projectDir desktop --config electron-builder.yml --mac dmg --universal",
     "desktop:full:dev": "electron desktop/main-full.cjs",
     "desktop:full:build:win": "electron-builder --projectDir desktop --config electron-builder-full.yml --win nsis --x64",
-    "desktop:full:build:mac:zip": "electron-builder --projectDir desktop --config electron-builder-full.yml --mac zip --arm64"
+    "desktop:full:build:mac:zip": "electron-builder --projectDir desktop --config electron-builder-full.yml --mac zip --arm64",
+    "ios:add": "cap add ios",
+    "ios:sync": "cap sync ios",
+    "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/ios": "^8.4.2",
     "@react-pdf/renderer": "^4.5.1",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",

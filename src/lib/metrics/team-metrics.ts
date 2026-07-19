@@ -36,6 +36,12 @@ export function employeeAnalytics(
   );
   const workdays = weekdays(from, to);
   const expectedHours = workdays * 8;
+  const billableHours = entries.reduce(
+    (sum, entry) =>
+      sum + (entry.projects?.is_billable !== false ? Number(entry.hours || 0) : 0),
+    0,
+  );
+  const nonBillableHours = Math.max(0, hours - billableHours);
   return {
     employee,
     entries,
@@ -43,6 +49,12 @@ export function employeeAnalytics(
     hours,
     expectedHours,
     utilisation: expectedHours ? (hours / expectedHours) * 100 : 0,
+    billableHours,
+    nonBillableHours,
+    billableUtilisation: expectedHours ? (billableHours / expectedHours) * 100 : 0,
+    nonBillableUtilisation: expectedHours
+      ? (nonBillableHours / expectedHours) * 100
+      : 0,
     projects: new Set(entries.map((entry) => entry.project_id)).size,
     clients: new Set(
       entries.map((entry) => entry.projects?.clients?.id).filter(Boolean),
@@ -63,7 +75,7 @@ async function fetchTimeEntries(filters: TeamMetricFilters) {
     let query = supabase
       .from("time_entries")
       .select(
-        "id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,projects(id,name,project_code,clients(id,name))",
+        "id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,projects(id,name,project_code,is_billable,clients(id,name))",
       )
       .gte("entry_date", filters.startDate)
       .lte("entry_date", filters.endDate)

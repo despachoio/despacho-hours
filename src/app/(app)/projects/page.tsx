@@ -15,6 +15,7 @@ type Project = {
   used_hours: number;
   remaining_hours: number;
   status: string;
+  is_billable: boolean;
   clients: {
     id: string;
     name: string;
@@ -81,6 +82,7 @@ export default function ProjectsPage() {
         used_hours,
         remaining_hours,
         status,
+        is_billable,
         clients(
           id,
           name
@@ -293,7 +295,19 @@ export default function ProjectsPage() {
                           ? `/projects/${project.id}?action=edit`
                           : undefined
                       }
-                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md"
+                      role="link"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        if ((event.target as HTMLElement).closest("a,button,select,input,textarea")) return;
+                        router.push(`/projects/${project.id}/wallet`);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          router.push(`/projects/${project.id}/wallet`);
+                        }
+                      }}
+                      className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
                     >
                       <div
                         className={
@@ -324,6 +338,11 @@ export default function ProjectsPage() {
                               {project.status === "archived"
                                 ? "Archived"
                                 : "Active"}
+                            </span>
+                            <span
+                              className={`ml-2 mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${project.is_billable ? "bg-blue-50 text-[#153E90]" : "bg-violet-50 text-violet-700"}`}
+                            >
+                              {project.is_billable ? "Billable" : "Non-billable"}
                             </span>
                           </div>
                         </div>

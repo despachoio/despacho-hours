@@ -24,6 +24,7 @@ export type TeamEntry = {
     id: string;
     name: string;
     project_code: string | null;
+    is_billable: boolean;
     clients: { id: string; name: string } | null;
   } | null;
 };
@@ -52,6 +53,10 @@ export type EmployeeAnalytics = {
   hours: number;
   expectedHours: number;
   utilisation: number;
+  billableHours: number;
+  nonBillableHours: number;
+  billableUtilisation: number;
+  nonBillableUtilisation: number;
   projects: number;
   clients: number;
   averageDailyHours: number;

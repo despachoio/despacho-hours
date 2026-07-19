@@ -19,7 +19,14 @@ type SendInvoiceBody = {
   repairOnly?: unknown;
   gmailMessageId?: unknown;
   recipient?: unknown;
+  invoiceNumber?: unknown;
 };
+
+function applyInvoiceNumber(value: string, invoiceNumber: number) {
+  return value
+    .replaceAll("{{invoice_number}}", String(invoiceNumber))
+    .replaceAll("#null", `#${invoiceNumber}`);
+}
 
 type ClientContact = {
   email: string;
@@ -137,6 +144,7 @@ async function updateInvoiceStatus({
   subject,
   message,
   gmailMessageId,
+  invoiceNumber,
 }: {
   adminClient: SupabaseClient;
   invoiceId: string;
@@ -145,6 +153,7 @@ async function updateInvoiceStatus({
   subject: string;
   message: string;
   gmailMessageId: string | null;
+  invoiceNumber: number;
 }) {
   const sentAt = new Date().toISOString();
   const { data: scheduleInvoice, error: scheduleError } = await adminClient
@@ -168,6 +177,7 @@ async function updateInvoiceStatus({
   const { data: updatedInvoice, error: updateError } = await adminClient
     .from("invoices")
     .update({
+      invoice_number: invoiceNumber,
       status: "sent",
       sent_at: sentAt,
       sent_to: recipient,
@@ -189,7 +199,7 @@ async function updateInvoiceStatus({
     })
     .eq("id", invoiceId)
     .select(
-      "id, status, sent_at, sent_to, sent_cc, gmail_message_id, reminders_enabled, reminder_count, last_reminder_sent_at, next_reminder_at",
+      "id, invoice_number, status, sent_at, sent_to, sent_cc, gmail_message_id, reminders_enabled, reminder_count, last_reminder_sent_at, next_reminder_at",
     )
     .single();
 
@@ -466,22 +476,33 @@ export async function POST(
       const recipient =
         typeof body.recipient === "string" ? body.recipient.trim() : "";
       const repairCc = normalizeEmails(body.cc);
+      const invoiceNumber = Number(body.invoiceNumber);
 
-      if (!gmailMessageId || !recipient || !subject || !message) {
+      if (
+        !gmailMessageId ||
+        !recipient ||
+        !subject ||
+        !message ||
+        !Number.isSafeInteger(invoiceNumber) ||
+        invoiceNumber <= 0
+      ) {
         return Response.json(
           { error: "Repair details are incomplete" },
           { status: 400 },
         );
       }
+      const numberedSubject = applyInvoiceNumber(subject, invoiceNumber);
+      const numberedMessage = applyInvoiceNumber(message, invoiceNumber);
 
       const { updatedInvoice, errorResponse } = await updateInvoiceStatus({
         adminClient,
         invoiceId,
         recipient,
         ccRecipient: repairCc.length ? repairCc.join(", ") : null,
-        subject,
-        message,
+        subject: numberedSubject,
+        message: numberedMessage,
         gmailMessageId,
+        invoiceNumber,
       });
 
       if (errorResponse) return errorResponse;
@@ -498,8 +519,8 @@ export async function POST(
         repairOnly: true,
         invoice: {
           ...updatedInvoice,
-          email_subject: subject,
-          email_body: message,
+          email_subject: numberedSubject,
+          email_body: numberedMessage,
         },
         activity: {
           description,
@@ -547,6 +568,27 @@ export async function POST(
     if (invoiceError || !invoice) {
       return Response.json({ error: "Invoice not found" }, { status: 404 });
     }
+
+    let invoiceNumber = Number(invoice.invoice_number || 0);
+    if (!invoiceNumber) {
+      const { data: reservedNumber, error: numberError } =
+        await adminClient.rpc("reserve_invoice_number_for_send");
+      invoiceNumber = Number(reservedNumber || 0);
+      if (
+        numberError ||
+        !Number.isSafeInteger(invoiceNumber) ||
+        invoiceNumber <= 0
+      ) {
+        console.error("Invoice number reservation failed:", numberError);
+        return Response.json(
+          { error: "Unable to reserve an invoice number" },
+          { status: 500 },
+        );
+      }
+    }
+    const numberedInvoice = { ...invoice, invoice_number: invoiceNumber };
+    const numberedSubject = applyInvoiceNumber(subject, invoiceNumber);
+    const numberedMessage = applyInvoiceNumber(message, invoiceNumber);
 
     const contacts = (invoice.clients?.client_contacts ||
       []) as ClientContact[];
@@ -599,7 +641,7 @@ export async function POST(
 
     try {
       const pdfDocument = createElement(InvoicePdfDocument, {
-        invoice,
+        invoice: numberedInvoice,
         items: items ?? [],
         logoSrc,
         companySettings,
@@ -615,7 +657,7 @@ export async function POST(
       );
     }
 
-    const pdfFilename = `Invoice-${invoice.invoice_number}.pdf`;
+    const pdfFilename = `Invoice-${invoiceNumber}.pdf`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
     if (!appUrl) {
       return Response.json(
@@ -634,14 +676,14 @@ export async function POST(
       ? null
       : `${appUrl}/pay/invoice/${invoice.public_payment_token}`;
     const messageWithPaymentLink = paymentUrl
-      ? `${message}\n\nPay Invoice: ${paymentUrl}`
-      : message;
+      ? `${numberedMessage}\n\nPay Invoice: ${paymentUrl}`
+      : numberedMessage;
     const html = buildEmailHtml({
-      invoiceNumber: invoice.invoice_number,
+      invoiceNumber,
       clientName: invoice.clients?.name || "Client",
       amount: formatMoney(invoice.currency, invoice.total_amount),
       dueDate: formatDate(invoice.due_date),
-      message,
+      message: numberedMessage,
       companyName: companySettings.company_name,
       businessEmail: companySettings.business_email || GOOGLE_WORKSPACE_SENDER,
       website: companySettings.website || "https://www.despacho.io",
@@ -650,7 +692,7 @@ export async function POST(
     const rawMessage = buildRawMimeMessage({
       to,
       cc,
-      subject,
+      subject: numberedSubject,
       html,
       message: messageWithPaymentLink,
       pdf: pdfBuffer,
@@ -697,12 +739,19 @@ export async function POST(
       invoiceId,
       recipient: sentTo,
       ccRecipient: cc.length ? cc.join(", ") : null,
-      subject,
-      message,
+      subject: numberedSubject,
+      message: numberedMessage,
       gmailMessageId,
+      invoiceNumber,
     });
 
-    if (errorResponse) return errorResponse;
+    if (errorResponse) {
+      const payload = await errorResponse.json();
+      return Response.json(
+        { ...payload, invoiceNumber },
+        { status: errorResponse.status },
+      );
+    }
 
     const description = await recordInvoiceActivity({
       adminClient,
@@ -715,8 +764,8 @@ export async function POST(
       success: true,
       invoice: {
         ...updatedInvoice,
-        email_subject: subject,
-        email_body: message,
+        email_subject: numberedSubject,
+        email_body: numberedMessage,
       },
       activity: { description, created_at: updatedInvoice.sent_at },
     });

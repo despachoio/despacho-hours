@@ -117,8 +117,7 @@ export async function POST(
     return Response.json({ error: "Source invoice has no line items" }, { status: 400 });
   }
 
-  // invoice_number is intentionally omitted. The same database-side generator
-  // used by New Invoice assigns the next concurrency-safe numeric value.
+  // Drafts intentionally have no invoice number. It is assigned by the send flow.
   const { data: duplicateInvoice, error: duplicateError } = await adminClient
     .from("invoices")
     .insert({
@@ -133,15 +132,12 @@ export async function POST(
       status: "draft",
       notes: sourceInvoice.notes,
     })
-    .select("id,invoice_number,status")
+    .select("id,status")
     .single();
 
   if (duplicateError || !duplicateInvoice) {
     console.error("Duplicate invoice creation failed:", duplicateError);
-    const error = /invoice_number|duplicate key/i.test(duplicateError?.message || "")
-      ? "Unable to generate invoice number"
-      : "Unable to create duplicate invoice";
-    return Response.json({ error }, { status: 500 });
+    return Response.json({ error: "Unable to create duplicate invoice" }, { status: 500 });
   }
 
   const { error: copyError } = await adminClient.from("invoice_items").insert(
@@ -170,7 +166,6 @@ export async function POST(
 
   return Response.json({
     invoiceId: duplicateInvoice.id,
-    invoiceNumber: duplicateInvoice.invoice_number,
     status: duplicateInvoice.status,
   });
 }

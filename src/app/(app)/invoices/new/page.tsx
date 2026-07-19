@@ -220,7 +220,7 @@ export default function NewInvoicePage() {
         status: "draft",
         notes: notes.trim() || null,
       })
-      .select("id,invoice_number")
+      .select("id")
       .single();
 
     if (invoiceError || !invoice) {
@@ -259,7 +259,7 @@ export default function NewInvoicePage() {
     }
 
     setSaving(false);
-    alert(`Invoice #${invoice.invoice_number} created successfully.`);
+    alert("Draft invoice created successfully. Its number will be assigned when it is sent.");
     router.push(`/invoices/${invoice.id}`);
   }
 

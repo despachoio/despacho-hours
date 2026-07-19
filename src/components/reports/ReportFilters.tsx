@@ -22,7 +22,7 @@ export default function ReportFilters({
   return (
     <section className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-lg shadow-slate-200/50 backdrop-blur">
       <div
-        className={`grid gap-3 md:grid-cols-2 ${showEmployee ? "xl:grid-cols-7" : "xl:grid-cols-6"}`}
+        className={`grid gap-3 md:grid-cols-2 ${showEmployee ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}
       >
         {showEmployee ? (
           <Select
@@ -47,6 +47,18 @@ export default function ReportFilters({
           options={projects}
           all="All Projects"
         />
+        <label className="block">
+          <span className="sr-only">Billing Type</span>
+          <select
+            value={value.billingType}
+            onChange={(event) => update("billingType", event.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+          >
+            <option value="all">All Project Types</option>
+            <option value="billable">Billable Projects</option>
+            <option value="non_billable">Non-billable Projects</option>
+          </select>
+        </label>
         <label className="block">
           <span className="sr-only">Date Range</span>
           <select

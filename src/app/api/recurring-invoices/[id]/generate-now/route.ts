@@ -9,7 +9,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) return Response.json({ error: "Scheduled occurrence is required" }, { status: 400 });
   try {
     const generated = await generateOccurrence(auth.admin, id, scheduledDate, auth.user.id);
-    return Response.json({ invoiceId: generated.invoice.id, invoiceNumber: generated.invoice.invoice_number, status: generated.invoice.status });
+    return Response.json({ invoiceId: generated.invoice.id, status: generated.invoice.status });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Recurring invoice generation failed";
     const status = /not found/i.test(message) ? 404 : /paused|cancelled|already|skipped|duplicate/i.test(message) ? 409 : 500;

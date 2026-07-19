@@ -323,14 +323,12 @@ export async function generateOccurrence(
       draft_email_subject: occurrence.email_subject ?? schedule.email_subject,
       draft_email_body: occurrence.email_body ?? schedule.email_body,
     })
-    .select("id,invoice_number,status")
+    .select("id,status")
     .single();
 
   if (invoiceError || !invoice) {
     if (invoiceError?.code === "23505")
       throw new Error("Duplicate invoice prevented");
-    if (/invoice_number/i.test(invoiceError?.message || ""))
-      throw new Error("Invoice number generation failed");
     throw new Error(
       `Recurring invoice generation failed: ${invoiceError?.message || "Unable to create invoice"}`,
     );
@@ -343,7 +341,7 @@ export async function generateOccurrence(
     .single();
   const templateValues = {
     client_name: client?.name || "Client",
-    invoice_number: String(invoice.invoice_number),
+    invoice_number: "{{invoice_number}}",
     currency,
     total_amount: total.toLocaleString("en-US", {
       minimumFractionDigits: 2,

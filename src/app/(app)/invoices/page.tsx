@@ -31,7 +31,7 @@ import { RecurringInvoicesWorkspace } from "./recurring/page";
 type InvoiceTab = "overview" | "all" | "recurring";
 type Invoice = {
   id: string;
-  invoice_number: number;
+  invoice_number: number | null;
   client_id: string;
   issue_date: string;
   due_date: string;
@@ -202,7 +202,7 @@ function InvoiceTable({
                     href={`/invoices/${invoice.id}`}
                     className="font-bold text-slate-950 hover:text-[#153E90] hover:underline"
                   >
-                    #{invoice.invoice_number}
+                    {invoice.invoice_number ? `#${invoice.invoice_number}` : "Draft"}
                   </Link>
                   {invoice.generated_from_recurring ? (
                     <span className="ml-2 rounded-full bg-violet-50 px-2 py-1 text-[9px] font-bold uppercase text-violet-700">

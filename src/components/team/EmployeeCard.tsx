@@ -23,21 +23,13 @@ export default function EmployeeCard({
       : status === "paused"
         ? "border-amber-200 bg-amber-50 text-amber-700"
         : "border-slate-200 bg-slate-100 text-slate-600";
-  const utilisationTone =
-    analytics.utilisation > 100
-      ? "bg-red-500"
-      : analytics.utilisation >= 70
-        ? "bg-emerald-500"
-        : analytics.utilisation >= 40
-          ? "bg-amber-400"
-          : "bg-slate-400";
-
   return (
-    <article
+    <Link
+      href={`/team/${employee.id}`}
       data-shortcut-row
       data-shortcut-href={`/team/${employee.id}`}
       data-shortcut-edit-href={canEdit ? `/team/${employee.id}?action=edit` : undefined}
-      className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+      className="group block rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
     >
       <div className="grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_1fr_.75fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
@@ -48,12 +40,9 @@ export default function EmployeeCard({
             ) : null}
           </div>
           <div className="min-w-0">
-            <Link
-              href={`/team/${employee.id}`}
-              className="truncate text-left font-bold text-slate-950 group-hover:text-[#153E90]"
-            >
+            <span className="block truncate text-left font-bold text-slate-950 group-hover:text-[#153E90]">
               {employee.name}
-            </Link>
+            </span>
             <span
               className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
             >
@@ -72,15 +61,25 @@ export default function EmployeeCard({
             value={`${analytics.utilisation.toFixed(0)}%`}
           />
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className={`h-full rounded-full ${utilisationTone}`}
-              style={{ width: `${Math.min(100, analytics.utilisation)}%` }}
-            />
+            <div className="flex h-full">
+              <div
+                className="h-full shrink-0 bg-[#153E90]"
+                style={{ width: `${Math.min(100, analytics.billableUtilisation)}%` }}
+              />
+              <div
+                className="h-full shrink-0 bg-violet-400"
+                style={{ width: `${Math.min(100, analytics.nonBillableUtilisation)}%` }}
+              />
+            </div>
+          </div>
+          <div className="mt-1.5 flex gap-3 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+            <span><span className="mr-1 text-[#153E90]">●</span>Billable</span>
+            <span><span className="mr-1 text-violet-400">●</span>Non-billable</span>
           </div>
         </div>
         <Metric
-          label="Avg daily"
-          value={`${formatDecimalHours(analytics.averageDailyHours)} hrs`}
+          label="Billable"
+          value={`${formatDecimalHours(analytics.billableHours)} hrs`}
         />
         <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">
           {timer ? (
@@ -113,7 +112,7 @@ export default function EmployeeCard({
           )}
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 

@@ -32,6 +32,7 @@ type RepairState = {
   subject: string;
   message: string;
   databaseError: string | null;
+  invoiceNumber: number;
 };
 
 function uniqueEmails(emails: string[]) {
@@ -147,7 +148,7 @@ function invoicePaymentTerms(issueDate: string, dueDate: string) {
 
 function defaultMessage(
   clientName: string,
-  invoiceNumber: number,
+  invoiceNumber: number | null,
   currency: string,
   totalAmount: number,
   dueDate: string,
@@ -160,7 +161,7 @@ function defaultMessage(
 
   return `Hi ${clientName},
 
-Please find attached Invoice #${invoiceNumber} for ${currency} ${formattedAmount}.
+Please find attached Invoice #${invoiceNumber || "{{invoice_number}}"} for ${currency} ${formattedAmount}.
 
 The payment due date is ${formatDueDate(dueDate)}.
 
@@ -326,7 +327,7 @@ export default function InvoiceActions({
     setSubject(
       invoice.email_subject ||
         invoice.draft_email_subject ||
-        `Invoice #${invoice.invoice_number} from ${companyIdentity.companyName}`,
+        `Invoice #${invoice.invoice_number || "{{invoice_number}}"} from ${companyIdentity.companyName}`,
     );
     setMessage(
       invoice.email_body ||
@@ -386,7 +387,9 @@ export default function InvoiceActions({
       const downloadUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `Invoice-${invoice.invoice_number}.pdf`;
+      link.download = invoice.invoice_number
+        ? `Invoice-${invoice.invoice_number}.pdf`
+        : "Invoice-Draft.pdf";
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -460,6 +463,7 @@ export default function InvoiceActions({
             subject,
             message,
             databaseError: result.databaseError || null,
+            invoiceNumber: Number(result.invoiceNumber),
           });
           showToast({
             tone: "error",
@@ -521,6 +525,7 @@ export default function InvoiceActions({
           cc: repairState.cc,
           subject: repairState.subject,
           message: repairState.message,
+          invoiceNumber: repairState.invoiceNumber,
         }),
       });
       const result = await response.json().catch(() => null);
@@ -675,7 +680,7 @@ export default function InvoiceActions({
       setIsDuplicateModalOpen(false);
       window.sessionStorage.setItem(
         "invoiceDuplicateSuccess",
-        `Invoice duplicated as Draft #${result.invoiceNumber}.`,
+        "Invoice duplicated as a draft. Its number will be assigned when sent.",
       );
       router.push(`/invoices/${result.invoiceId}/edit`);
     } catch (error) {
@@ -1159,7 +1164,9 @@ export default function InvoiceActions({
                 id="send-invoice-title"
                 className="mt-1 text-2xl font-bold text-slate-950"
               >
-                Send Invoice #{invoice.invoice_number}
+                {invoice.invoice_number
+                  ? `Send Invoice #${invoice.invoice_number}`
+                  : "Send Draft Invoice"}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
                 The latest PDF will be generated and attached automatically.

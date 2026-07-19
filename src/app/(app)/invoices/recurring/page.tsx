@@ -31,7 +31,7 @@ type Occurrence = {
   generated_invoice_id: string | null;
   recurring_invoice_schedules: Schedule | null;
   invoices: {
-    invoice_number: number;
+    invoice_number: number | null;
     status: string;
     total_amount: number;
     generated_from_recurring: boolean;
@@ -461,7 +461,9 @@ export function RecurringInvoicesWorkspace({
                             href={`/invoices/${row.generated_invoice_id}`}
                             className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white"
                           >
-                            Invoice #{row.invoices?.invoice_number}
+                            {row.invoices?.invoice_number
+                              ? `Invoice #${row.invoices.invoice_number}`
+                              : "Draft invoice"}
                           </Link>
                         ) : (
                           <span className="text-xs text-slate-500">

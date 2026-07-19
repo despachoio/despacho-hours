@@ -27,6 +27,7 @@ const clientFromUrl = searchParams.get("client");
   const [projectCode, setProjectCode] = useState("");
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [isBillable, setIsBillable] = useState(true);
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
 
@@ -102,6 +103,7 @@ if (clientFromUrl) {
   used_hours: 0,
   remaining_hours: 0,
   status: "active",
+  is_billable: isBillable,
 })
       .select("id")
       .single();
@@ -139,7 +141,10 @@ if (clientFromUrl) {
   }
 
   useEffect(() => {
-    loadData();
+    // Existing project forms perform their initial Supabase load client-side.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -215,6 +220,20 @@ if (clientFromUrl) {
                 onChange={(e) => setStartDate(e.target.value)}
                 className="mt-2 w-full rounded-2xl border px-5 py-3"
               />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-slate-500">
+                Billing Type
+              </label>
+              <select
+                value={isBillable ? "billable" : "non_billable"}
+                onChange={(event) => setIsBillable(event.target.value === "billable")}
+                className="mt-2 w-full rounded-2xl border px-5 py-3"
+              >
+                <option value="billable">Billable</option>
+                <option value="non_billable">Non-billable</option>
+              </select>
             </div>
 
            <div>

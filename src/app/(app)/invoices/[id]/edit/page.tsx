@@ -26,7 +26,7 @@ type Project = {
 
 type Invoice = {
   id: string;
-  invoice_number: number;
+  invoice_number: number | null;
   client_id: string;
   issue_date: string;
   due_date: string;
@@ -490,7 +490,7 @@ export default function EditInvoicePage() {
                   Invoice #
                 </label>
                 <div className="flex min-h-12 items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900">
-                  #{invoice.invoice_number}
+                  {invoice.invoice_number ? `#${invoice.invoice_number}` : "Assigned when sent"}
                 </div>
               </div>
 

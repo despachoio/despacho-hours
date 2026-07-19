@@ -34,7 +34,7 @@ type InvoicePdfItem = {
 
 type InvoicePdfData = {
   id: string;
-  invoice_number: number;
+  invoice_number: number | null;
   issue_date: string;
   due_date: string;
   currency: string;
@@ -541,7 +541,9 @@ export function InvoicePdfDocument({
 
           <View style={styles.invoiceBlock}>
             <Text style={styles.invoiceHeading}>INVOICE</Text>
-            <Text style={styles.invoiceNumber}>#{invoice.invoice_number}</Text>
+            <Text style={styles.invoiceNumber}>
+              {invoice.invoice_number ? `#${invoice.invoice_number}` : "DRAFT"}
+            </Text>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Issue Date</Text>
               <Text style={styles.metaValue}>

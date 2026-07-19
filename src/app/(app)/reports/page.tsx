@@ -6,7 +6,6 @@ import { formatDecimalHours } from "@/lib/format-hours";
 import ManagerDashboard, {
   type ManagerMetrics,
 } from "@/components/reports/ManagerDashboard";
-import LiveOperationsSnapshot from "@/components/reports/LiveOperationsSnapshot";
 import ReportFilters from "@/components/reports/ReportFilters";
 import PeriodSummaryCards from "@/components/reports/PeriodSummaryCards";
 import {
@@ -45,6 +44,7 @@ type ActiveProject = {
   project_code: string | null;
   remaining_hours: number;
   client_id: string | null;
+  is_billable: boolean;
   clients: { id: string; name: string } | null;
   project_resources: { employee_id: string }[];
 };
@@ -54,13 +54,14 @@ const initialFilters: ReportFiltersValue = {
   employeeId: "",
   clientId: "",
   projectId: "",
+  billingType: "all",
   datePreset: "this_month",
   customFrom: "",
   customTo: "",
   status: "all",
   search: "",
 };
-const entrySelect = `id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,employees(id,name),projects(id,name,project_code,remaining_hours,clients(id,name))`;
+const entrySelect = `id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,employees(id,name),projects(id,name,project_code,remaining_hours,is_billable,clients(id,name))`;
 
 export default function ReportsPage() {
   const [profile, setProfile] = useState<ReportProfile | null>(null);
@@ -83,8 +84,6 @@ export default function ReportsPage() {
     .trim()
     .toLowerCase();
   const isEmployee = role === "employee";
-  const canViewTeam =
-    role === "super admin" || role === "admin" || role === "manager";
   const period = useMemo(
     () => dateRange(filters.datePreset, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.datePreset],
@@ -134,7 +133,7 @@ export default function ReportsPage() {
       const projectQuery = supabase
         .from("projects")
         .select(
-          "id,name,project_code,remaining_hours,client_id,clients(id,name),project_resources(employee_id)",
+          "id,name,project_code,remaining_hours,client_id,is_billable,clients(id,name),project_resources(employee_id)",
         )
         .eq("status", "active")
         .order("name");
@@ -160,7 +159,7 @@ export default function ReportsPage() {
             ? supabase
                 .from("active_timers")
                 .select(
-                  "id,employee_id,project_id,started_at,paused_at,total_paused_seconds,status,description,employees(id,name),projects(id,name,project_code,clients(id,name))",
+                  "id,employee_id,project_id,started_at,paused_at,total_paused_seconds,status,description,employees(id,name),projects(id,name,project_code,is_billable,clients(id,name))",
                 )
                 .in("status", ["running", "paused"])
             : Promise.resolve({ data: [], error: null }),
@@ -231,6 +230,12 @@ export default function ReportsPage() {
         return false;
       if (filters.projectId && entry.project_id !== filters.projectId)
         return false;
+      if (
+        filters.billingType !== "all" &&
+        (entry.projects?.is_billable !== false ? "billable" : "non_billable") !==
+          filters.billingType
+      )
+        return false;
       if (debouncedSearch) {
         const haystack =
           `${entry.employees?.name} ${entry.projects?.clients?.name} ${entry.projects?.project_code} ${entry.projects?.name} ${entry.description}`.toLowerCase();
@@ -241,6 +246,7 @@ export default function ReportsPage() {
     [
       debouncedSearch,
       filters.clientId,
+      filters.billingType,
       filters.employeeId,
       filters.projectId,
       isEmployee,
@@ -276,6 +282,13 @@ export default function ReportsPage() {
           if (filters.projectId && timer.project_id !== filters.projectId)
             return false;
           if (
+            filters.billingType !== "all" &&
+            (timer.projects?.is_billable !== false
+              ? "billable"
+              : "non_billable") !== filters.billingType
+          )
+            return false;
+          if (
             debouncedSearch &&
             !`${timer.employees?.name} ${timer.projects?.clients?.name} ${timer.projects?.project_code} ${timer.projects?.name} ${timer.description}`
               .toLowerCase()
@@ -294,6 +307,7 @@ export default function ReportsPage() {
     [
       debouncedSearch,
       filters.clientId,
+      filters.billingType,
       filters.employeeId,
       filters.projectId,
       filters.status,
@@ -331,6 +345,9 @@ export default function ReportsPage() {
     const visibleProjects = projects.filter(
       (project) =>
         (!filters.projectId || project.id === filters.projectId) &&
+        (filters.billingType === "all" ||
+          (project.is_billable !== false ? "billable" : "non_billable") ===
+            filters.billingType) &&
         (!filters.clientId || project.client_id === filters.clientId) &&
         (!filters.employeeId ||
           project.project_resources?.some(
@@ -396,6 +413,7 @@ export default function ReportsPage() {
     filteredOperational,
     filteredTimers,
     filters.clientId,
+    filters.billingType,
     filters.employeeId,
     filters.projectId,
     hoursIn,
@@ -518,6 +536,9 @@ export default function ReportsPage() {
         .filter(
           (project) =>
             (!filters.clientId || project.client_id === filters.clientId) &&
+            (filters.billingType === "all" ||
+              (project.is_billable !== false ? "billable" : "non_billable") ===
+                filters.billingType) &&
             (!filters.employeeId ||
               project.project_resources?.some(
                 (resource) => resource.employee_id === filters.employeeId,
@@ -528,7 +549,7 @@ export default function ReportsPage() {
           name: project.name,
           code: project.project_code,
         })),
-    [filters.clientId, filters.employeeId, projects],
+    [filters.billingType, filters.clientId, filters.employeeId, projects],
   );
   const clearFilters = useCallback(() => setFilters(initialFilters), []);
   const updateFilters = useCallback((next: ReportFiltersValue) => {
@@ -647,7 +668,7 @@ export default function ReportsPage() {
                     />
                   </section>
                   <DetailedReportTable
-                    key={`${filters.employeeId}:${filters.clientId}:${filters.projectId}:${filters.datePreset}:${filters.customFrom}:${filters.customTo}:${filters.status}:${debouncedSearch}`}
+                    key={`${filters.employeeId}:${filters.clientId}:${filters.projectId}:${filters.billingType}:${filters.datePreset}:${filters.customFrom}:${filters.customTo}:${filters.status}:${debouncedSearch}`}
                     rows={aggregateRows}
                     employeeColumn={!isEmployee}
                   />
