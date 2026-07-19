@@ -7,6 +7,7 @@ export default function EmployeeStats({
   analytics: EmployeeAnalytics;
 }) {
   const metrics = [
+    ["Entries", String(analytics.entries.length)],
     ["Total Hours", `${formatDecimalHours(analytics.hours)} hrs`],
     [
       "Billable Hours",
@@ -16,7 +17,7 @@ export default function EmployeeStats({
       "Non-Billable Hours",
       `${formatDecimalHours(analytics.nonBillableHours)} hrs`,
     ],
-    ["Entries", String(analytics.entries.length)],
+    
     ["Utilisation", `${analytics.utilisation.toFixed(0)}%`],
     ["Projects Worked", String(analytics.projects)],
     ["Clients Worked", String(analytics.clients)],
