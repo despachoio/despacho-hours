@@ -25,16 +25,16 @@ export default function TeamSummaryCards({
     : [
         ["Employees", String(summary.employeeCount)],
         ["Currently Working", String(summary.currentlyWorkingCount)],
+        ["Projects Worked", String(summary.projectsWorked)],
+        ["Clients Served", String(summary.clientsServed)],
+        ["Hours Logged", `${formatDecimalHours(summary.totalHoursLogged)} hrs`],
+        [
+          "Billable Hours",
+          formatDecimalHours(summary.totalBillableHours),
+        ],
         [
           "Average Utilisation",
           `${summary.aggregateUtilization.toFixed(0)}%`,
-        ],
-        ["Hours Logged", `${formatDecimalHours(summary.totalHoursLogged)} hrs`],
-        ["Projects Worked", String(summary.projectsWorked)],
-        ["Clients Served", String(summary.clientsServed)],
-        [
-          "Total Billable Hours",
-          formatDecimalHours(summary.totalBillableHours),
         ],
       ];
   return (

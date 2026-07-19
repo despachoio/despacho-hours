@@ -37,7 +37,7 @@ export default function EmployeeCard({
       data-shortcut-edit-href={canEdit ? `/team/${employee.id}?action=edit` : undefined}
       className="group block rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
     >
-      <div className="grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_1fr_.75fr_1.5fr]">
+      <div className="grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_.75fr_1.1fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
           <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 font-bold text-[#153E90] ring-1 ring-blue-100">
             {initials(employee.name)}
@@ -56,10 +56,17 @@ export default function EmployeeCard({
             </span>
           </div>
         </div>
-        <Metric label="Period" value={`${formatDecimalHours(analytics.hours)} hrs`} />
         <Metric
           label="Expected"
           value={`${formatDecimalHours(analytics.expectedHours)} hrs`}
+        />
+        <Metric
+          label="Total"
+          value={`${formatDecimalHours(analytics.hours)} hrs`}
+        />
+        <Metric
+          label="Billable"
+          value={`${formatDecimalHours(analytics.billableHours)} hrs`}
         />
         <div>
           <Metric
@@ -84,10 +91,6 @@ export default function EmployeeCard({
             <span><span className="mr-1 text-violet-400">●</span>Non-billable</span>
           </div>
         </div>
-        <Metric
-          label="Total Billable Hours"
-          value={formatDecimalHours(analytics.billableHours)}
-        />
         <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">
           {timer ? (
             <>

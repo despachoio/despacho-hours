@@ -1,5 +1,4 @@
 import type { EmployeeAnalytics } from "./types";
-import { formatDecimalHours } from "@/lib/format-hours";
 import { initials, statusLabel } from "./utils";
 
 export default function EmployeeHeader({
@@ -47,25 +46,9 @@ export default function EmployeeHeader({
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="rounded-2xl bg-white/10 px-5 py-3">
-            <p className="text-[10px] uppercase tracking-wider text-blue-200">
-              Period Hours
-            </p>
-            <p className="mt-1 text-2xl font-bold">
-              {formatDecimalHours(analytics.hours)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white/10 px-5 py-3">
-            <p className="text-[10px] uppercase tracking-wider text-blue-200">
-              Utilisation
-            </p>
-            <p className="mt-1 text-2xl font-bold">
-              {analytics.utilisation.toFixed(0)}%
-            </p>
-          </div>
-          {actions}
-        </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-3">{actions}</div>
+        ) : null}
       </div>
     </header>
   );

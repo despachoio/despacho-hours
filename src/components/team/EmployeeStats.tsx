@@ -7,13 +7,19 @@ export default function EmployeeStats({
   analytics: EmployeeAnalytics;
 }) {
   const metrics = [
-    ["Hours", `${formatDecimalHours(analytics.hours)} hrs`],
+    ["Total Hours", `${formatDecimalHours(analytics.hours)} hrs`],
+    [
+      "Billable Hours",
+      `${formatDecimalHours(analytics.billableHours)} hrs`,
+    ],
+    [
+      "Non-Billable Hours",
+      `${formatDecimalHours(analytics.nonBillableHours)} hrs`,
+    ],
     ["Entries", String(analytics.entries.length)],
-    ["Average Session", `${formatDecimalHours(analytics.averageSession)} hrs`],
-    ["Longest Session", `${formatDecimalHours(analytics.longestSession)} hrs`],
+    ["Utilisation", `${analytics.utilisation.toFixed(0)}%`],
     ["Projects Worked", String(analytics.projects)],
     ["Clients Worked", String(analytics.clients)],
-    ["Total Billable Hours", formatDecimalHours(analytics.billableHours)],
   ];
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
