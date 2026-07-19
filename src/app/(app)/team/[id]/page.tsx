@@ -142,7 +142,7 @@ function TeamDetailPageContent() {
       const result = await supabase
         .from("time_entries")
         .select(
-          "id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,projects(id,name,project_code,clients(id,name))",
+          "id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,projects(id,name,project_code,is_billable,clients(id,name))",
         )
         .eq("employee_id", id)
         .gte("entry_date", range.from)

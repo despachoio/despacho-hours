@@ -13,7 +13,7 @@ export default function EmployeeStats({
     ["Longest Session", `${formatDecimalHours(analytics.longestSession)} hrs`],
     ["Projects Worked", String(analytics.projects)],
     ["Clients Worked", String(analytics.clients)],
-    ["Average Daily Hours", `${formatDecimalHours(analytics.averageDailyHours)} hrs`],
+    ["Total Billable Hours", formatDecimalHours(analytics.billableHours)],
   ];
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">

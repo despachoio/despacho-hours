@@ -23,6 +23,12 @@ export default function EmployeeCard({
       : status === "paused"
         ? "border-amber-200 bg-amber-50 text-amber-700"
         : "border-slate-200 bg-slate-100 text-slate-600";
+  const utilisationTextTone =
+    analytics.utilisation > 100
+      ? "text-red-600"
+      : analytics.utilisation >= 80
+        ? "text-emerald-600"
+        : "text-amber-500";
   return (
     <Link
       href={`/team/${employee.id}`}
@@ -59,6 +65,7 @@ export default function EmployeeCard({
           <Metric
             label="Utilisation"
             value={`${analytics.utilisation.toFixed(0)}%`}
+            valueClassName={utilisationTextTone}
           />
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
             <div className="flex h-full">
@@ -78,8 +85,8 @@ export default function EmployeeCard({
           </div>
         </div>
         <Metric
-          label="Billable"
-          value={`${formatDecimalHours(analytics.billableHours)} hrs`}
+          label="Total Billable Hours"
+          value={formatDecimalHours(analytics.billableHours)}
         />
         <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">
           {timer ? (
@@ -116,13 +123,21 @@ export default function EmployeeCard({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  valueClassName = "text-slate-900",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
   return (
     <div>
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
-      <p className="mt-1 whitespace-nowrap text-sm font-bold text-slate-900">
+      <p className={`mt-1 whitespace-nowrap text-sm font-bold ${valueClassName}`}>
         {value}
       </p>
     </div>

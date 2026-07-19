@@ -11,6 +11,7 @@ export type TeamMetrics = {
   employeeCount: number;
   currentlyWorkingCount: number;
   totalHoursLogged: number;
+  totalBillableHours: number;
   totalExpectedHours: number;
   aggregateUtilization: number;
   averageEmployeeUtilization: number;

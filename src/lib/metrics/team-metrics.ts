@@ -95,6 +95,10 @@ export function calculateTeamMetrics(
   employees: EmployeeAnalytics[],
 ): TeamMetrics {
   const totalHoursLogged = employees.reduce((sum, item) => sum + item.hours, 0);
+  const totalBillableHours = employees.reduce(
+    (sum, item) => sum + item.billableHours,
+    0,
+  );
   const totalExpectedHours = employees.reduce(
     (sum, item) => sum + item.expectedHours,
     0,
@@ -109,6 +113,7 @@ export function calculateTeamMetrics(
       (item) => item.status === "working" || item.status === "paused",
     ).length,
     totalHoursLogged,
+    totalBillableHours,
     totalExpectedHours,
     aggregateUtilization,
     averageEmployeeUtilization: employees.length

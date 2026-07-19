@@ -33,8 +33,8 @@ export default function TeamSummaryCards({
         ["Projects Worked", String(summary.projectsWorked)],
         ["Clients Served", String(summary.clientsServed)],
         [
-          "Average Daily Hours",
-          `${formatDecimalHours(summary.averageDailyHours)} hrs`,
+          "Total Billable Hours",
+          formatDecimalHours(summary.totalBillableHours),
         ],
       ];
   return (
