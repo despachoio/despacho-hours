@@ -39,7 +39,7 @@ export default function EmployeeCard({
     >
       <div className="grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_.75fr_1.1fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 font-bold text-[#153E90] ring-1 ring-blue-100">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#153E90] text-xs font-bold text-white shadow-sm">
             {initials(employee.name)}
             {isOnline ? (
               <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500" />
