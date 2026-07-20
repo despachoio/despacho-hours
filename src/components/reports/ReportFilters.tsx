@@ -150,8 +150,35 @@ export default function ReportFilters({
         >
           Reset
         </button>
-        {exportActions}
       </div>
+      {exportActions ? (
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-blue-50/70 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0F172A] text-white shadow-sm">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className="h-5 w-5"
+              >
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+                <path d="M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" />
+              </svg>
+            </span>
+            <div>
+              <p className="text-sm font-bold text-slate-950">
+                Export filtered report
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Downloads contain only the filters applied with Search.
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0">{exportActions}</div>
+        </div>
+      ) : null}
     </form>
   );
 }

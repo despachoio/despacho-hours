@@ -151,7 +151,7 @@ function isInteractiveTarget(target: EventTarget | null) {
     target instanceof Element &&
     Boolean(
       target.closest(
-        "a, button, input, select, textarea, [role='button'], [role='link']",
+        "a, button, input, select, textarea, [role='button']",
       ),
     )
   );
