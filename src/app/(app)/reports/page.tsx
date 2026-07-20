@@ -679,14 +679,6 @@ export default function ReportsPage() {
                 and project utilisation.
               </p>
             </div>
-            <ReportExportButtons
-              rows={aggregateRows}
-              filters={appliedFilters}
-              summary={summary}
-              period={period}
-              employeeColumn={!isEmployee}
-              disabled={reportLoading || hasUnappliedChanges}
-            />
           </div>
         </header>
         {error ? (

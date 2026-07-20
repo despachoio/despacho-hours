@@ -24,18 +24,34 @@ function escapeCsv(value: unknown) {
   const text = String(value ?? "");
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
+function decimalHours(value: number) {
+  return Number(Number(value || 0).toFixed(2));
+}
 function exportRows(rows: AggregateRow[], employeeColumn: boolean) {
   return rows.map((row) => ({
     ...(employeeColumn ? { Employee: row.employeeName } : {}),
     Client: row.clientName,
     "Project Code": row.projectCode || "",
     Project: row.projectName,
-    "Total Hours": formatDecimalHours(row.totalHours),
+    "Total Hours": decimalHours(row.totalHours),
     Entries: row.entries,
     "Average Session": formatDecimalHours(row.averageSession),
     "Longest Session": formatDecimalHours(row.longestSession),
     "Utilisation %": Number(row.utilisation.toFixed(1)),
   }));
+}
+
+function exportSummary(
+  summary: SummaryMetric[],
+  rows: AggregateRow[],
+): { label: string; value: string | number }[] {
+  const totalHours = decimalHours(
+    rows.reduce((total, row) => total + Number(row.totalHours || 0), 0),
+  );
+
+  return summary.map((metric) =>
+    metric.label === "Hours" ? { ...metric, value: totalHours } : metric,
+  );
 }
 
 function filterDescription(filters: ReportFiltersValue) {
@@ -71,6 +87,7 @@ export default function ReportExportButtons({
   variant?: "header" | "toolbar";
 }) {
   const disabled = externallyDisabled || rows.length === 0;
+  const exportedSummary = exportSummary(summary, rows);
   const secondaryClass =
     variant === "header"
       ? "border-white/20 bg-white/10 text-white"
@@ -86,7 +103,7 @@ export default function ReportExportButtons({
       ["Kairo Report"].map(escapeCsv).join(","),
       ["Period", `${period.from} to ${period.to}`].map(escapeCsv).join(","),
       ["Filters", filterDescription(filters)].map(escapeCsv).join(","),
-      ...summary.map((metric) =>
+      ...exportedSummary.map((metric) =>
         [metric.label, metric.value].map(escapeCsv).join(","),
       ),
       "",
@@ -109,7 +126,7 @@ export default function ReportExportButtons({
       ["Period", `${period.from} to ${period.to}`],
       ["Filters", filterDescription(filters)],
       [],
-      ...summary.map((metric) => [metric.label, metric.value]),
+      ...exportedSummary.map((metric) => [metric.label, metric.value]),
     ]);
     XLSX.utils.book_append_sheet(book, context, "Summary");
     XLSX.utils.book_append_sheet(
@@ -123,7 +140,7 @@ export default function ReportExportButtons({
     const blob = await pdf(
       <ReportPdf
         rows={rows}
-        summary={summary}
+        summary={exportedSummary}
         period={period}
         filters={filters}
         employeeColumn={employeeColumn}
@@ -198,7 +215,7 @@ function ReportPdf({
   employeeColumn,
 }: {
   rows: AggregateRow[];
-  summary: SummaryMetric[];
+  summary: { label: string; value: string | number }[];
   period: { from: string; to: string };
   filters: ReportFiltersValue;
   employeeColumn: boolean;
@@ -223,7 +240,7 @@ function ReportPdf({
           {employeeColumn ? <Text style={styles.cell}>Employee</Text> : null}
           <Text style={styles.cell}>Client</Text>
           <Text style={styles.cell}>Project</Text>
-          <Text style={styles.number}>Hours</Text>
+          <Text style={styles.number}>Hours (decimal)</Text>
           <Text style={styles.number}>Entries</Text>
           <Text style={styles.number}>Avg.</Text>
           <Text style={styles.number}>Longest</Text>
@@ -236,7 +253,7 @@ function ReportPdf({
             ) : null}
             <Text style={styles.cell}>{row.clientName}</Text>
             <Text style={styles.cell}>{row.projectName}</Text>
-            <Text style={styles.number}>{formatDecimalHours(row.totalHours)}</Text>
+            <Text style={styles.number}>{decimalHours(row.totalHours).toFixed(2)}</Text>
             <Text style={styles.number}>{row.entries}</Text>
             <Text style={styles.number}>{formatDecimalHours(row.averageSession)}</Text>
             <Text style={styles.number}>{formatDecimalHours(row.longestSession)}</Text>
