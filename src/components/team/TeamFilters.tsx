@@ -122,11 +122,13 @@ export function PeriodSelect({
   onChange: (value: string) => void;
 }) {
   return (
+    <div className="inline-flex w-fit items-center rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+  <div className="relative flex items-center">
     <select
       aria-label="Period"
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+      className="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3 pr-8 text-sm font-medium text-slate-800 outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
     >
       <option value="today">Today</option>
       <option value="yesterday">Yesterday</option>
@@ -138,5 +140,14 @@ export function PeriodSelect({
       <option value="last_quarter">Last Quarter</option>
       <option value="custom">Custom Range</option>
     </select>
+    
+    {/* Custom Chevron Arrow */}
+    <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  </div>
+</div>
   );
 }
