@@ -17,11 +17,19 @@ export default function EmployeePeriodFilter({
   onFrom: (value: string) => void;
   onTo: (value: string) => void;
 }) {
+  const isCustomRange = period === "custom";
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="grid gap-3 sm:grid-cols-3">
+    <div className="inline-block max-w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div
+        className={
+          isCustomRange
+            ? "grid gap-3 sm:grid-cols-3"
+            : "w-fit max-w-full"
+        }
+      >
         <PeriodSelect value={period} onChange={onPeriod} />
-        {period === "custom" ? (
+        {isCustomRange ? (
           <>
             <input
               type="date"

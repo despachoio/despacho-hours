@@ -322,7 +322,7 @@ if (profileError) {
     <div className="flex flex-wrap gap-2">
       <Link
         href={`/team/${id}?action=edit`}
-        className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-950"
+        className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-center text-xs font-bold text-slate-950"
       >
         Edit
       </Link>
