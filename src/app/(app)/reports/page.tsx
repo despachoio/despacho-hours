@@ -236,7 +236,7 @@ export default function ReportsPage() {
       const result = await fetchAllTimeEntries({
         from: period.from,
         to: period.to,
-        employeeId: isEmployee ? profile.employee_id : undefined,
+        employeeId: isEmployee ? profile?.employee_id : undefined,
       });
       if (cancelled) return;
 

@@ -146,6 +146,17 @@ function periodRange(period: string) {
   return null;
 }
 
+function isInteractiveTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "a, button, input, select, textarea, [role='button'], [role='link']",
+      ),
+    )
+  );
+}
+
 function InvoiceTable({
   invoices,
   loading,
@@ -153,6 +164,8 @@ function InvoiceTable({
   invoices: Invoice[];
   loading: boolean;
 }) {
+  const router = useRouter();
+
   if (loading)
     return (
       <div className="rounded-3xl border border-slate-200 bg-white py-20 text-center text-sm font-medium text-slate-500">
@@ -188,6 +201,20 @@ function InvoiceTable({
             return (
               <tr
                 key={invoice.id}
+                role="link"
+                tabIndex={0}
+                aria-label={`Open invoice ${invoice.invoice_number ? `#${invoice.invoice_number}` : "draft"}`}
+                onClick={(event) => {
+                  if (isInteractiveTarget(event.target)) return;
+                  router.push(`/invoices/${invoice.id}`);
+                }}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    router.push(`/invoices/${invoice.id}`);
+                  }
+                }}
                 data-shortcut-row
                 data-shortcut-href={`/invoices/${invoice.id}`}
                 data-shortcut-edit-href={
@@ -195,7 +222,7 @@ function InvoiceTable({
                     ? `/invoices/${invoice.id}/edit`
                     : undefined
                 }
-                className="border-b border-slate-100 transition hover:bg-blue-50/30"
+                className="cursor-pointer border-b border-slate-100 transition hover:bg-blue-50/30 focus-visible:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#153E90]"
               >
                 <td className="px-5 py-4">
                   <Link

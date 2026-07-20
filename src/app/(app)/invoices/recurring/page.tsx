@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Tab = "upcoming" | "active" | "paused";
@@ -54,11 +55,23 @@ const formatDate = (value: string) =>
 const money = (currency: string, amount: number) =>
   `${currency} ${Number(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+function isInteractiveTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "a, button, input, select, textarea, [role='button'], [role='link']",
+      ),
+    )
+  );
+}
+
 export function RecurringInvoicesWorkspace({
   embedded = false,
 }: {
   embedded?: boolean;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("upcoming");
   const [clients, setClients] = useState<Client[]>([]);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
@@ -371,6 +384,32 @@ export function RecurringInvoicesWorkspace({
                 return (
                   <article
                     key={row.id}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={
+                      row.generated_invoice_id
+                        ? `Open invoice ${row.invoices?.invoice_number ? `#${row.invoices.invoice_number}` : "draft"}`
+                        : `Open recurring schedule ${schedule.name}`
+                    }
+                    onClick={(event) => {
+                      if (isInteractiveTarget(event.target)) return;
+                      router.push(
+                        row.generated_invoice_id
+                          ? `/invoices/${row.generated_invoice_id}`
+                          : `/invoices/recurring/${schedule.id}`,
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(
+                          row.generated_invoice_id
+                            ? `/invoices/${row.generated_invoice_id}`
+                            : `/invoices/recurring/${schedule.id}`,
+                        );
+                      }
+                    }}
                     data-shortcut-row
                     data-shortcut-href={
                       row.generated_invoice_id
@@ -382,7 +421,7 @@ export function RecurringInvoicesWorkspace({
                         ? `/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`
                         : undefined
                     }
-                    className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+                    className="cursor-pointer rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90] focus-visible:ring-offset-2"
                   >
                     <div className="grid items-center gap-5 xl:grid-cols-[180px_1.3fr_180px_minmax(360px,auto)]">
                       <div>
@@ -480,10 +519,24 @@ export function RecurringInvoicesWorkspace({
             ? visibleSchedules.map((schedule) => (
                 <article
                   key={schedule.id}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Open recurring schedule ${schedule.name}`}
+                  onClick={(event) => {
+                    if (isInteractiveTarget(event.target)) return;
+                    router.push(`/invoices/recurring/${schedule.id}`);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/invoices/recurring/${schedule.id}`);
+                    }
+                  }}
                   data-shortcut-row
                   data-shortcut-href={`/invoices/recurring/${schedule.id}`}
                   data-shortcut-edit-href={`/invoices/recurring/${schedule.id}/edit`}
-                  className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  className="flex cursor-pointer flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90] focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-2">
