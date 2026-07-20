@@ -59,14 +59,26 @@ export default function ReportExportButtons({
   summary,
   period,
   employeeColumn,
+  disabled: externallyDisabled = false,
+  variant = "header",
 }: {
   rows: AggregateRow[];
   filters: ReportFiltersValue;
   summary: SummaryMetric[];
   period: { from: string; to: string };
   employeeColumn: boolean;
+  disabled?: boolean;
+  variant?: "header" | "toolbar";
 }) {
-  const disabled = rows.length === 0;
+  const disabled = externallyDisabled || rows.length === 0;
+  const secondaryClass =
+    variant === "header"
+      ? "border-white/20 bg-white/10 text-white"
+      : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50";
+  const primaryClass =
+    variant === "header"
+      ? "bg-white text-[#0F172A]"
+      : "bg-[#0F172A] text-white hover:bg-[#153E90]";
   function csv() {
     const records = exportRows(rows, employeeColumn);
     const headers = Object.keys(records[0]);
@@ -125,7 +137,7 @@ export default function ReportExportButtons({
         type="button"
         disabled={disabled}
         onClick={csv}
-        className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+        className={`h-11 rounded-xl border px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${secondaryClass}`}
       >
         CSV
       </button>
@@ -134,7 +146,7 @@ export default function ReportExportButtons({
         data-shortcut-export
         disabled={disabled}
         onClick={excel}
-        className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+        className={`h-11 rounded-xl border px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${secondaryClass}`}
       >
         Excel
       </button>
@@ -142,7 +154,7 @@ export default function ReportExportButtons({
         type="button"
         disabled={disabled}
         onClick={() => void pdfExport()}
-        className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0F172A] disabled:opacity-40"
+        className={`h-11 rounded-xl px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${primaryClass}`}
       >
         PDF
       </button>

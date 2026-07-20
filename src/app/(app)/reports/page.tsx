@@ -45,10 +45,11 @@ type ActiveProject = {
   remaining_hours: number;
   client_id: string | null;
   is_billable: boolean;
+  status: string;
   clients: { id: string; name: string } | null;
   project_resources: { employee_id: string }[];
 };
-type ActiveEmployee = { id: string; name: string };
+type ActiveEmployee = { id: string; name: string; status: string };
 
 const initialFilters: ReportFiltersValue = {
   employeeId: "",
@@ -62,6 +63,39 @@ const initialFilters: ReportFiltersValue = {
   search: "",
 };
 const entrySelect = `id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,employees(id,name),projects(id,name,project_code,remaining_hours,is_billable,clients(id,name))`;
+const reportPageSize = 1_000;
+
+async function fetchAllTimeEntries({
+  from,
+  to,
+  employeeId,
+}: {
+  from: string;
+  to: string;
+  employeeId?: string | null;
+}) {
+  const rows: ReportEntry[] = [];
+
+  for (let offset = 0; ; offset += reportPageSize) {
+    let query = supabase
+      .from("time_entries")
+      .select(entrySelect)
+      .gte("entry_date", from)
+      .lte("entry_date", to)
+      .order("entry_date", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offset, offset + reportPageSize - 1);
+
+    if (employeeId) query = query.eq("employee_id", employeeId);
+
+    const result = await query;
+    if (result.error) return { data: [] as ReportEntry[], error: result.error };
+
+    const batch = (result.data || []) as unknown as ReportEntry[];
+    rows.push(...batch);
+    if (batch.length < reportPageSize) return { data: rows, error: null };
+  }
+}
 
 export default function ReportsPage() {
   const [profile, setProfile] = useState<ReportProfile | null>(null);
@@ -74,7 +108,8 @@ export default function ReportsPage() {
   const [employees, setEmployees] = useState<ActiveEmployee[]>([]);
   const [projects, setProjects] = useState<ActiveProject[]>([]);
   const [filters, setFilters] = useState<ReportFiltersValue>(initialFilters);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [appliedFilters, setAppliedFilters] =
+    useState<ReportFiltersValue>(initialFilters);
   const [baseLoading, setBaseLoading] = useState(true);
   const [reportLoading, setReportLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,17 +120,19 @@ export default function ReportsPage() {
     .toLowerCase();
   const isEmployee = role === "employee";
   const period = useMemo(
-    () => dateRange(filters.datePreset, filters.customFrom, filters.customTo),
-    [filters.customFrom, filters.customTo, filters.datePreset],
+    () =>
+      dateRange(
+        appliedFilters.datePreset,
+        appliedFilters.customFrom,
+        appliedFilters.customTo,
+      ),
+    [
+      appliedFilters.customFrom,
+      appliedFilters.customTo,
+      appliedFilters.datePreset,
+    ],
   );
 
-  useEffect(() => {
-    const timer = window.setTimeout(
-      () => setDebouncedSearch(filters.search.trim().toLowerCase()),
-      300,
-    );
-    return () => window.clearTimeout(timer);
-  }, [filters.search]);
   useEffect(() => {
     if (!liveTimers.some((timer) => timer.status === "running")) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -125,34 +162,28 @@ export default function ReportsPage() {
 
       let employeeQuery = supabase
         .from("employees")
-        .select("id,name")
-        .eq("status", "active")
+        .select("id,name,status")
         .order("name");
       if (currentRole === "employee" && currentProfile?.employee_id)
         employeeQuery = employeeQuery.eq("id", currentProfile.employee_id);
       const projectQuery = supabase
         .from("projects")
         .select(
-          "id,name,project_code,remaining_hours,client_id,is_billable,clients(id,name),project_resources(employee_id)",
+          "id,name,project_code,remaining_hours,client_id,is_billable,status,clients(id,name),project_resources(employee_id)",
         )
-        .eq("status", "active")
         .order("name");
-      let operationalQuery = supabase
-        .from("time_entries")
-        .select(entrySelect)
-        .gte("entry_date", operationalStart())
-        .lte("entry_date", dateKey(new Date()));
-      if (currentRole === "employee" && currentProfile?.employee_id)
-        operationalQuery = operationalQuery.eq(
-          "employee_id",
-          currentProfile.employee_id,
-        );
-
       const [employeeResult, projectResult, operationalResult, timerResult] =
         await Promise.all([
           employeeQuery,
           projectQuery,
-          operationalQuery,
+          fetchAllTimeEntries({
+            from: operationalStart(),
+            to: dateKey(new Date()),
+            employeeId:
+              currentRole === "employee"
+                ? currentProfile?.employee_id
+                : undefined,
+          }),
           currentRole === "super admin" ||
           currentRole === "admin" ||
           currentRole === "manager"
@@ -197,18 +228,18 @@ export default function ReportsPage() {
     if (!profileLoaded || !profile || !period.from || !period.to) {
       return;
     }
+    let cancelled = false;
+
     async function loadPeriod() {
       setReportLoading(true);
       setError("");
-      let query = supabase
-        .from("time_entries")
-        .select(entrySelect)
-        .gte("entry_date", period.from)
-        .lte("entry_date", period.to)
-        .order("entry_date", { ascending: false });
-      if (isEmployee && profile?.employee_id)
-        query = query.eq("employee_id", profile.employee_id);
-      const result = await query;
+      const result = await fetchAllTimeEntries({
+        from: period.from,
+        to: period.to,
+        employeeId: isEmployee ? profile.employee_id : undefined,
+      });
+      if (cancelled) return;
+
       if (result.error) {
         setError(result.error.message);
         setEntries([]);
@@ -216,83 +247,106 @@ export default function ReportsPage() {
       setReportLoading(false);
     }
     void loadPeriod();
+    return () => {
+      cancelled = true;
+    };
   }, [isEmployee, period.from, period.to, profile, profileLoaded]);
 
+  const appliedSearch = appliedFilters.search.trim().toLowerCase();
   const matchesEntityFilters = useCallback(
     (entry: ReportEntry) => {
       if (
         !isEmployee &&
-        filters.employeeId &&
-        entry.employee_id !== filters.employeeId
+        appliedFilters.employeeId &&
+        entry.employee_id !== appliedFilters.employeeId
       )
-        return false;
-      if (filters.clientId && entry.projects?.clients?.id !== filters.clientId)
-        return false;
-      if (filters.projectId && entry.project_id !== filters.projectId)
         return false;
       if (
-        filters.billingType !== "all" &&
-        (entry.projects?.is_billable !== false ? "billable" : "non_billable") !==
-          filters.billingType
+        appliedFilters.clientId &&
+        entry.projects?.clients?.id !== appliedFilters.clientId
       )
         return false;
-      if (debouncedSearch) {
+      if (
+        appliedFilters.projectId &&
+        entry.project_id !== appliedFilters.projectId
+      )
+        return false;
+      if (
+        appliedFilters.billingType !== "all" &&
+        (entry.projects?.is_billable !== false ? "billable" : "non_billable") !==
+          appliedFilters.billingType
+      )
+        return false;
+      if (appliedSearch) {
         const haystack =
           `${entry.employees?.name} ${entry.projects?.clients?.name} ${entry.projects?.project_code} ${entry.projects?.name} ${entry.description}`.toLowerCase();
-        if (!haystack.includes(debouncedSearch)) return false;
+        if (!haystack.includes(appliedSearch)) return false;
       }
       return true;
     },
     [
-      debouncedSearch,
-      filters.clientId,
-      filters.billingType,
-      filters.employeeId,
-      filters.projectId,
+      appliedFilters.billingType,
+      appliedFilters.clientId,
+      appliedFilters.employeeId,
+      appliedFilters.projectId,
+      appliedSearch,
       isEmployee,
     ],
   );
 
   const filteredEntries = useMemo(
     () =>
-      !period.from || !period.to || filters.status === "running"
+      !period.from || !period.to || appliedFilters.status === "running"
         ? []
         : entries.filter(matchesEntityFilters),
-    [entries, filters.status, matchesEntityFilters, period.from, period.to],
+    [
+      appliedFilters.status,
+      entries,
+      matchesEntityFilters,
+      period.from,
+      period.to,
+    ],
   );
   const filteredOperational = useMemo(
     () =>
-      filters.status === "running"
+      appliedFilters.status === "running"
         ? []
         : operationalEntries.filter(matchesEntityFilters),
-    [filters.status, matchesEntityFilters, operationalEntries],
+    [appliedFilters.status, matchesEntityFilters, operationalEntries],
   );
   const filteredTimers = useMemo(
     () =>
       liveTimers
         .filter((timer) => {
-          if (filters.status === "completed") return false;
-          if (filters.employeeId && timer.employee_id !== filters.employeeId)
-            return false;
+          if (appliedFilters.status === "completed") return false;
           if (
-            filters.clientId &&
-            timer.projects?.clients?.id !== filters.clientId
+            appliedFilters.employeeId &&
+            timer.employee_id !== appliedFilters.employeeId
           )
             return false;
-          if (filters.projectId && timer.project_id !== filters.projectId)
+          if (
+            appliedFilters.clientId &&
+            timer.projects?.clients?.id !== appliedFilters.clientId
+          )
             return false;
           if (
-            filters.billingType !== "all" &&
+            appliedFilters.projectId &&
+            timer.project_id !== appliedFilters.projectId
+          )
+            return false;
+          if (
+            appliedFilters.billingType !== "all" &&
             (timer.projects?.is_billable !== false
               ? "billable"
-              : "non_billable") !== filters.billingType
+              : "non_billable") !==
+              appliedFilters.billingType
           )
             return false;
           if (
-            debouncedSearch &&
+            appliedSearch &&
             !`${timer.employees?.name} ${timer.projects?.clients?.name} ${timer.projects?.project_code} ${timer.projects?.name} ${timer.description}`
               .toLowerCase()
-              .includes(debouncedSearch)
+              .includes(appliedSearch)
           )
             return false;
           return true;
@@ -305,12 +359,12 @@ export default function ReportsPage() {
               : 1,
         ),
     [
-      debouncedSearch,
-      filters.clientId,
-      filters.billingType,
-      filters.employeeId,
-      filters.projectId,
-      filters.status,
+      appliedFilters.billingType,
+      appliedFilters.clientId,
+      appliedFilters.employeeId,
+      appliedFilters.projectId,
+      appliedFilters.status,
+      appliedSearch,
       liveTimers,
       now,
     ],
@@ -344,21 +398,28 @@ export default function ReportsPage() {
     );
     const visibleProjects = projects.filter(
       (project) =>
-        (!filters.projectId || project.id === filters.projectId) &&
-        (filters.billingType === "all" ||
+        project.status === "active" &&
+        (!appliedFilters.projectId || project.id === appliedFilters.projectId) &&
+        (appliedFilters.billingType === "all" ||
           (project.is_billable !== false ? "billable" : "non_billable") ===
-            filters.billingType) &&
-        (!filters.clientId || project.client_id === filters.clientId) &&
-        (!filters.employeeId ||
+            appliedFilters.billingType) &&
+        (!appliedFilters.clientId ||
+          project.client_id === appliedFilters.clientId) &&
+        (!appliedFilters.employeeId ||
           project.project_resources?.some(
-            (resource) => resource.employee_id === filters.employeeId,
+            (resource) => resource.employee_id === appliedFilters.employeeId,
           )),
     );
+    const activeEmployees = employees.filter(
+      (employee) => employee.status === "active",
+    );
     const visibleEmployees = isEmployee
-      ? employees
-      : filters.employeeId
-        ? employees.filter((employee) => employee.id === filters.employeeId)
-        : employees;
+      ? activeEmployees
+      : appliedFilters.employeeId
+        ? activeEmployees.filter(
+            (employee) => employee.id === appliedFilters.employeeId,
+          )
+        : activeEmployees;
     const trackedHours = filteredOperational.reduce(
       (sum, entry) => sum + Number(entry.hours || 0),
       0,
@@ -410,12 +471,12 @@ export default function ReportsPage() {
     };
   }, [
     employees,
+    appliedFilters.billingType,
+    appliedFilters.clientId,
+    appliedFilters.employeeId,
+    appliedFilters.projectId,
     filteredOperational,
     filteredTimers,
-    filters.clientId,
-    filters.billingType,
-    filters.employeeId,
-    filters.projectId,
     hoursIn,
     isEmployee,
     operationalRanges,
@@ -551,13 +612,50 @@ export default function ReportsPage() {
         })),
     [filters.billingType, filters.clientId, filters.employeeId, projects],
   );
-  const clearFilters = useCallback(() => setFilters(initialFilters), []);
+  const hasUnappliedChanges = useMemo(
+    () => JSON.stringify(filters) !== JSON.stringify(appliedFilters),
+    [appliedFilters, filters],
+  );
+  const applyFilters = useCallback(() => {
+    if (
+      filters.datePreset === "custom" &&
+      (!filters.customFrom ||
+        !filters.customTo ||
+        filters.customFrom > filters.customTo)
+    ) {
+      setError("Choose a valid custom start and end date before searching.");
+      return;
+    }
+
+    setError("");
+    if (
+      filters.datePreset !== appliedFilters.datePreset ||
+      filters.customFrom !== appliedFilters.customFrom ||
+      filters.customTo !== appliedFilters.customTo
+    )
+      setReportLoading(true);
+    setAppliedFilters({ ...filters, search: filters.search.trim() });
+  }, [appliedFilters, filters]);
+  const clearFilters = useCallback(() => {
+    if (
+      appliedFilters.datePreset !== initialFilters.datePreset ||
+      appliedFilters.customFrom !== initialFilters.customFrom ||
+      appliedFilters.customTo !== initialFilters.customTo
+    )
+      setReportLoading(true);
+    setFilters(initialFilters);
+    setAppliedFilters(initialFilters);
+    setError("");
+  }, [appliedFilters]);
   const updateFilters = useCallback((next: ReportFiltersValue) => {
     setFilters((current) => ({
       ...next,
+      clientId:
+        next.employeeId !== current.employeeId ? "" : next.clientId,
       projectId:
         next.clientId !== current.clientId ||
-        next.employeeId !== current.employeeId
+        next.employeeId !== current.employeeId ||
+        next.billingType !== current.billingType
           ? ""
           : next.projectId,
     }));
@@ -583,10 +681,11 @@ export default function ReportsPage() {
             </div>
             <ReportExportButtons
               rows={aggregateRows}
-              filters={filters}
+              filters={appliedFilters}
               summary={summary}
               period={period}
               employeeColumn={!isEmployee}
+              disabled={reportLoading || hasUnappliedChanges}
             />
           </div>
         </header>
@@ -625,7 +724,21 @@ export default function ReportsPage() {
                 clients={clientOptions}
                 projects={projectOptions}
                 showEmployee={!isEmployee}
+                onSearch={applyFilters}
                 onClear={clearFilters}
+                searching={reportLoading}
+                hasUnappliedChanges={hasUnappliedChanges}
+                exportActions={
+                  <ReportExportButtons
+                    rows={aggregateRows}
+                    filters={appliedFilters}
+                    summary={summary}
+                    period={period}
+                    employeeColumn={!isEmployee}
+                    disabled={reportLoading || hasUnappliedChanges}
+                    variant="toolbar"
+                  />
+                }
               />
               {reportLoading ? (
                 <ReportLoadingState />
@@ -668,7 +781,7 @@ export default function ReportsPage() {
                     />
                   </section>
                   <DetailedReportTable
-                    key={`${filters.employeeId}:${filters.clientId}:${filters.projectId}:${filters.billingType}:${filters.datePreset}:${filters.customFrom}:${filters.customTo}:${filters.status}:${debouncedSearch}`}
+                    key={`${appliedFilters.employeeId}:${appliedFilters.clientId}:${appliedFilters.projectId}:${appliedFilters.billingType}:${appliedFilters.datePreset}:${appliedFilters.customFrom}:${appliedFilters.customTo}:${appliedFilters.status}:${appliedSearch}`}
                     rows={aggregateRows}
                     employeeColumn={!isEmployee}
                   />

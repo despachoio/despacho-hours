@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { FilterOption, ReportFiltersValue } from "./types";
 
 export default function ReportFilters({
@@ -7,7 +8,11 @@ export default function ReportFilters({
   clients,
   projects,
   showEmployee,
+  onSearch,
   onClear,
+  exportActions,
+  searching = false,
+  hasUnappliedChanges = false,
 }: {
   value: ReportFiltersValue;
   onChange: (next: ReportFiltersValue) => void;
@@ -15,14 +20,24 @@ export default function ReportFilters({
   clients: FilterOption[];
   projects: FilterOption[];
   showEmployee: boolean;
+  onSearch: () => void;
   onClear: () => void;
+  exportActions?: ReactNode;
+  searching?: boolean;
+  hasUnappliedChanges?: boolean;
 }) {
   const update = (field: keyof ReportFiltersValue, next: string) =>
     onChange({ ...value, [field]: next });
   return (
-    <section className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-lg shadow-slate-200/50 backdrop-blur">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSearch();
+      }}
+      className="sticky top-3 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-lg shadow-slate-200/50 backdrop-blur"
+    >
       <div
-        className={`grid gap-3 md:grid-cols-2 ${showEmployee ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}
+        className={`grid gap-3 md:grid-cols-2 ${showEmployee ? "xl:grid-cols-7" : "xl:grid-cols-6"}`}
       >
         {showEmployee ? (
           <Select
@@ -96,13 +111,6 @@ export default function ReportFilters({
           placeholder="Search reports"
           className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
         />
-        <button
-          type="button"
-          onClick={onClear}
-          className="h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/10"
-        >
-          Reset
-        </button>
       </div>
       {value.datePreset === "custom" ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:max-w-xl">
@@ -122,7 +130,29 @@ export default function ReportFilters({
           />
         </div>
       ) : null}
-    </section>
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+        {hasUnappliedChanges ? (
+          <p className="mr-auto text-xs font-semibold text-amber-700">
+            Filters changed. Click Search to update the report.
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={searching}
+          className="h-11 rounded-xl bg-[#153E90] px-5 text-sm font-bold text-white transition-colors hover:bg-[#123578] disabled:cursor-wait disabled:opacity-60"
+        >
+          {searching ? "Searching…" : "Search"}
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-bold text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/10"
+        >
+          Reset
+        </button>
+        {exportActions}
+      </div>
+    </form>
   );
 }
 
