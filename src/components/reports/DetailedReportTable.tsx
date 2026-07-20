@@ -11,8 +11,6 @@ type SortKey =
   | "projectName"
   | "totalHours"
   | "entries"
-  | "averageSession"
-  | "longestSession"
   | "utilisation";
 
 export default function DetailedReportTable({
@@ -63,8 +61,6 @@ export default function DetailedReportTable({
     { key: "projectName", label: "Project" },
     { key: "totalHours", label: "Total Hours" },
     { key: "entries", label: "Entries" },
-    { key: "averageSession", label: "Average Session" },
-    { key: "longestSession", label: "Longest Session" },
     { key: "utilisation", label: "Utilisation" },
   ];
   return (
@@ -90,7 +86,15 @@ export default function DetailedReportTable({
         </select>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1120px]">
+        <table className="w-full min-w-[900px] table-fixed">
+          <colgroup>
+            <col className="w-12" />
+            {columns
+              .filter((column) => !column.hidden)
+              .map((column) => (
+                <col key={column.key} />
+              ))}
+          </colgroup>
           <thead className="bg-slate-950 text-xs uppercase tracking-wide text-white">
             <tr>
               <th className="w-12 px-3 py-3" />
@@ -206,19 +210,13 @@ function ReportRows({
           {formatDecimalHours(row.totalHours)}
         </td>
         <td className="px-4 py-4 text-right">{row.entries}</td>
-        <td className="px-4 py-4 text-right">
-          {formatDecimalHours(row.averageSession)}
-        </td>
-        <td className="px-4 py-4 text-right">
-          {formatDecimalHours(row.longestSession)}
-        </td>
         <td className="px-4 py-4 text-right font-semibold">
           {row.utilisation.toFixed(1)}%
         </td>
       </tr>
       {open ? (
         <tr className="border-b border-slate-100 bg-slate-50/70">
-          <td colSpan={employeeColumn ? 9 : 8} className="px-6 py-5">
+          <td colSpan={employeeColumn ? 7 : 6} className="px-6 py-5">
             <div className="space-y-4">
               {grouped.map(([date, entries]) => (
                 <div key={date}>
