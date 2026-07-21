@@ -69,10 +69,7 @@ export function employeeAnalytics(
   };
 }
 
-async function fetchTimeEntries(
-  filters: TeamMetricFilters,
-  visibleEmployeeIds: string[],
-) {
+async function fetchTimeEntries(filters: TeamMetricFilters) {
   const entries: TeamEntry[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
     let query = supabase
@@ -85,7 +82,6 @@ async function fetchTimeEntries(
       .order("entry_date", { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
     if (filters.employeeId) query = query.eq("employee_id", filters.employeeId);
-    else query = query.in("employee_id", visibleEmployeeIds);
     const result = await query;
     if (result.error) throw result.error;
     const page = (result.data || []) as unknown as TeamEntry[];
@@ -142,60 +138,32 @@ export async function getTeamMetrics(
 ): Promise<TeamMetrics> {
   let employeeQuery = supabase
     .from("employees")
-    .select(
-      "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost,reporting_manager:employees!employees_reporting_manager_id_fkey(id,name,title)",
-    )
+    .select("id,employee_code,name,email,role,department,status,hourly_cost")
     .order("created_at", { ascending: true });
-
-  if (filters.employeeId) {
-    employeeQuery = employeeQuery.eq("id", filters.employeeId);
-  }
-  if (filters.employeeStatus) {
-    employeeQuery = employeeQuery.eq("status", filters.employeeStatus);
-  }
-  if (filters.reportingManagerId) {
-    employeeQuery = employeeQuery.eq(
-      "reporting_manager_id",
-      filters.reportingManagerId,
-    );
-  }
-
-  const employeeResult = await employeeQuery;
-  if (employeeResult.error) throw employeeResult.error;
-
-  const teamEmployees = (
-    (employeeResult.data || []) as unknown as Array<
-      Omit<TeamEmployee, "reporting_manager"> & {
-        reporting_manager?:
-          | TeamEmployee["reporting_manager"]
-          | NonNullable<TeamEmployee["reporting_manager"]>[];
-      }
-    >
-  ).map(
-    (employee): TeamEmployee => ({
-      ...employee,
-      reporting_manager: Array.isArray(employee.reporting_manager)
-        ? employee.reporting_manager[0] || null
-        : employee.reporting_manager || null,
-    }),
-  );
-  const visibleEmployeeIds = teamEmployees.map((employee) => employee.id);
-  if (!visibleEmployeeIds.length) return calculateTeamMetrics([]);
-
-  const timerQuery = supabase
+  let timerQuery = supabase
     .from("active_timers")
     .select(
       "id,employee_id,project_id,started_at,paused_at,total_paused_seconds,status,description,projects(id,name,project_code,clients(id,name))",
     )
-    .in("status", ["running", "paused"])
-    .in("employee_id", visibleEmployeeIds);
+    .in("status", ["running", "paused"]);
 
-  const [timerResult, entries] = await Promise.all([
+  if (filters.employeeId) {
+    employeeQuery = employeeQuery.eq("id", filters.employeeId);
+    timerQuery = timerQuery.eq("employee_id", filters.employeeId);
+  }
+  if (filters.employeeStatus) {
+    employeeQuery = employeeQuery.eq("status", filters.employeeStatus);
+  }
+
+  const [employeeResult, timerResult, entries] = await Promise.all([
+    employeeQuery,
     timerQuery,
-    fetchTimeEntries(filters, visibleEmployeeIds),
+    fetchTimeEntries(filters),
   ]);
-  if (timerResult.error) throw timerResult.error;
+  const queryError = employeeResult.error || timerResult.error;
+  if (queryError) throw queryError;
 
+  const teamEmployees = (employeeResult.data || []) as TeamEmployee[];
   const timers = (timerResult.data || []) as unknown as TeamTimer[];
   const analytics = teamEmployees.map((employee) =>
     employeeAnalytics(

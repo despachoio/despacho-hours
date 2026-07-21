@@ -47,7 +47,6 @@ export default function EmployeeCard({
           </div>
           <div className="min-w-0">
             <span className="block truncate text-left font-bold text-slate-950 group-hover:text-[#153E90]">
-              {employee.title ? `${employee.title} ` : ""}
               {employee.name}
             </span>
             <span

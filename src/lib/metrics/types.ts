@@ -5,7 +5,6 @@ export type TeamMetricFilters = {
   endDate: string;
   employeeId?: string;
   employeeStatus?: string;
-  reportingManagerId?: string;
 };
 
 export type TeamMetrics = {

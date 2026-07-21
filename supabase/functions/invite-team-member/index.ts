@@ -22,26 +22,14 @@ serve(async (req) => {
       email,
       full_name,
       employee_code,
-      title,
-      gender,
       designation,
       department,
-      date_of_joining,
-      date_of_birth,
-      epf_number,
-      uan_number,
-      reporting_manager_id,
+      hourly_cost,
       access_role,
     } = await req.json();
 
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedName = String(full_name || "").trim();
-    const normalizedEmployeeCode = String(employee_code || "").trim();
-    const normalizedTitle = String(title || "").trim();
-    const normalizedGender = String(gender || "").trim();
-    const normalizedReportingManagerId = String(
-      reporting_manager_id || "",
-    ).trim();
     const roleLookup: Record<string, string> = {
       employee: "Employee",
       manager: "Manager",
@@ -57,13 +45,9 @@ serve(async (req) => {
           .replace(/\s+/g, " ")
       ];
 
-    if (!normalizedEmployeeCode || !normalizedEmail || !normalizedName) {
-      throw new Error("Employee code, name, and email are required.");
+    if (!normalizedEmail || !normalizedName) {
+      throw new Error("Name and email are required.");
     }
-    if (!["Mr", "Miss", "Mrs.", "Dr"].includes(normalizedTitle))
-      throw new Error("Select a valid title.");
-    if (!["Male", "Female", "Others"].includes(normalizedGender))
-      throw new Error("Select a valid gender.");
     if (!requestedRole) throw new Error("Select a valid access role.");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -101,36 +85,6 @@ serve(async (req) => {
     }
     if (requestedRole === "Super Admin" && callerRole !== "super admin") {
       throw new Error("Only a Super Admin can assign the Super Admin role.");
-    }
-
-    if (normalizedReportingManagerId) {
-      const { data: reportingManager, error: reportingManagerError } =
-        await supabaseAdmin
-          .from("profiles")
-          .select("role")
-          .eq("employee_id", normalizedReportingManagerId)
-          .maybeSingle();
-      const { data: reportingEmployee, error: reportingEmployeeError } =
-        await supabaseAdmin
-          .from("employees")
-          .select("status")
-          .eq("id", normalizedReportingManagerId)
-          .maybeSingle();
-      const reportingRole = String(reportingManager?.role || "")
-        .trim()
-        .toLowerCase();
-      if (
-        reportingManagerError ||
-        reportingEmployeeError ||
-        !reportingManager ||
-        !reportingEmployee ||
-        !["manager", "admin", "super admin"].includes(reportingRole) ||
-        String(reportingEmployee?.status || "active").toLowerCase() !== "active"
-      ) {
-        throw new Error(
-          "Reporting manager must be an active Manager, Admin, or Super Admin.",
-        );
-      }
     }
 
     // Check whether this employee already exists in Kairo.
@@ -171,17 +125,11 @@ serve(async (req) => {
           .from("employees")
           .update({
             user_id: userId,
-            employee_code: normalizedEmployeeCode,
-            title: normalizedTitle,
+            employee_code: employee_code || null,
             name: normalizedName,
-            gender: normalizedGender,
             role: designation || null,
             department: department || null,
-            date_of_joining: date_of_joining || null,
-            date_of_birth: date_of_birth || null,
-            epf_number: String(epf_number || "").trim() || null,
-            uan_number: String(uan_number || "").trim() || null,
-            reporting_manager_id: normalizedReportingManagerId || null,
+            hourly_cost: Number(hourly_cost || 0),
             status: "active",
           })
           .eq("id", existingEmployee.id)
@@ -200,18 +148,12 @@ serve(async (req) => {
           .from("employees")
           .insert({
             user_id: userId,
-            employee_code: normalizedEmployeeCode,
-            title: normalizedTitle,
+            employee_code: employee_code || null,
             name: normalizedName,
-            gender: normalizedGender,
             email: normalizedEmail,
             role: designation || null,
             department: department || null,
-            date_of_joining: date_of_joining || null,
-            date_of_birth: date_of_birth || null,
-            epf_number: String(epf_number || "").trim() || null,
-            uan_number: String(uan_number || "").trim() || null,
-            reporting_manager_id: normalizedReportingManagerId || null,
+            hourly_cost: Number(hourly_cost || 0),
             status: "active",
             active: true,
           })
