@@ -14,6 +14,7 @@ import {
 import EmployeeStats from "@/components/team/EmployeeStats";
 import EmployeeCharts from "@/components/team/EmployeeCharts";
 import type {
+  ReportingManagerOption,
   TeamEmployee,
   TeamEntry,
   TeamProfile,
@@ -37,12 +38,22 @@ function TeamDetailPageContent() {
   const [error, setError] = useState("");
   const [statusBusy, setStatusBusy] = useState(false);
   const [passwordResetBusy, setPasswordResetBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [employeeCode, setEmployeeCode] = useState("");
+  const [title, setTitle] = useState("Mr");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("Male");
   const [email, setEmail] = useState("");
   const [memberRole, setMemberRole] = useState("");
   const [department, setDepartment] = useState("");
-  const [hourlyCost, setHourlyCost] = useState("");
+  const [dateOfJoining, setDateOfJoining] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [epfNumber, setEpfNumber] = useState("");
+  const [uanNumber, setUanNumber] = useState("");
+  const [reportingManagerId, setReportingManagerId] = useState("");
+  const [reportingManagers, setReportingManagers] = useState<
+    ReportingManagerOption[]
+  >([]);
   const [accessRole, setAccessRole] = useState("Employee");
   const role = String(profile?.role || "")
     .trim()
@@ -83,14 +94,45 @@ function TeamDetailPageContent() {
         setLoading(false);
         return;
       }
-      const [memberResult, timerResult, accessResult] = await Promise.all([
-        supabase
-          .from("employees")
-          .select(
-            "id,employee_code,name,email,role,department,status,hourly_cost",
-          )
-          .eq("id", id)
-          .single(),
+      const memberResult = await supabase
+        .from("employees")
+        .select(
+          "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost,reporting_manager:employees!employees_reporting_manager_id_fkey(id,name,title)",
+        )
+        .eq("id", id)
+        .single();
+      if (memberResult.error || !memberResult.data) {
+        if (currentRole === "manager") setAccessDenied(true);
+        else setError(memberResult.error?.message || "Employee not found.");
+        setLoading(false);
+        return;
+      }
+      const rawMember = memberResult.data as unknown as Omit<
+        TeamEmployee,
+        "reporting_manager"
+      > & {
+        reporting_manager?:
+          | TeamEmployee["reporting_manager"]
+          | NonNullable<TeamEmployee["reporting_manager"]>[];
+      };
+      const loaded: TeamEmployee = {
+        ...rawMember,
+        reporting_manager: Array.isArray(rawMember.reporting_manager)
+          ? rawMember.reporting_manager[0] || null
+          : rawMember.reporting_manager || null,
+      };
+      if (
+        (currentRole === "manager" &&
+          loaded.reporting_manager_id !== current.employee_id) ||
+        (!["super admin", "admin"].includes(currentRole) &&
+          String(loaded.status || "").trim().toLowerCase() !== "active")
+      ) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+
+      const [timerResult, accessResult] = await Promise.all([
         supabase
           .from("active_timers")
           .select(
@@ -99,38 +141,39 @@ function TeamDetailPageContent() {
           .eq("employee_id", id)
           .in("status", ["running", "paused"])
           .maybeSingle(),
-        currentRole === "super admin" || currentRole === "admin"
-          ? supabase
-              .from("profiles")
-              .select("role")
-              .eq("employee_id", id)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("employee_id", id)
+          .maybeSingle(),
       ]);
-      if (memberResult.error || !memberResult.data) {
-        setError(memberResult.error?.message || "Employee not found.");
-        setLoading(false);
-        return;
-      }
-      const loaded = memberResult.data as TeamEmployee;
-      if (
-        currentRole !== "super admin" &&
-        currentRole !== "admin" &&
-        String(loaded.status || "").trim().toLowerCase() !== "active"
-      ) {
-        setAccessDenied(true);
-        setLoading(false);
-        return;
-      }
       setMember(loaded);
       setTimer((timerResult.data || null) as unknown as TeamTimer | null);
       setAccessRole(accessResult.data?.role || "Employee");
       setEmployeeCode(loaded.employee_code || "");
+      setTitle(loaded.title || "Mr");
       setName(loaded.name);
+      setGender(loaded.gender || "Male");
       setEmail(loaded.email);
       setMemberRole(loaded.role || "");
       setDepartment(loaded.department || "");
-      setHourlyCost(String(loaded.hourly_cost || 0));
+      setDateOfJoining(loaded.date_of_joining || "");
+      setDateOfBirth(loaded.date_of_birth || "");
+      setEpfNumber(loaded.epf_number || "");
+      setUanNumber(loaded.uan_number || "");
+      setReportingManagerId(loaded.reporting_manager_id || "");
+      if (["admin", "super admin"].includes(currentRole)) {
+        const { data: managerData, error: managerError } = await supabase.rpc(
+          "get_reporting_manager_options",
+        );
+        if (managerError) setError(managerError.message);
+        else
+          setReportingManagers(
+            ((managerData || []) as ReportingManagerOption[]).filter(
+              (manager) => manager.id !== id,
+            ),
+          );
+      }
       setLoading(false);
     }
     void loadMember();
@@ -165,15 +208,26 @@ function TeamDetailPageContent() {
 
   async function saveMember() {
     if (!canManageMember) return;
+    if (!employeeCode.trim() || !name.trim() || !email.trim()) {
+      setError("Employee code, employee name, and email address are required.");
+      return;
+    }
+    setError("");
     const { error: employeeError } = await supabase
       .from("employees")
       .update({
-        employee_code: employeeCode || null,
-        name,
-        email,
+        employee_code: employeeCode.trim(),
+        title,
+        name: name.trim(),
+        gender,
+        email: email.trim().toLowerCase(),
         role: memberRole || null,
         department: department || null,
-        hourly_cost: Number(hourlyCost || 0),
+        date_of_joining: dateOfJoining || null,
+        date_of_birth: dateOfBirth || null,
+        epf_number: epfNumber.trim() || null,
+        uan_number: uanNumber.trim() || null,
+        reporting_manager_id: reportingManagerId || null,
       })
       .eq("id", id);
     if (employeeError) {
@@ -205,7 +259,7 @@ const { error: profileError } = await supabase
       user_id: employeeRecord.user_id,
       employee_id: id,
       role: accessRole,
-      full_name: name,
+      full_name: name.trim(),
     },
     {
       onConflict: "user_id",
@@ -294,6 +348,40 @@ if (profileError) {
     }
   }
 
+  async function deleteMember() {
+    if (!canManageMember || deleteBusy) return;
+    setDeleteBusy(true);
+    setError("");
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setError("Your session has expired.");
+        return;
+      }
+
+      const response = await fetch(`/api/team/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        success?: boolean;
+      };
+      if (!response.ok || !result.success) {
+        setError(result.error || "Unable to delete this employee.");
+        return;
+      }
+      router.push("/team");
+      router.refresh();
+    } catch {
+      setError("Unable to delete this employee.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   if (loading)
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] text-sm font-semibold text-slate-500">
@@ -345,6 +433,13 @@ if (profileError) {
       >
         {member.status === "active" ? "Deactivate Employee" : "Activate Employee"}
       </button>
+      <button
+        type="button"
+        onClick={() => router.push(`/team/${id}?action=delete`)}
+        className="rounded-xl border border-red-300/40 bg-red-500/15 px-4 py-2 text-xs font-bold text-red-100"
+      >
+        Delete Employee
+      </button>
     </div>
   ) : null;
 
@@ -358,6 +453,7 @@ if (profileError) {
           ← Back to Team
         </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
+        <EmployeeProfileDetails employee={member} accessRole={accessRole} />
         {error ? (
           <div
             role="status"
@@ -370,16 +466,29 @@ if (profileError) {
           <AdminEditForm
             employeeCode={employeeCode}
             setEmployeeCode={setEmployeeCode}
+            title={title}
+            setTitle={setTitle}
             name={name}
             setName={setName}
+            gender={gender}
+            setGender={setGender}
             email={email}
             setEmail={setEmail}
             memberRole={memberRole}
             setMemberRole={setMemberRole}
             department={department}
             setDepartment={setDepartment}
-            hourlyCost={hourlyCost}
-            setHourlyCost={setHourlyCost}
+            dateOfJoining={dateOfJoining}
+            setDateOfJoining={setDateOfJoining}
+            dateOfBirth={dateOfBirth}
+            setDateOfBirth={setDateOfBirth}
+            epfNumber={epfNumber}
+            setEpfNumber={setEpfNumber}
+            uanNumber={uanNumber}
+            setUanNumber={setUanNumber}
+            reportingManagerId={reportingManagerId}
+            setReportingManagerId={setReportingManagerId}
+            reportingManagers={reportingManagers}
             accessRole={accessRole}
             setAccessRole={setAccessRole}
             canAssignSuperAdmin={isSuperAdmin}
@@ -404,6 +513,16 @@ if (profileError) {
             tone="green"
             busy={statusBusy}
             onConfirm={() => void updateStatus("active")}
+            onCancel={() => router.push(`/team/${id}`)}
+          />
+        ) : null}
+        {action === "delete" && canManageMember ? (
+          <Confirmation
+            text="Permanently delete this team member? Employees with time history must be deactivated instead so payroll and audit records remain intact."
+            confirm="Delete Employee"
+            tone="red"
+            busy={deleteBusy}
+            onConfirm={() => void deleteMember()}
             onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
@@ -433,6 +552,63 @@ if (profileError) {
   );
 }
 
+function EmployeeProfileDetails({
+  employee,
+  accessRole,
+}: {
+  employee: TeamEmployee;
+  accessRole: string;
+}) {
+  const details = [
+    ["Employee Code", employee.employee_code || "—"],
+    ["Title", employee.title || "—"],
+    ["Employee Name", employee.name],
+    ["Gender", employee.gender || "—"],
+    ["Email Address", employee.email],
+    ["Role", employee.role || "—"],
+    ["Department", employee.department || "—"],
+    ["Date of Joining", formatProfileDate(employee.date_of_joining)],
+    ["Date of Birth", formatProfileDate(employee.date_of_birth)],
+    ["EPF Number", employee.epf_number || "—"],
+    ["UAN Number", employee.uan_number || "—"],
+    [
+      "Reporting Manager",
+      employee.reporting_manager
+        ? `${employee.reporting_manager.title ? `${employee.reporting_manager.title} ` : ""}${employee.reporting_manager.name}`
+        : "—",
+    ],
+    ["Access Type", accessRole],
+  ];
+
+  return (
+    <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-bold text-slate-950">Employee details</h2>
+      <div className="mt-5 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {details.map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+              {label}
+            </p>
+            <p className="mt-1 break-words text-sm font-semibold text-slate-800">
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function formatProfileDate(value: string | null) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00Z`));
+}
+
 export default function TeamDetailPage() {
   return (
     <Suspense fallback={null}>
@@ -445,16 +621,29 @@ type Setter = (value: string) => void;
 function AdminEditForm(props: {
   employeeCode: string;
   setEmployeeCode: Setter;
+  title: string;
+  setTitle: Setter;
   name: string;
   setName: Setter;
+  gender: string;
+  setGender: Setter;
   email: string;
   setEmail: Setter;
   memberRole: string;
   setMemberRole: Setter;
   department: string;
   setDepartment: Setter;
-  hourlyCost: string;
-  setHourlyCost: Setter;
+  dateOfJoining: string;
+  setDateOfJoining: Setter;
+  dateOfBirth: string;
+  setDateOfBirth: Setter;
+  epfNumber: string;
+  setEpfNumber: Setter;
+  uanNumber: string;
+  setUanNumber: Setter;
+  reportingManagerId: string;
+  setReportingManagerId: Setter;
+  reportingManagers: ReportingManagerOption[];
   accessRole: string;
   setAccessRole: Setter;
   canAssignSuperAdmin: boolean;
@@ -464,44 +653,105 @@ function AdminEditForm(props: {
   return (
     <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg">
       <h2 className="text-xl font-bold">Edit employee</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Employment details are retained for future time-off and payroll
+        modules.
+      </p>
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Input
+          label="Employee Code"
           value={props.employeeCode}
           onChange={props.setEmployeeCode}
-          placeholder="Employee code"
+          required
         />
-        <Input value={props.name} onChange={props.setName} placeholder="Name" />
+        <SelectField
+          label="Title"
+          value={props.title}
+          onChange={props.setTitle}
+        >
+          <option value="Mr">Mr</option>
+          <option value="Miss">Miss</option>
+          <option value="Mrs.">Mrs.</option>
+          <option value="Dr">Dr</option>
+        </SelectField>
         <Input
+          label="Employee Name"
+          value={props.name}
+          onChange={props.setName}
+          required
+        />
+        <SelectField
+          label="Gender"
+          value={props.gender}
+          onChange={props.setGender}
+        >
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Others">Others</option>
+        </SelectField>
+        <Input
+          label="Email Address"
           value={props.email}
           onChange={props.setEmail}
-          placeholder="Email"
+          type="email"
+          required
         />
         <Input
+          label="Role"
           value={props.memberRole}
           onChange={props.setMemberRole}
-          placeholder="Role"
         />
         <Input
+          label="Department"
           value={props.department}
           onChange={props.setDepartment}
-          placeholder="Department"
         />
         <Input
-          value={props.hourlyCost}
-          onChange={props.setHourlyCost}
-          placeholder="Hourly cost"
-          type="number"
+          label="Date of Joining"
+          value={props.dateOfJoining}
+          onChange={props.setDateOfJoining}
+          type="date"
         />
-        <select
-          value={props.accessRole}
-          onChange={(event) => props.setAccessRole(event.target.value)}
-          className="rounded-2xl border border-slate-200 px-4 py-3"
+        <Input
+          label="Date of Birth"
+          value={props.dateOfBirth}
+          onChange={props.setDateOfBirth}
+          type="date"
+        />
+        <Input
+          label="EPF Number"
+          value={props.epfNumber}
+          onChange={props.setEpfNumber}
+        />
+        <Input
+          label="UAN Number"
+          value={props.uanNumber}
+          onChange={props.setUanNumber}
+        />
+        <SelectField
+          label="Reporting Manager"
+          value={props.reportingManagerId}
+          onChange={props.setReportingManagerId}
         >
-          <option>Employee</option>
-          <option>Manager</option>
-          <option>Admin</option>
-          {props.canAssignSuperAdmin ? <option>Super Admin</option> : null}
-        </select>
+          <option value="">No reporting manager</option>
+          {props.reportingManagers.map((manager) => (
+            <option key={manager.id} value={manager.id}>
+              {manager.name} · {manager.access_role}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
+          label="Access Type"
+          value={props.accessRole}
+          onChange={props.setAccessRole}
+        >
+          <option value="Employee">Employee</option>
+          <option value="Manager">Manager</option>
+          <option value="Admin">Admin</option>
+          {props.canAssignSuperAdmin ? (
+            <option value="Super Admin">Super Admin</option>
+          ) : null}
+        </SelectField>
       </div>
       <div className="mt-5 flex gap-3">
         <button
@@ -564,23 +814,56 @@ function Confirmation({
   );
 }
 function Input({
+  label,
   value,
   onChange,
-  placeholder,
   type = "text",
+  required = false,
 }: {
+  label: string;
   value: string;
   onChange: Setter;
-  placeholder: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
-    <input
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400"
-    />
+    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+      <span>
+        {label}
+        {required ? <span className="ml-1 text-red-500">*</span> : null}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        className="h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-400"
+      />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: Setter;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+      <span>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-400"
+      >
+        {children}
+      </select>
+    </label>
   );
 }

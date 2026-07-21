@@ -3,12 +3,30 @@ export type TeamProfile = { role: string; employee_id: string | null };
 export type TeamEmployee = {
   id: string;
   employee_code: string | null;
+  title: string | null;
   name: string;
+  gender: string | null;
   email: string;
   role: string | null;
   department: string | null;
+  date_of_joining: string | null;
+  date_of_birth: string | null;
+  epf_number: string | null;
+  uan_number: string | null;
+  reporting_manager_id: string | null;
+  reporting_manager?: {
+    id: string;
+    name: string;
+    title: string | null;
+  } | null;
   status: string | null;
   hourly_cost?: number | null;
+};
+
+export type ReportingManagerOption = {
+  id: string;
+  name: string;
+  access_role: string;
 };
 
 export type TeamEntry = {
