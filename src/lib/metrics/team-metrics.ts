@@ -147,6 +147,29 @@ export async function getTeamMetrics(
     employeeRows = (employeeResult.data || []) as unknown as Array<
       Omit<TeamEmployee, "reporting_manager">
     >;
+    if (
+      filters.includeEmployeeId &&
+      !employeeRows.some(
+        (employee) => employee.id === filters.includeEmployeeId,
+      )
+    ) {
+      const selfResult = await supabase
+        .from("employees")
+        .select(
+          "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
+        )
+        .eq("id", filters.includeEmployeeId)
+        .maybeSingle();
+      if (selfResult.error) throw selfResult.error;
+      if (selfResult.data) {
+        employeeRows.push(
+          selfResult.data as unknown as Omit<
+            TeamEmployee,
+            "reporting_manager"
+          >,
+        );
+      }
+    }
   } else {
     let employeeQuery = supabase
       .from("employees")

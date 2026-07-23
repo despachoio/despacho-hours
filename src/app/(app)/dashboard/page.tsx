@@ -17,6 +17,7 @@ type Client = { id: string; status: string };
 
 type Project = {
   id: string;
+  client_id: string | null;
   name: string;
   project_code: string | null;
   remaining_hours: number;
@@ -119,6 +120,7 @@ export default function DashboardPage() {
 
       let projectQuery = supabase.from("projects").select(`
         id,
+        client_id,
         name,
         project_code,
         remaining_hours,
@@ -135,6 +137,14 @@ export default function DashboardPage() {
         endDate: week.to,
         employeeId:
           role === "employee" ? currentProfile?.employee_id || undefined : undefined,
+        reportingManagerId:
+          role === "manager"
+            ? currentProfile?.employee_id || undefined
+            : undefined,
+        includeEmployeeId:
+          role === "manager"
+            ? currentProfile?.employee_id || undefined
+            : undefined,
         employeeStatus: "active",
       }).catch((teamError) => {
         console.error("Unable to load dashboard team metrics", teamError);
@@ -170,10 +180,16 @@ export default function DashboardPage() {
       }
       setTeamMetrics(loadedTeamMetrics);
       setInvoiceMetrics(loadedInvoiceMetrics);
-      setClients((clientResult.data || []) as Client[]);
+      const managerEmployeeId =
+        role === "manager" ? currentProfile?.employee_id : null;
+      const managerTeamEmployeeIds = new Set(
+        loadedTeamMetrics.employees.map((item) => item.employee.id),
+      );
       setLiveTimers(
         loadedTeamMetrics.employees.flatMap((item) =>
-          item.timer
+          item.timer &&
+          (!managerEmployeeId ||
+            item.employee.id !== managerEmployeeId)
             ? [
                 {
                   ...item.timer,
@@ -188,7 +204,7 @@ export default function DashboardPage() {
         []) as unknown as (Project & {
         project_resources?: { employee_id: string }[];
       })[];
-      setProjects(
+      const scopedProjects =
         role === "employee" && currentProfile?.employee_id
           ? loadedProjects.filter((project) =>
               project.project_resources?.some(
@@ -196,8 +212,28 @@ export default function DashboardPage() {
                   resource.employee_id === currentProfile.employee_id,
               ),
             )
-          : loadedProjects,
-      );
+          : role === "manager"
+            ? loadedProjects.filter((project) =>
+                project.project_resources?.some((resource) =>
+                  managerTeamEmployeeIds.has(resource.employee_id),
+                ),
+              )
+            : loadedProjects;
+      setProjects(scopedProjects);
+      if (role === "manager") {
+        const managerClientIds = new Set(
+          scopedProjects
+            .map((project) => project.client_id)
+            .filter((clientId): clientId is string => Boolean(clientId)),
+        );
+        setClients(
+          ((clientResult.data || []) as Client[]).filter((client) =>
+            managerClientIds.has(client.id),
+          ),
+        );
+      } else {
+        setClients((clientResult.data || []) as Client[]);
+      }
 
       setTick(Date.now());
       setLoading(false);

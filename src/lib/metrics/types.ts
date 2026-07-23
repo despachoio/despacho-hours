@@ -6,6 +6,7 @@ export type TeamMetricFilters = {
   employeeId?: string;
   employeeStatus?: string;
   reportingManagerId?: string;
+  includeEmployeeId?: string;
 };
 
 export type TeamMetrics = {
