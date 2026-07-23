@@ -51,6 +51,12 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<ProjectStatusFilter>("active");
+  const canAdministerProjects = [
+    "Finance Admin",
+    "Super Admin",
+    "Admin",
+  ].includes(role);
+  const canOpenProject = canAdministerProjects || role === "Manager";
 
   async function loadProjects() {
     const { data: userData } = await supabase.auth.getUser();
@@ -211,7 +217,7 @@ export default function ProjectsPage() {
               </p>
             </div>
 
-            {["Finance Admin", "Super Admin", "Admin"].includes(role) && (
+            {canAdministerProjects && (
               <Link
                 href="/projects/new"
                 className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
@@ -289,29 +295,55 @@ export default function ProjectsPage() {
                     <div
                       key={project.id}
                       data-shortcut-row
-                      data-shortcut-href={`/projects/${project.id}/wallet`}
+                      data-shortcut-href={
+                        canOpenProject
+                          ? `/projects/${project.id}/wallet`
+                          : undefined
+                      }
                       data-shortcut-edit-href={
-                        ["Finance Admin", "Super Admin", "Admin"].includes(role)
+                        canAdministerProjects
                           ? `/projects/${project.id}?action=edit`
                           : undefined
                       }
-                      role="link"
-                      tabIndex={0}
-                      onClick={(event) => {
-                        if ((event.target as HTMLElement).closest("a,button,select,input,textarea")) return;
-                        router.push(`/projects/${project.id}/wallet`);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          router.push(`/projects/${project.id}/wallet`);
-                        }
-                      }}
-                      className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+                      role={canOpenProject ? "link" : undefined}
+                      tabIndex={canOpenProject ? 0 : undefined}
+                      onClick={
+                        canOpenProject
+                          ? (event) => {
+                              if (
+                                (event.target as HTMLElement).closest(
+                                  "a,button,select,input,textarea",
+                                )
+                              )
+                                return;
+                              router.push(`/projects/${project.id}/wallet`);
+                            }
+                          : undefined
+                      }
+                      onKeyDown={
+                        canOpenProject
+                          ? (event) => {
+                              if (
+                                event.key === "Enter" ||
+                                event.key === " "
+                              ) {
+                                event.preventDefault();
+                                router.push(
+                                  `/projects/${project.id}/wallet`,
+                                );
+                              }
+                            }
+                          : undefined
+                      }
+                      className={`group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition ${
+                        canOpenProject
+                          ? "cursor-pointer hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+                          : "cursor-default"
+                      }`}
                     >
                       <div
                         className={
-                          ["Finance Admin", "Super Admin", "Admin"].includes(role)
+                          canAdministerProjects
                             ? "grid items-center gap-5 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[2fr_.7fr_.7fr_.7fr_auto] xl:px-6"
                             : "grid items-center gap-5 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[2fr_.7fr_.7fr_.7fr] xl:px-6"
                         }
@@ -321,17 +353,28 @@ export default function ProjectsPage() {
                             {projectInitials(project.name)}
                           </div>
                           <div className="min-w-0">
-                            <Link
-                              href={`/projects/${project.id}/wallet`}
-                              className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
-                            >
+                            {canOpenProject ? (
+                              <Link
+                                href={`/projects/${project.id}/wallet`}
+                                className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+                              >
+                                <span className="shrink-0 text-[#153E90]">
+                                  [{project.project_code}]
+                                </span>
+                                <span className="truncate text-slate-950 transition group-hover:text-[#153E90]">
+                                  {project.name}
+                                </span>
+                              </Link>
+                            ) : (
+                              <div className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold">
                               <span className="shrink-0 text-[#153E90]">
                                 [{project.project_code}]
                               </span>
-                              <span className="truncate text-slate-950 transition group-hover:text-[#153E90]">
+                              <span className="truncate text-slate-950">
                                 {project.name}
                               </span>
-                            </Link>
+                              </div>
+                            )}
                             <span
                               className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${project.status === "archived" ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"}`}
                             >
@@ -386,7 +429,7 @@ export default function ProjectsPage() {
 </p>
                         </div>
 
-                        {["Finance Admin", "Super Admin", "Admin"].includes(role) && (
+                        {canAdministerProjects && (
                           <select
                             onClick={(e) => e.stopPropagation()}
                             onChange={(e) => {

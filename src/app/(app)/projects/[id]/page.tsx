@@ -128,6 +128,13 @@ const [notes,setNotes] =
 useState<ProjectNote[]>([]);
 
 const [notesText, setNotesText] = useState("");
+const [role, setRole] = useState("");
+const [accessChecked, setAccessChecked] = useState(false);
+const canAdministerProject = [
+  "Finance Admin",
+  "Super Admin",
+  "Admin",
+].includes(role);
 
 
 
@@ -364,7 +371,7 @@ data as TeamMember[]
 
 
 async function saveProject() {
-  if (!project) return;
+  if (!project || !canAdministerProject) return;
 
   const purchased = project.purchased_hours || 0;
 
@@ -409,7 +416,7 @@ async function saveProject() {
 
 
 async function addHours() {
-  if (!project) return;
+  if (!project || !canAdministerProject) return;
 
   const hours = Number(extraHours || 0);
 
@@ -453,7 +460,7 @@ async function addHours() {
 }
 async function addResource(){
 
-if(!resource) return;
+if(!resource || !canAdministerProject) return;
 
 
 await supabase
@@ -484,6 +491,7 @@ loadProject();
 
 async function removeResource(id:string){
 
+if (!canAdministerProject) return;
 
 await supabase
 
@@ -510,6 +518,7 @@ loadProject();
 
 async function archiveProject(){
 
+if (!canAdministerProject) return;
 
 await supabase
 
@@ -542,6 +551,7 @@ router.push(
 
 async function unarchiveProject(){
 
+if (!canAdministerProject) return;
 
 await supabase
 
@@ -575,13 +585,34 @@ router.push(
 
 useEffect(()=>{
 
+async function loadAuthorizedProject() {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    router.replace("/login");
+    return;
+  }
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", userData.user.id)
+    .single();
+  const currentRole = String(profileData?.role || "");
+  if (currentRole === "Manager") {
+    router.replace(`/projects/${projectId}/wallet`);
+    return;
+  }
+  if (
+    !["Finance Admin", "Super Admin", "Admin"].includes(currentRole)
+  ) {
+    router.replace("/projects");
+    return;
+  }
+  setRole(currentRole);
+  setAccessChecked(true);
+  await Promise.all([loadProject(), loadTeam()]);
+}
 
-// Existing detail page performs its initial Supabase loads client-side.
-// eslint-disable-next-line react-hooks/set-state-in-effect
-void loadProject();
-
-void loadTeam();
-
+void loadAuthorizedProject();
 
 // eslint-disable-next-line react-hooks/exhaustive-deps
 },[]);
@@ -589,7 +620,7 @@ void loadTeam();
 
 
 
-if(!project) return null;
+if(!accessChecked || !project) return null;
 
 
 

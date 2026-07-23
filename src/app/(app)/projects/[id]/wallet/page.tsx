@@ -88,6 +88,12 @@ export default function ProjectWalletPage() {
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [role, setRole] = useState("");
+  const canAdjustWallet = [
+    "Finance Admin",
+    "Super Admin",
+    "Admin",
+  ].includes(role);
 
   function formatHours(value: number) {
     return formatDecimalHours(value);
@@ -266,6 +272,35 @@ export default function ProjectWalletPage() {
   async function loadWallet() {
     setLoading(true);
     setErrorMessage("");
+
+    const { data: userData, error: userError } =
+      await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      setErrorMessage("Your session has expired.");
+      setLoading(false);
+      return;
+    }
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+      .single();
+    const currentRole = String(profileData?.role || "");
+    if (
+      profileError ||
+      !["Finance Admin", "Super Admin", "Admin", "Manager"].includes(
+        currentRole,
+      )
+    ) {
+      setErrorMessage(
+        "You do not have permission to view this project wallet.",
+      );
+      setProject(null);
+      setWallet(null);
+      setLoading(false);
+      return;
+    }
+    setRole(currentRole);
 
     const { data: projectData, error: projectError } =
       await supabase
@@ -695,17 +730,19 @@ export default function ProjectWalletPage() {
           </div>
 
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                router.push(
-                  `/projects/${project.id}?action=hours`
-                )
-              }
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
-            >
-              Wallet Adjustment
-            </button>
+            {canAdjustWallet ? (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/projects/${project.id}?action=hours`
+                  )
+                }
+                className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
+              >
+                Wallet Adjustment
+              </button>
+            ) : null}
 
             <button
               type="button"
