@@ -556,7 +556,7 @@ export default function TeamPage() {
                       analytics={item}
                       now={now}
                       canEdit={isAdmin}
-                      canViewDetails={isAdmin || isEmployee}
+                      canViewDetails
                     />
                   ))}
                 </section>

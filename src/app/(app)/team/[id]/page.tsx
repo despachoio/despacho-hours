@@ -91,29 +91,61 @@ function TeamDetailPageContent() {
       const currentRole = String(current?.role || "")
         .trim()
         .toLowerCase();
+      if (!current) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
       if (
-        !current ||
-        (!["admin", "super admin"].includes(currentRole) &&
-          current.employee_id !== id)
+        currentRole === "employee" &&
+        current.employee_id !== id
       ) {
         setAccessDenied(true);
         setLoading(false);
         return;
       }
-      const memberResult = await supabase
-        .from("employees")
-        .select(
-          "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
-        )
-        .eq("id", id)
-        .single();
-      if (memberResult.error || !memberResult.data) {
-        if (currentRole === "manager") setAccessDenied(true);
-        else setError(memberResult.error?.message || "Employee not found.");
-        setLoading(false);
-        return;
+
+      let memberData: Omit<TeamEmployee, "reporting_manager"> | null = null;
+      if (
+        currentRole === "manager" &&
+        current.employee_id !== id
+      ) {
+        const metricEmployees = await supabase.rpc(
+          "get_team_metric_employees",
+        );
+        if (!metricEmployees.error) {
+          memberData =
+            (
+              (metricEmployees.data || []) as Array<
+                Omit<TeamEmployee, "reporting_manager">
+              >
+            ).find((employee) => employee.id === id) || null;
+        }
+        if (metricEmployees.error || !memberData) {
+          setAccessDenied(true);
+          setLoading(false);
+          return;
+        }
+      } else {
+        const memberResult = await supabase
+          .from("employees")
+          .select(
+            "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
+          )
+          .eq("id", id)
+          .single();
+        if (memberResult.error || !memberResult.data) {
+          setError(memberResult.error?.message || "Employee not found.");
+          setLoading(false);
+          return;
+        }
+        memberData = memberResult.data as unknown as Omit<
+          TeamEmployee,
+          "reporting_manager"
+        >;
       }
-      const rawMember = memberResult.data as unknown as Omit<
+
+      const rawMember = memberData as Omit<
         TeamEmployee,
         "reporting_manager"
       >;
@@ -499,13 +531,15 @@ if (profileError) {
           ← Back to Team
         </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
-        <EmployeeProfileDetails
-          employee={member}
-          accessRole={accessRole}
-          panNumber={panNumber}
-          aadhaarNumber={aadhaarNumber}
-          showStatutoryDetails={isAdmin}
-        />
+        {role !== "manager" ? (
+          <EmployeeProfileDetails
+            employee={member}
+            accessRole={accessRole}
+            panNumber={panNumber}
+            aadhaarNumber={aadhaarNumber}
+            showStatutoryDetails={isAdmin}
+          />
+        ) : null}
         {error ? (
           <div
             role="status"
