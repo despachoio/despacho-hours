@@ -23,6 +23,7 @@ export function EmployeeProfileFormSections({
   joiningReadOnly = false,
   showFinanceDetails = true,
   statutoryFinanceReadOnly = false,
+  benefitsReadOnly = false,
 }: {
   value: EmployeeProfileChanges;
   onChange: ChangeHandler;
@@ -30,6 +31,7 @@ export function EmployeeProfileFormSections({
   joiningReadOnly?: boolean;
   showFinanceDetails?: boolean;
   statutoryFinanceReadOnly?: boolean;
+  benefitsReadOnly?: boolean;
 }) {
   function resizeChildren(count: number) {
     const safeCount = Math.max(0, Math.min(20, count));
@@ -144,6 +146,12 @@ export function EmployeeProfileFormSections({
           onChange={(next) => onChange("role", next || null)}
           disabled={joiningReadOnly}
         />
+        <TextField
+          label="Level"
+          value={value.level || ""}
+          onChange={(next) => onChange("level", next || null)}
+          disabled={joiningReadOnly}
+        />
         <SelectField
           label="Department"
           value={value.department || ""}
@@ -256,6 +264,43 @@ export function EmployeeProfileFormSections({
         title="Nominee Details"
         accent="violet"
       >
+        <TextField
+          label="Accidental Policy Number"
+          value={value.accidental_policy_number || ""}
+          onChange={(next) =>
+            onChange("accidental_policy_number", next || null)
+          }
+          disabled={benefitsReadOnly}
+        />
+        <TextField
+          label="Accidental Policy Expiration Date"
+          type="date"
+          value={value.accidental_policy_expiration_date || ""}
+          onChange={(next) =>
+            onChange(
+              "accidental_policy_expiration_date",
+              next || null,
+            )
+          }
+          disabled={benefitsReadOnly}
+        />
+        <TextField
+          label="Health Policy Number"
+          value={value.health_policy_number || ""}
+          onChange={(next) =>
+            onChange("health_policy_number", next || null)
+          }
+          disabled={benefitsReadOnly}
+        />
+        <TextField
+          label="Health Policy Expiration Date"
+          type="date"
+          value={value.health_policy_expiration_date || ""}
+          onChange={(next) =>
+            onChange("health_policy_expiration_date", next || null)
+          }
+          disabled={benefitsReadOnly}
+        />
         <TextField label="Nominee Name" value={value.nominee_name || ""} onChange={(next) => onChange("nominee_name", next || null)} />
         <TextField label="Nominee Relationship" value={value.nominee_relationship || ""} onChange={(next) => onChange("nominee_relationship", next || null)} />
         <TextField label="Nominee DOB" type="date" value={value.nominee_date_of_birth || ""} onChange={(next) => onChange("nominee_date_of_birth", next || null)} />
@@ -297,6 +342,7 @@ export function EmployeeProfileDetailsSections({
     ["Employee Code", value.employee_code],
     ["Email Address", value.email],
     ["Role", value.role],
+    ["Level", value.level],
     ["Department", value.department],
     ["Date of Joining", formatDate(value.date_of_joining)],
     ["Reporting Manager", reportingManager],
@@ -332,6 +378,16 @@ export function EmployeeProfileDetailsSections({
     ["Emergency Contact Number", value.emergency_contact_number],
   ];
   const nominee = [
+    ["Accidental Policy Number", value.accidental_policy_number],
+    [
+      "Accidental Policy Expiration Date",
+      formatDate(value.accidental_policy_expiration_date),
+    ],
+    ["Health Policy Number", value.health_policy_number],
+    [
+      "Health Policy Expiration Date",
+      formatDate(value.health_policy_expiration_date),
+    ],
     ["Nominee Name", value.nominee_name],
     ["Nominee Relationship", value.nominee_relationship],
     ["Nominee DOB", formatDate(value.nominee_date_of_birth)],

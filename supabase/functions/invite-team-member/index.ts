@@ -25,6 +25,7 @@ serve(async (req) => {
       title,
       gender,
       designation,
+      level,
       department,
       date_of_joining,
       date_of_birth,
@@ -56,6 +57,10 @@ serve(async (req) => {
       nominee_name,
       nominee_relationship,
       nominee_date_of_birth,
+      accidental_policy_number,
+      accidental_policy_expiration_date,
+      health_policy_number,
+      health_policy_expiration_date,
       reporting_manager_id,
       access_role,
     } = await req.json();
@@ -275,6 +280,7 @@ serve(async (req) => {
             name: normalizedName,
             gender: normalizedGender,
             role: designation || null,
+            level: String(level || "").trim() || null,
             department: normalizedDepartment || null,
             date_of_joining: date_of_joining || null,
             date_of_birth: date_of_birth || null,
@@ -305,6 +311,7 @@ serve(async (req) => {
             gender: normalizedGender,
             email: normalizedEmail,
             role: designation || null,
+            level: String(level || "").trim() || null,
             department: normalizedDepartment || null,
             date_of_joining: date_of_joining || null,
             date_of_birth: date_of_birth || null,
@@ -393,6 +400,26 @@ serve(async (req) => {
         );
       if (financeError) {
         throw financeError;
+      }
+      const { error: benefitError } = await supabaseAdmin
+        .from("employee_benefit_details")
+        .upsert(
+          {
+            employee_id: employeeId,
+            accidental_policy_number:
+              String(accidental_policy_number || "").trim() || null,
+            accidental_policy_expiration_date:
+              accidental_policy_expiration_date || null,
+            health_policy_number:
+              String(health_policy_number || "").trim() || null,
+            health_policy_expiration_date:
+              health_policy_expiration_date || null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "employee_id" },
+        );
+      if (benefitError) {
+        throw benefitError;
       }
     }
 

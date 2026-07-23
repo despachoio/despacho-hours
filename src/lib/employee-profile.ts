@@ -44,6 +44,7 @@ export type EmployeeProfileChanges = {
   gender: string | null;
   email: string;
   role: string | null;
+  level: string | null;
   department: string | null;
   date_of_joining: string | null;
   date_of_birth: string | null;
@@ -75,6 +76,10 @@ export type EmployeeProfileChanges = {
   nominee_name: string | null;
   nominee_relationship: string | null;
   nominee_date_of_birth: string | null;
+  accidental_policy_number: string | null;
+  accidental_policy_expiration_date: string | null;
+  health_policy_number: string | null;
+  health_policy_expiration_date: string | null;
 };
 
 export function emptyEmployeeProfileChanges(): EmployeeProfileChanges {
@@ -85,6 +90,7 @@ export function emptyEmployeeProfileChanges(): EmployeeProfileChanges {
     gender: "Male",
     email: "",
     role: null,
+    level: null,
     department: null,
     date_of_joining: null,
     date_of_birth: null,
@@ -116,6 +122,10 @@ export function emptyEmployeeProfileChanges(): EmployeeProfileChanges {
     nominee_name: null,
     nominee_relationship: null,
     nominee_date_of_birth: null,
+    accidental_policy_number: null,
+    accidental_policy_expiration_date: null,
+    health_policy_number: null,
+    health_policy_expiration_date: null,
   };
 }
 
@@ -148,6 +158,12 @@ export function validateEmployeeProfileChanges(input: unknown):
   const dateOfJoining = optionalText(body.date_of_joining);
   const dateOfBirth = optionalText(body.date_of_birth);
   const nomineeDateOfBirth = optionalText(body.nominee_date_of_birth);
+  const accidentalPolicyExpirationDate = optionalText(
+    body.accidental_policy_expiration_date,
+  );
+  const healthPolicyExpirationDate = optionalText(
+    body.health_policy_expiration_date,
+  );
   const panNumber = optionalText(body.pan_number)?.toUpperCase() || null;
   const aadhaarNumber =
     optionalText(body.aadhaar_number)?.replace(/\D/g, "") || null;
@@ -206,6 +222,18 @@ export function validateEmployeeProfileChanges(input: unknown):
   if (nomineeDateOfBirth && !DATE_PATTERN.test(nomineeDateOfBirth)) {
     return { error: "Enter a valid nominee date of birth." };
   }
+  if (
+    accidentalPolicyExpirationDate &&
+    !DATE_PATTERN.test(accidentalPolicyExpirationDate)
+  ) {
+    return { error: "Enter a valid accidental policy expiration date." };
+  }
+  if (
+    healthPolicyExpirationDate &&
+    !DATE_PATTERN.test(healthPolicyExpirationDate)
+  ) {
+    return { error: "Enter a valid health policy expiration date." };
+  }
   if (panNumber && !PAN_PATTERN.test(panNumber)) {
     return { error: "PAN must contain 5 letters, 4 digits, and 1 final letter." };
   }
@@ -221,6 +249,7 @@ export function validateEmployeeProfileChanges(input: unknown):
       gender,
       email,
       role: optionalText(body.role),
+      level: optionalText(body.level),
       department,
       date_of_joining: optionalDate(dateOfJoining),
       date_of_birth: optionalDate(dateOfBirth),
@@ -252,6 +281,14 @@ export function validateEmployeeProfileChanges(input: unknown):
       nominee_name: optionalText(body.nominee_name),
       nominee_relationship: optionalText(body.nominee_relationship),
       nominee_date_of_birth: optionalDate(nomineeDateOfBirth),
+      accidental_policy_number: optionalText(body.accidental_policy_number),
+      accidental_policy_expiration_date: optionalDate(
+        accidentalPolicyExpirationDate,
+      ),
+      health_policy_number: optionalText(body.health_policy_number),
+      health_policy_expiration_date: optionalDate(
+        healthPolicyExpirationDate,
+      ),
     },
   };
 }
@@ -263,6 +300,7 @@ export const PROFILE_FIELD_LABELS: Record<keyof EmployeeProfileChanges, string> 
   gender: "Gender",
   email: "Email Address",
   role: "Role",
+  level: "Level",
   department: "Department",
   date_of_joining: "Date of Joining",
   date_of_birth: "Date of Birth",
@@ -294,4 +332,9 @@ export const PROFILE_FIELD_LABELS: Record<keyof EmployeeProfileChanges, string> 
   nominee_name: "Nominee Name",
   nominee_relationship: "Nominee Relationship",
   nominee_date_of_birth: "Nominee DOB",
+  accidental_policy_number: "Accidental Policy Number",
+  accidental_policy_expiration_date:
+    "Accidental Policy Expiration Date",
+  health_policy_number: "Health Policy Number",
+  health_policy_expiration_date: "Health Policy Expiration Date",
 };

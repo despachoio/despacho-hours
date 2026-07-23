@@ -347,6 +347,7 @@ export default function TeamPage() {
               <EmployeeProfileFormSections
                 value={memberDraft}
                 showFinanceDetails={isFinanceAdmin}
+                benefitsReadOnly={!isFinanceAdmin}
                 onChange={(key, value) =>
                   setMemberDraft((current) => ({
                     ...current,

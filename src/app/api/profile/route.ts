@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const [
     employeeResult,
     statutoryResult,
+    benefitResult,
     extendedResult,
     financeResult,
     requestResult,
@@ -20,13 +21,20 @@ export async function GET(request: Request) {
     context.admin
       .from("employees")
       .select(
-        "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status",
+        "id,employee_code,title,name,gender,email,role,level,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status",
       )
       .eq("id", employeeId)
       .single(),
     context.admin
       .from("employee_statutory_details")
       .select("pan_number,aadhaar_number")
+      .eq("employee_id", employeeId)
+      .maybeSingle(),
+    context.admin
+      .from("employee_benefit_details")
+      .select(
+        "accidental_policy_number,accidental_policy_expiration_date,health_policy_number,health_policy_expiration_date",
+      )
       .eq("employee_id", employeeId)
       .maybeSingle(),
     context.admin
@@ -63,6 +71,7 @@ export async function GET(request: Request) {
     statutoryResult.error ||
     extendedResult.error ||
     financeResult.error ||
+    benefitResult.error ||
     requestResult.error
   ) {
     return Response.json(
@@ -71,6 +80,7 @@ export async function GET(request: Request) {
           statutoryResult.error?.message ||
           extendedResult.error?.message ||
           financeResult.error?.message ||
+          benefitResult.error?.message ||
           requestResult.error?.message ||
           "Unable to load employee profile",
       },
@@ -105,6 +115,7 @@ export async function GET(request: Request) {
       children: [],
       ...extendedResult.data,
       ...financeResult.data,
+      ...benefitResult.data,
     },
     reportingManager,
     accessRole: context.profile.role,

@@ -8,6 +8,7 @@ export type TeamEmployee = {
   gender: string | null;
   email: string;
   role: string | null;
+  level: string | null;
   department: string | null;
   date_of_joining: string | null;
   date_of_birth: string | null;

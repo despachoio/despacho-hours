@@ -62,6 +62,7 @@ function TeamDetailPageContent() {
   const [gender, setGender] = useState("Male");
   const [email, setEmail] = useState("");
   const [memberRole, setMemberRole] = useState("");
+  const [level, setLevel] = useState("");
   const [department, setDepartment] = useState("");
   const [dateOfJoining, setDateOfJoining] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -96,6 +97,7 @@ function TeamDetailPageContent() {
     gender,
     email,
     role: memberRole || null,
+    level: level || null,
     department: department || null,
     date_of_joining: dateOfJoining || null,
     date_of_birth: dateOfBirth || null,
@@ -167,7 +169,7 @@ function TeamDetailPageContent() {
         const memberResult = await supabase
           .from("employees")
           .select(
-            "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
+            "id,employee_code,title,name,gender,email,role,level,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
           )
           .eq("id", id)
           .single();
@@ -234,6 +236,7 @@ function TeamDetailPageContent() {
       setGender(loaded.gender || "Male");
       setEmail(loaded.email);
       setMemberRole(loaded.role || "");
+      setLevel(loaded.level || "");
       setDepartment(loaded.department || "");
       setDateOfJoining(loaded.date_of_joining || "");
       setDateOfBirth(loaded.date_of_birth || "");
@@ -246,6 +249,7 @@ function TeamDetailPageContent() {
           statutoryResult,
           extendedResult,
           financeResult,
+          benefitResult,
         ] =
           await Promise.all([
           supabase.rpc("get_reporting_manager_options"),
@@ -270,6 +274,13 @@ function TeamDetailPageContent() {
                 .eq("employee_id", id)
                 .maybeSingle()
             : Promise.resolve({ data: null, error: null }),
+          supabase
+            .from("employee_benefit_details")
+            .select(
+              "accidental_policy_number,accidental_policy_expiration_date,health_policy_number,health_policy_expiration_date",
+            )
+            .eq("employee_id", id)
+            .maybeSingle(),
         ]);
         const { data: managerData, error: managerError } = managerResult;
         if (managerError) setError(managerError.message);
@@ -292,6 +303,7 @@ function TeamDetailPageContent() {
             ...emptyEmployeeProfileChanges(),
             ...extendedResult.data,
             ...financeResult.data,
+            ...benefitResult.data,
             children: Array.isArray(extendedResult.data?.children)
               ? extendedResult.data.children.map((child) =>
                   String(child || ""),
@@ -304,6 +316,9 @@ function TeamDetailPageContent() {
         } else if (financeResult.data) {
           setEpfNumber(financeResult.data.epf_number || "");
           setUanNumber(financeResult.data.uan_number || "");
+        }
+        if (benefitResult.error) {
+          setError(benefitResult.error.message);
         }
       }
       setLoading(false);
@@ -348,6 +363,7 @@ function TeamDetailPageContent() {
     else if (key === "gender") setGender(String(value || ""));
     else if (key === "email") setEmail(String(value || ""));
     else if (key === "role") setMemberRole(String(value || ""));
+    else if (key === "level") setLevel(String(value || ""));
     else if (key === "department") setDepartment(String(value || ""));
     else if (key === "date_of_joining") setDateOfJoining(String(value || ""));
     else if (key === "date_of_birth") setDateOfBirth(String(value || ""));
@@ -369,6 +385,7 @@ function TeamDetailPageContent() {
     setGender(value.gender || "Male");
     setEmail(value.email || "");
     setMemberRole(value.role || "");
+    setLevel(value.level || "");
     setDepartment(value.department || "");
     setDateOfJoining(value.date_of_joining || "");
     setDateOfBirth(value.date_of_birth || "");
@@ -427,6 +444,7 @@ function TeamDetailPageContent() {
         gender: normalized.gender,
         email: normalized.email,
         role: normalized.role,
+        level: normalized.level,
         department: normalized.department,
         date_of_joining: normalized.date_of_joining,
         date_of_birth: normalized.date_of_birth,
@@ -505,6 +523,26 @@ function TeamDetailPageContent() {
         setError(financeError.message);
         return;
       }
+      const { error: benefitError } = await supabase
+        .from("employee_benefit_details")
+        .upsert(
+          {
+            employee_id: id,
+            accidental_policy_number:
+              normalized.accidental_policy_number,
+            accidental_policy_expiration_date:
+              normalized.accidental_policy_expiration_date,
+            health_policy_number: normalized.health_policy_number,
+            health_policy_expiration_date:
+              normalized.health_policy_expiration_date,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "employee_id" },
+        );
+      if (benefitError) {
+        setError(benefitError.message);
+        return;
+      }
     }
     const { data: employeeRecord, error: employeeLookupError } = await supabase
   .from("employees")
@@ -556,6 +594,7 @@ if (profileError) {
             gender: normalized.gender,
             email: normalized.email,
             role: normalized.role,
+            level: normalized.level,
             department: normalized.department,
             date_of_joining: normalized.date_of_joining,
             date_of_birth: normalized.date_of_birth,
@@ -792,6 +831,7 @@ if (profileError) {
                 value={employeeProfileValue}
                 onChange={updateProfileField}
                 showFinanceDetails={isFinanceAdmin}
+                benefitsReadOnly={!isFinanceAdmin}
                 joiningExtras={
                   <>
                     <ProfileSelectField
@@ -824,6 +864,27 @@ if (profileError) {
                   </>
                 }
               />
+              <div className="mt-6 flex flex-wrap justify-end gap-3">
+                <button
+                  type="button"
+                  data-shortcut-save
+                  data-shortcut-primary
+                  aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
+                  onClick={() => void saveMember()}
+                  disabled={saving}
+                  className="rounded-2xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  disabled={saving}
+                  className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : (
             <EmployeeProfileDetailsSections

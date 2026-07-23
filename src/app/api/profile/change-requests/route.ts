@@ -112,6 +112,7 @@ export async function POST(request: Request) {
   const [
     employeeResult,
     statutoryResult,
+    benefitResult,
     extendedResult,
     financeResult,
     pendingResult,
@@ -120,13 +121,20 @@ export async function POST(request: Request) {
     context.admin
       .from("employees")
       .select(
-        "employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number",
+        "employee_code,title,name,gender,email,role,level,department,date_of_joining,date_of_birth,epf_number,uan_number",
       )
       .eq("id", employeeId)
       .single(),
     context.admin
       .from("employee_statutory_details")
       .select("pan_number,aadhaar_number")
+      .eq("employee_id", employeeId)
+      .maybeSingle(),
+    context.admin
+      .from("employee_benefit_details")
+      .select(
+        "accidental_policy_number,accidental_policy_expiration_date,health_policy_number,health_policy_expiration_date",
+      )
       .eq("employee_id", employeeId)
       .maybeSingle(),
     context.admin
@@ -162,6 +170,7 @@ export async function POST(request: Request) {
     statutoryResult.error ||
     extendedResult.error ||
     financeResult.error ||
+    benefitResult.error ||
     pendingResult.error
   ) {
     return Response.json(
@@ -171,6 +180,7 @@ export async function POST(request: Request) {
           statutoryResult.error?.message ||
           extendedResult.error?.message ||
           financeResult.error?.message ||
+          benefitResult.error?.message ||
           pendingResult.error?.message ||
           "Unable to prepare profile change request",
       },
@@ -185,6 +195,7 @@ export async function POST(request: Request) {
     aadhaar_number: statutoryResult.data?.aadhaar_number || null,
     ...extendedResult.data,
     ...financeResult.data,
+    ...benefitResult.data,
     children: Array.isArray(extendedResult.data?.children)
       ? extendedResult.data.children.map((child) => String(child || ""))
       : [],
@@ -194,10 +205,18 @@ export async function POST(request: Request) {
     employee_code: currentValues.employee_code,
     email: currentValues.email,
     role: currentValues.role,
+    level: currentValues.level,
     department: currentValues.department,
     date_of_joining: currentValues.date_of_joining,
     epf_number: currentValues.epf_number,
     uan_number: currentValues.uan_number,
+    accidental_policy_number:
+      currentValues.accidental_policy_number,
+    accidental_policy_expiration_date:
+      currentValues.accidental_policy_expiration_date,
+    health_policy_number: currentValues.health_policy_number,
+    health_policy_expiration_date:
+      currentValues.health_policy_expiration_date,
   };
   if (JSON.stringify(currentValues) === JSON.stringify(proposedChanges)) {
     return Response.json(

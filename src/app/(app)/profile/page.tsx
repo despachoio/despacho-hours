@@ -19,6 +19,7 @@ type EmployeeRecord = {
   gender: string | null;
   email: string;
   role: string | null;
+  level: string | null;
   department: string | null;
   date_of_joining: string | null;
   date_of_birth: string | null;
@@ -63,6 +64,7 @@ function profileFormFromData(data: ProfileResponse): EmployeeProfileChanges {
     gender: data.employee.gender,
     email: data.employee.email,
     role: data.employee.role,
+    level: data.employee.level,
     department: data.employee.department,
     date_of_joining: data.employee.date_of_joining,
     date_of_birth: data.employee.date_of_birth,
@@ -294,6 +296,7 @@ export default function MyProfilePage() {
               onChange={update}
               joiningReadOnly
               statutoryFinanceReadOnly
+              benefitsReadOnly
               joiningExtras={
                 <>
                   <ReadOnly
@@ -304,6 +307,27 @@ export default function MyProfilePage() {
                 </>
               }
             />
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                data-shortcut-save
+                data-shortcut-primary
+                aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
+                disabled={saving}
+                onClick={() => void submitRequest()}
+                className="rounded-2xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Submitting..." : "Submit for Approval"}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={cancelEditing}
+                className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
           </section>
         )}
 
