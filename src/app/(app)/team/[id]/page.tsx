@@ -97,7 +97,7 @@ function TeamDetailPageContent() {
       const memberResult = await supabase
         .from("employees")
         .select(
-          "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost,reporting_manager:employees!employees_reporting_manager_id_fkey(id,name,title)",
+          "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
         )
         .eq("id", id)
         .single();
@@ -110,16 +110,10 @@ function TeamDetailPageContent() {
       const rawMember = memberResult.data as unknown as Omit<
         TeamEmployee,
         "reporting_manager"
-      > & {
-        reporting_manager?:
-          | TeamEmployee["reporting_manager"]
-          | NonNullable<TeamEmployee["reporting_manager"]>[];
-      };
+      >;
       const loaded: TeamEmployee = {
         ...rawMember,
-        reporting_manager: Array.isArray(rawMember.reporting_manager)
-          ? rawMember.reporting_manager[0] || null
-          : rawMember.reporting_manager || null,
+        reporting_manager: null,
       };
       if (
         (currentRole === "manager" &&
@@ -130,6 +124,17 @@ function TeamDetailPageContent() {
         setAccessDenied(true);
         setLoading(false);
         return;
+      }
+
+      if (loaded.reporting_manager_id) {
+        const managerResult = await supabase
+          .from("employees")
+          .select("id,name,title")
+          .eq("id", loaded.reporting_manager_id)
+          .maybeSingle();
+        if (!managerResult.error && managerResult.data) {
+          loaded.reporting_manager = managerResult.data;
+        }
       }
 
       const [timerResult, accessResult] = await Promise.all([

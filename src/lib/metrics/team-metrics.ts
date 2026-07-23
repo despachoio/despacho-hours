@@ -143,7 +143,7 @@ export async function getTeamMetrics(
   let employeeQuery = supabase
     .from("employees")
     .select(
-      "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost,reporting_manager:employees!employees_reporting_manager_id_fkey(id,name,title)",
+      "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
     )
     .order("created_at", { ascending: true });
 
@@ -163,22 +163,42 @@ export async function getTeamMetrics(
   const employeeResult = await employeeQuery;
   if (employeeResult.error) throw employeeResult.error;
 
-  const teamEmployees = (
-    (employeeResult.data || []) as unknown as Array<
-      Omit<TeamEmployee, "reporting_manager"> & {
-        reporting_manager?:
-          | TeamEmployee["reporting_manager"]
-          | NonNullable<TeamEmployee["reporting_manager"]>[];
-      }
-    >
-  ).map(
-    (employee): TeamEmployee => ({
-      ...employee,
-      reporting_manager: Array.isArray(employee.reporting_manager)
-        ? employee.reporting_manager[0] || null
-        : employee.reporting_manager || null,
-    }),
+  const employeeRows = (employeeResult.data || []) as unknown as Array<
+    Omit<TeamEmployee, "reporting_manager">
+  >;
+  const managerIds = Array.from(
+    new Set(
+      employeeRows
+        .map((employee) => employee.reporting_manager_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
   );
+  const managerMap = new Map<
+    string,
+    NonNullable<TeamEmployee["reporting_manager"]>
+  >();
+  if (managerIds.length) {
+    const managerResult = await supabase
+      .from("employees")
+      .select("id,name,title")
+      .in("id", managerIds);
+    if (managerResult.error) {
+      console.warn(
+        "Unable to load reporting-manager names",
+        managerResult.error,
+      );
+    } else {
+      for (const manager of managerResult.data || []) {
+        managerMap.set(manager.id, manager);
+      }
+    }
+  }
+  const teamEmployees: TeamEmployee[] = employeeRows.map((employee) => ({
+    ...employee,
+    reporting_manager: employee.reporting_manager_id
+      ? managerMap.get(employee.reporting_manager_id) || null
+      : null,
+  }));
   const visibleEmployeeIds = teamEmployees.map((employee) => employee.id);
   if (!visibleEmployeeIds.length) return calculateTeamMetrics([]);
 

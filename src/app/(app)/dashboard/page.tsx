@@ -6,7 +6,10 @@ import { supabase } from "@/lib/supabase";
 import { formatDecimalHours } from "@/lib/format-hours";
 import { canAccessInvoices, isAdminLevelRole } from "@/lib/roles";
 import { dateRange, currentBusinessYear } from "@/lib/metrics/date-ranges";
-import { getTeamMetrics } from "@/lib/metrics/team-metrics";
+import {
+  calculateTeamMetrics,
+  getTeamMetrics,
+} from "@/lib/metrics/team-metrics";
 import { getInvoiceMetrics } from "@/lib/metrics/invoice-metrics";
 import type { InvoiceMetrics, TeamMetrics } from "@/lib/metrics/types";
 
@@ -133,9 +136,20 @@ export default function DashboardPage() {
         employeeId:
           role === "employee" ? currentProfile?.employee_id || undefined : undefined,
         employeeStatus: "active",
+      }).catch((teamError) => {
+        console.error("Unable to load dashboard team metrics", teamError);
+        return calculateTeamMetrics([]);
       });
       const invoiceMetricsPromise = canAccessInvoices(currentProfile?.role)
-        ? getInvoiceMetrics({ year: currentBusinessYear() })
+        ? getInvoiceMetrics({ year: currentBusinessYear() }).catch(
+            (invoiceError) => {
+              console.error(
+                "Unable to load dashboard invoice metrics",
+                invoiceError,
+              );
+              return null;
+            },
+          )
         : Promise.resolve(null);
       const clientPromise =
         role !== "employee"
