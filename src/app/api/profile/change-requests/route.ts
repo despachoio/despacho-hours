@@ -1,4 +1,4 @@
-import { isAdminLevelRole, isSuperAdminRole } from "@/lib/roles";
+import { hasSuperAdminAccess, isAdminLevelRole } from "@/lib/roles";
 import {
   emptyEmployeeProfileChanges,
   validateEmployeeProfileChanges,
@@ -30,14 +30,14 @@ export async function GET(request: Request) {
   }
 
   let requests = result.data || [];
-  if (!isSuperAdminRole(context.profile.role)) {
+  if (!hasSuperAdminAccess(context.profile.role)) {
     const employeeIds = requests.map((item) => item.employee_id);
     if (employeeIds.length) {
       const superAdminResult = await context.admin
         .from("profiles")
         .select("employee_id")
         .in("employee_id", employeeIds)
-        .ilike("role", "super admin");
+        .in("role", ["Finance Admin", "Super Admin"]);
       const blocked = new Set(
         (superAdminResult.data || []).map((item) => item.employee_id),
       );

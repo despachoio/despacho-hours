@@ -89,6 +89,7 @@ serve(async (req) => {
       manager: "Manager",
       admin: "Admin",
       "super admin": "Super Admin",
+      "finance admin": "Finance Admin",
     };
     const requestedRole =
       roleLookup[
@@ -182,11 +183,21 @@ serve(async (req) => {
         .single();
     if (callerProfileError) throw new Error("Unable to verify permissions.");
     const callerRole = String(callerProfile?.role || "").trim().toLowerCase();
-    if (!["super admin", "admin"].includes(callerRole)) {
+    if (!["finance admin", "super admin", "admin"].includes(callerRole)) {
       throw new Error("Forbidden.");
     }
-    if (requestedRole === "Super Admin" && callerRole !== "super admin") {
-      throw new Error("Only a Super Admin can assign the Super Admin role.");
+    if (requestedRole === "Finance Admin" && callerRole !== "finance admin") {
+      throw new Error(
+        "Only a Finance Admin can assign the Finance Admin role.",
+      );
+    }
+    if (
+      requestedRole === "Super Admin" &&
+      !["finance admin", "super admin"].includes(callerRole)
+    ) {
+      throw new Error(
+        "Only a Finance Admin or Super Admin can assign the Super Admin role.",
+      );
     }
 
     if (normalizedReportingManagerId) {
@@ -210,11 +221,13 @@ serve(async (req) => {
         reportingEmployeeError ||
         !reportingManager ||
         !reportingEmployee ||
-        !["manager", "admin", "super admin"].includes(reportingRole) ||
+        !["manager", "admin", "super admin", "finance admin"].includes(
+          reportingRole,
+        ) ||
         String(reportingEmployee?.status || "active").toLowerCase() !== "active"
       ) {
         throw new Error(
-          "Reporting manager must be an active Manager, Admin, or Super Admin.",
+          "Reporting manager must be an active Manager, Admin, Super Admin, or Finance Admin.",
         );
       }
     }

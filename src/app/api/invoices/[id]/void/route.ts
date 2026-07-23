@@ -60,7 +60,11 @@ export async function POST(
     console.error("Void invoice profile lookup failed:", profileError);
     return Response.json({ error: "Unable to verify permissions" }, { status: 500 });
   }
-  if (String(profile?.role || "").trim().toLowerCase() !== "super admin") {
+  if (
+    !["finance admin", "super admin"].includes(
+      String(profile?.role || "").trim().toLowerCase(),
+    )
+  ) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -88,7 +88,7 @@ export async function GET(
   console.log("PDF profile role:", profile?.role);
   console.log("PDF normalized role:", normalizedRole);
 
-  if (normalizedRole !== "super admin") {
+  if (!["finance admin", "super admin"].includes(normalizedRole)) {
     console.error(
       "PDF 403 returned at invoice role check. Forbidden for role:",
       profile?.role,

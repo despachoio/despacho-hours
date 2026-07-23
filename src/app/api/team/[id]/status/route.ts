@@ -56,7 +56,7 @@ export async function POST(
     );
   }
   if (
-    !["super admin", "admin"].includes(
+    !["finance admin", "super admin", "admin"].includes(
       String(profile?.role || "").trim().toLowerCase(),
     )
   ) {
@@ -85,12 +85,22 @@ export async function POST(
     .eq("employee_id", employeeId)
     .maybeSingle();
   const callerRole = String(profile?.role || "").trim().toLowerCase();
+  const targetRole = String(targetProfile?.role || "").trim().toLowerCase();
+  if (targetRole === "finance admin" && callerRole !== "finance admin") {
+    return Response.json(
+      { error: "Only a Finance Admin can modify a Finance Admin account" },
+      { status: 403 },
+    );
+  }
   if (
-    String(targetProfile?.role || "").trim().toLowerCase() === "super admin" &&
-    callerRole !== "super admin"
+    targetRole === "super admin" &&
+    !["finance admin", "super admin"].includes(callerRole)
   ) {
     return Response.json(
-      { error: "Only a Super Admin can modify a Super Admin account" },
+      {
+        error:
+          "Only a Finance Admin or Super Admin can modify a Super Admin account",
+      },
       { status: 403 },
     );
   }

@@ -211,7 +211,7 @@ export default function ProjectsPage() {
               </p>
             </div>
 
-            {["Super Admin", "Admin"].includes(role) && (
+            {["Finance Admin", "Super Admin", "Admin"].includes(role) && (
               <Link
                 href="/projects/new"
                 className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5"
@@ -291,7 +291,7 @@ export default function ProjectsPage() {
                       data-shortcut-row
                       data-shortcut-href={`/projects/${project.id}/wallet`}
                       data-shortcut-edit-href={
-                        ["Super Admin", "Admin"].includes(role)
+                        ["Finance Admin", "Super Admin", "Admin"].includes(role)
                           ? `/projects/${project.id}?action=edit`
                           : undefined
                       }
@@ -311,7 +311,7 @@ export default function ProjectsPage() {
                     >
                       <div
                         className={
-                          ["Super Admin", "Admin"].includes(role)
+                          ["Finance Admin", "Super Admin", "Admin"].includes(role)
                             ? "grid items-center gap-5 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[2fr_.7fr_.7fr_.7fr_auto] xl:px-6"
                             : "grid items-center gap-5 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[2fr_.7fr_.7fr_.7fr] xl:px-6"
                         }
@@ -386,7 +386,7 @@ export default function ProjectsPage() {
 </p>
                         </div>
 
-                        {["Super Admin", "Admin"].includes(role) && (
+                        {["Finance Admin", "Super Admin", "Admin"].includes(role) && (
                           <select
                             onClick={(e) => e.stopPropagation()}
                             onChange={(e) => {

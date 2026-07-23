@@ -450,9 +450,9 @@ export async function POST(
     }
 
     if (
-      String(profile?.role || "")
-        .trim()
-        .toLowerCase() !== "super admin"
+      !["finance admin", "super admin"].includes(
+        String(profile?.role || "").trim().toLowerCase(),
+      )
     ) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }

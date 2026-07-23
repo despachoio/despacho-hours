@@ -280,9 +280,9 @@ export default function InvoiceDetailPage() {
         .eq("user_id", userData.user.id)
         .single();
       setIsAdmin(
-        String(profileData?.role || "")
-          .trim()
-          .toLowerCase() === "super admin",
+        ["finance admin", "super admin"].includes(
+          String(profileData?.role || "").trim().toLowerCase(),
+        ),
       );
     }
 

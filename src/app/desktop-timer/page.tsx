@@ -162,7 +162,7 @@ export default function DesktopTimerPage() {
 
     const currentProfile = profileData as Profile;
     if (
-      !["super admin", "admin", "manager", "employee"].includes(
+      !["finance admin", "super admin", "admin", "manager", "employee"].includes(
         normalizeRole(currentProfile.role),
       )
     ) {

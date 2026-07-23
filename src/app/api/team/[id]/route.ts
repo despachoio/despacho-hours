@@ -48,7 +48,7 @@ export async function DELETE(
   }
 
   const callerRole = String(callerProfile?.role || "").trim().toLowerCase();
-  if (!["admin", "super admin"].includes(callerRole)) {
+  if (!["admin", "super admin", "finance admin"].includes(callerRole)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -78,9 +78,21 @@ export async function DELETE(
   }
 
   const targetRole = String(targetProfile?.role || "").trim().toLowerCase();
-  if (targetRole === "super admin" && callerRole !== "super admin") {
+  if (targetRole === "finance admin" && callerRole !== "finance admin") {
     return Response.json(
-      { error: "Only a Super Admin can delete a Super Admin account." },
+      { error: "Only a Finance Admin can delete a Finance Admin account." },
+      { status: 403 },
+    );
+  }
+  if (
+    targetRole === "super admin" &&
+    !["finance admin", "super admin"].includes(callerRole)
+  ) {
+    return Response.json(
+      {
+        error:
+          "Only a Finance Admin or Super Admin can delete a Super Admin account.",
+      },
       { status: 403 },
     );
   }

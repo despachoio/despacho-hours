@@ -6,7 +6,8 @@ rules as the browser and desktop applications.
 
 ## Mobile access
 
-- **Super Admin:** complete Kairo access, including invoices.
+- **Finance Admin:** highest-level Kairo access, including invoices and Finance Admin role governance.
+- **Super Admin:** complete operational Kairo access, including invoices.
 - **Admin:** operational access without invoices or invoice actions.
 - **Manager and Employee:** the iPhone app rejects the login and signs the
   session out.
@@ -65,7 +66,7 @@ release.
 
 Test these cases before each release:
 
-- Super Admin can sign in and reach invoices.
+- Finance Admin and Super Admin can sign in and reach invoices.
 - Admin can sign in but cannot see or open invoice routes.
 - Manager and Employee credentials are rejected and signed out.
 - Logout removes the app session.

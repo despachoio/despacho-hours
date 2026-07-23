@@ -78,9 +78,9 @@ export async function requireAdmin(request: Request) {
     .eq("user_id", user.id)
     .single();
   if (
-    String(profile?.role || "")
-      .trim()
-      .toLowerCase() !== "super admin"
+    !["finance admin", "super admin"].includes(
+      String(profile?.role || "").trim().toLowerCase(),
+    )
   ) {
     return { error: Response.json({ error: "Forbidden" }, { status: 403 }) };
   }

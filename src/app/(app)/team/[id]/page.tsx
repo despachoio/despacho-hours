@@ -72,10 +72,15 @@ function TeamDetailPageContent() {
   const role = String(profile?.role || "")
     .trim()
     .toLowerCase();
-  const isSuperAdmin = role === "super admin";
+  const isFinanceAdmin = role === "finance admin";
+  const isSuperAdmin = isFinanceAdmin || role === "super admin";
   const isAdmin = isSuperAdmin || role === "admin";
   const canManageMember =
-    isAdmin && (isSuperAdmin || accessRole !== "Super Admin");
+    isAdmin &&
+    (isFinanceAdmin ||
+      (role === "super admin" && accessRole !== "Finance Admin") ||
+      (role === "admin" &&
+        !["Super Admin", "Finance Admin"].includes(accessRole)));
   const employeeProfileValue: EmployeeProfileChanges = {
     ...extendedDetails,
     employee_code: employeeCode,
@@ -179,7 +184,7 @@ function TeamDetailPageContent() {
         reporting_manager: null,
       };
       if (
-        (!["super admin", "admin"].includes(currentRole) &&
+        (!["finance admin", "super admin", "admin"].includes(currentRole) &&
           String(loaded.status || "").trim().toLowerCase() !== "active")
       ) {
         setAccessDenied(true);
@@ -228,7 +233,7 @@ function TeamDetailPageContent() {
       setEpfNumber(loaded.epf_number || "");
       setUanNumber(loaded.uan_number || "");
       setReportingManagerId(loaded.reporting_manager_id || "");
-      if (["admin", "super admin"].includes(currentRole)) {
+      if (["finance admin", "admin", "super admin"].includes(currentRole)) {
         const [managerResult, statutoryResult, extendedResult] =
           await Promise.all([
           supabase.rpc("get_reporting_manager_options"),
@@ -681,6 +686,7 @@ if (profileError) {
             accessRole={accessRole}
             setAccessRole={setAccessRole}
             canAssignSuperAdmin={isSuperAdmin}
+            canAssignFinanceAdmin={isFinanceAdmin}
             onSave={() => void saveMember()}
             onCancel={() => router.push(`/team/${id}`)}
           />
@@ -788,6 +794,7 @@ function AdminEditForm(props: {
   accessRole: string;
   setAccessRole: Setter;
   canAssignSuperAdmin: boolean;
+  canAssignFinanceAdmin: boolean;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -826,6 +833,9 @@ function AdminEditForm(props: {
                 <option value="Admin">Admin</option>
                 {props.canAssignSuperAdmin ? (
                   <option value="Super Admin">Super Admin</option>
+                ) : null}
+                {props.canAssignFinanceAdmin ? (
+                  <option value="Finance Admin">Finance Admin</option>
                 ) : null}
               </SelectField>
             </>
@@ -950,6 +960,9 @@ function AdminEditForm(props: {
           <option value="Admin">Admin</option>
           {props.canAssignSuperAdmin ? (
             <option value="Super Admin">Super Admin</option>
+          ) : null}
+          {props.canAssignFinanceAdmin ? (
+            <option value="Finance Admin">Finance Admin</option>
           ) : null}
         </SelectField>
       </div>

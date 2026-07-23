@@ -82,7 +82,8 @@ export default function TeamPage() {
     .trim()
     .toLowerCase();
   const isEmployee = role === "employee";
-  const isSuperAdmin = role === "super admin";
+  const isFinanceAdmin = role === "finance admin";
+  const isSuperAdmin = isFinanceAdmin || role === "super admin";
   const isAdmin = isSuperAdmin || role === "admin";
   const range = useMemo(
     () => dateRange(filters.period, filters.customFrom, filters.customTo),
@@ -139,7 +140,7 @@ export default function TeamPage() {
         setLoading(false);
         return;
       }
-      if (["admin", "super admin"].includes(currentRole)) {
+      if (["admin", "super admin", "finance admin"].includes(currentRole)) {
         const { data: managerData, error: managerError } = await supabase.rpc(
           "get_reporting_manager_options",
         );
@@ -375,6 +376,9 @@ export default function TeamPage() {
                       <option value="Admin">Admin</option>
                       {isSuperAdmin ? (
                         <option value="Super Admin">Super Admin</option>
+                      ) : null}
+                      {isFinanceAdmin ? (
+                        <option value="Finance Admin">Finance Admin</option>
                       ) : null}
                     </FormSelect>
                   </>

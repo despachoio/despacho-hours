@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!serviceKey) return Response.json({ error: "Reminder service is not configured" }, { status: 500 });
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: profile } = await admin.from("profiles").select("role").eq("user_id", user.id).single();
-  if (String(profile?.role || "").trim().toLowerCase() !== "super admin") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["finance admin", "super admin"].includes(String(profile?.role || "").trim().toLowerCase())) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json().catch(() => null) as { reason?: unknown } | null;
   const reason = typeof body?.reason === "string" ? body.reason.trim() : "";

@@ -261,11 +261,12 @@ const [viewingEntry, setViewingEntry] = useState<TimeEntry | null>(null);
 
 const normalizedRole = String(profile?.role || "").trim().toLowerCase();
 const canFilterTeamEntries =
+  normalizedRole === "finance admin" ||
   normalizedRole === "super admin" ||
   normalizedRole === "admin" ||
   normalizedRole === "manager";
 const canEditTimeEntries =
-  normalizedRole === "super admin" || normalizedRole === "admin";
+  ["finance admin", "super admin", "admin"].includes(normalizedRole);
 
 
 function markTimerStopping(timerId: string) {
@@ -752,6 +753,7 @@ if (timerData) {
 
 
 if(
+currentProfile?.role === "Finance Admin" ||
 currentProfile?.role === "Super Admin" ||
 currentProfile?.role === "Admin" ||
 currentProfile?.role==="Manager"
@@ -1652,6 +1654,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (
+    profile?.role !== "Finance Admin" &&
     profile?.role !== "Super Admin" &&
     profile?.role !== "Admin" &&
     profile?.role !== "Manager"
@@ -1760,6 +1763,7 @@ const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
   let visible: LiveTimer[] = [];
 
   if (
+    profile?.role === "Finance Admin" ||
     profile?.role === "Super Admin" ||
     profile?.role === "Admin" ||
     profile?.role === "Manager"
@@ -1822,6 +1826,7 @@ const summary = useMemo(() => {
     week: weekEntries.reduce((total, entry) => total + Number(entry.hours || 0), 0),
     projects: new Set(weekEntries.map((entry) => entry.project_id)).size,
     running:
+      profile?.role === "Finance Admin" ||
       profile?.role === "Super Admin" ||
       profile?.role === "Admin" ||
       profile?.role === "Manager"
@@ -1984,7 +1989,7 @@ return (
             Track project time and monitor live work.
           </p>
         </div>
-        {["Super Admin", "Admin"].includes(profile?.role || "") && (
+        {["Finance Admin", "Super Admin", "Admin"].includes(profile?.role || "") && (
           <button
             onClick={() => {
               setShowManualEntry(true);
@@ -2387,7 +2392,7 @@ return (
       <h2 className="text-2xl font-bold text-slate-950">Add Time Entry</h2>
 
       <div className="mt-6 space-y-4">
-        {["Super Admin", "Admin"].includes(profile?.role || "") ? (
+        {["Finance Admin", "Super Admin", "Admin"].includes(profile?.role || "") ? (
           <div>
             <label className="text-sm font-semibold text-slate-500">
               Employee

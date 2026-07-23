@@ -63,7 +63,7 @@ export default function LoginPage() {
           await supabase.auth.signOut();
           setPassword("");
           setLoginError(
-            "The Kairo mobile app is available only to Admin and Super Admin accounts.",
+            "The Kairo mobile app is available only to Admin, Super Admin, and Finance Admin accounts.",
           );
           return;
         }

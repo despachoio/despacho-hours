@@ -47,7 +47,9 @@ const clientFromUrl = searchParams.get("client");
       .eq("user_id", userData.user.id)
       .single();
 
-    if (!["Super Admin", "Admin"].includes(profile?.role || "")) {
+    if (
+      !["Finance Admin", "Super Admin", "Admin"].includes(profile?.role || "")
+    ) {
       router.push("/projects");
       return;
     }

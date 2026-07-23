@@ -143,7 +143,7 @@ export default function ClientsPage() {
     }),
     [clients],
   );
-  const isAdmin = ["super admin", "admin"].includes(
+  const isAdmin = ["finance admin", "super admin", "admin"].includes(
     role.trim().toLowerCase(),
   );
 

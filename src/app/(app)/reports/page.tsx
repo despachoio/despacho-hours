@@ -184,6 +184,7 @@ export default function ReportsPage() {
                 ? currentProfile?.employee_id
                 : undefined,
           }),
+          currentRole === "finance admin" ||
           currentRole === "super admin" ||
           currentRole === "admin" ||
           currentRole === "manager"

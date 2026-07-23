@@ -57,7 +57,7 @@ export async function POST(
     );
   }
   if (
-    !["super admin", "admin"].includes(
+    !["finance admin", "super admin", "admin"].includes(
       String(profile?.role || "").trim().toLowerCase(),
     )
   ) {
@@ -70,12 +70,23 @@ export async function POST(
     .select("role")
     .eq("employee_id", employeeId)
     .maybeSingle();
+  const callerRole = String(profile?.role || "").trim().toLowerCase();
+  const targetRole = String(targetProfile?.role || "").trim().toLowerCase();
+  if (targetRole === "finance admin" && callerRole !== "finance admin") {
+    return Response.json(
+      { error: "Only a Finance Admin can reset a Finance Admin password" },
+      { status: 403 },
+    );
+  }
   if (
-    String(targetProfile?.role || "").trim().toLowerCase() === "super admin" &&
-    String(profile?.role || "").trim().toLowerCase() !== "super admin"
+    targetRole === "super admin" &&
+    !["finance admin", "super admin"].includes(callerRole)
   ) {
     return Response.json(
-      { error: "Only a Super Admin can reset a Super Admin password" },
+      {
+        error:
+          "Only a Finance Admin or Super Admin can reset a Super Admin password",
+      },
       { status: 403 },
     );
   }

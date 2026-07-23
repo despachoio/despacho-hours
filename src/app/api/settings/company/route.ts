@@ -113,7 +113,7 @@ async function requireAdmin(request: Request) {
       ),
     };
   const role = String(profile?.role || "").trim().toLowerCase();
-  if (!["super admin", "admin"].includes(role))
+  if (!["finance admin", "super admin", "admin"].includes(role))
     return { response: Response.json({ error: "Forbidden" }, { status: 403 }) };
   return { user, admin, role, response: null };
 }
@@ -153,7 +153,7 @@ export async function GET(request: Request) {
   return Response.json({
     role: auth.role,
     settings:
-      auth.role === "super admin"
+      ["finance admin", "super admin"].includes(auth.role)
         ? settings
         : selectFields(
             settings as unknown as Record<string, unknown>,
@@ -180,7 +180,9 @@ export async function PUT(request: Request) {
     updated_at: new Date().toISOString(),
   };
   const allowedFields =
-    auth.role === "super admin" ? EDITABLE_FIELDS : GENERAL_FIELDS;
+    ["finance admin", "super admin"].includes(auth.role)
+      ? EDITABLE_FIELDS
+      : GENERAL_FIELDS;
   for (const field of allowedFields) {
     if (Object.hasOwn(body, field)) payload[field] = body[field];
   }
@@ -204,7 +206,7 @@ export async function PUT(request: Request) {
   return Response.json({
     role: auth.role,
     settings:
-      auth.role === "super admin"
+      ["finance admin", "super admin"].includes(auth.role)
         ? data
         : selectFields(data as Record<string, unknown>, GENERAL_FIELDS),
   });

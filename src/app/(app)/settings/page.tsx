@@ -82,7 +82,9 @@ export default function CompanySettingsPage() {
         });
       } else {
         setSettings(result.settings as Settings);
-        setIsSuperAdmin(result.role === "super admin");
+        setIsSuperAdmin(
+          ["finance admin", "super admin"].includes(result.role),
+        );
       }
       setLoading(false);
     }

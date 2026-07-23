@@ -102,7 +102,7 @@ export default function ClientDetailPage() {
     useState<ContactForm>(EMPTY_CONTACT_FORM);
   const [contactError, setContactError] = useState("");
   const [savingContact, setSavingContact] = useState(false);
-  const isAdmin = ["super admin", "admin"].includes(
+  const isAdmin = ["finance admin", "super admin", "admin"].includes(
     role.trim().toLowerCase(),
   );
 

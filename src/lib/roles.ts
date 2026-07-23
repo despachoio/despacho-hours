@@ -1,4 +1,9 @@
-export type KairoRole = "Super Admin" | "Admin" | "Manager" | "Employee";
+export type KairoRole =
+  | "Finance Admin"
+  | "Super Admin"
+  | "Admin"
+  | "Manager"
+  | "Employee";
 
 export function normalizeRole(role: unknown) {
   return String(role || "")
@@ -8,8 +13,16 @@ export function normalizeRole(role: unknown) {
     .replace(/\s+/g, " ");
 }
 
+export function isFinanceAdminRole(role: unknown) {
+  return normalizeRole(role) === "finance admin";
+}
+
 export function isSuperAdminRole(role: unknown) {
   return normalizeRole(role) === "super admin";
+}
+
+export function hasSuperAdminAccess(role: unknown) {
+  return isFinanceAdminRole(role) || isSuperAdminRole(role);
 }
 
 export function isAdminRole(role: unknown) {
@@ -17,15 +30,18 @@ export function isAdminRole(role: unknown) {
 }
 
 export function isAdminLevelRole(role: unknown) {
-  return isSuperAdminRole(role) || isAdminRole(role);
+  return (
+    isFinanceAdminRole(role) || isSuperAdminRole(role) || isAdminRole(role)
+  );
 }
 
 export function canAccessInvoices(role: unknown) {
-  return isSuperAdminRole(role);
+  return hasSuperAdminAccess(role);
 }
 
 export function canonicalRole(role: unknown): KairoRole | null {
   const normalized = normalizeRole(role);
+  if (normalized === "finance admin") return "Finance Admin";
   if (normalized === "super admin") return "Super Admin";
   if (normalized === "admin") return "Admin";
   if (normalized === "manager") return "Manager";
