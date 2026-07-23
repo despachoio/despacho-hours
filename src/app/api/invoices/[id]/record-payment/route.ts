@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { sendInvoicePaymentNotifications } from "@/lib/invoice-payment-notifications";
+import {
+  enableInvoicePaymentNotifications,
+  sendInvoicePaymentNotifications,
+} from "@/lib/invoice-payment-notifications";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -234,6 +237,24 @@ export async function POST(
   }
 
   const recordedPayment = paymentResult as PaymentRpcResult;
+  try {
+    await enableInvoicePaymentNotifications(adminClient, invoiceId);
+  } catch (notificationError) {
+    console.error("New payment receipt eligibility update failed:", {
+      invoiceId,
+      error:
+        notificationError instanceof Error
+          ? notificationError.message
+          : "Unknown error",
+    });
+    return Response.json(
+      {
+        error:
+          "Payment was recorded, but its receipt could not be scheduled. Please contact support.",
+      },
+      { status: 500 },
+    );
+  }
   await sendInvoicePaymentNotifications(adminClient, invoiceId);
 
   return Response.json({

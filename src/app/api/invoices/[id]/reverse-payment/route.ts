@@ -135,9 +135,10 @@ export async function POST(
       payment_intimation_sent_at: null,
       payment_intimation_sent_to: null,
       payment_intimation_gmail_message_id: null,
-      payment_notification_status: "pending",
+      payment_notification_eligible: false,
+      payment_notification_status: "skipped",
       payment_notification_claimed_at: null,
-      payment_notification_error: null,
+      payment_notification_error: "Payment was reversed",
     })
     .eq("id", invoiceId);
   if (notificationReset.error) {

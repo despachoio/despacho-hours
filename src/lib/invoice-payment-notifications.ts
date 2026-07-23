@@ -150,6 +150,27 @@ async function recordActivity(
   }
 }
 
+export async function enableInvoicePaymentNotifications(
+  admin: SupabaseClient,
+  invoiceId: string,
+) {
+  const result = await admin
+    .from("invoices")
+    .update({
+      payment_notification_eligible: true,
+      payment_notification_status: "pending",
+      payment_notification_claimed_at: null,
+      payment_notification_error: null,
+    })
+    .eq("id", invoiceId);
+
+  if (result.error) {
+    throw new Error(
+      `Payment receipt eligibility could not be enabled: ${result.error.message}`,
+    );
+  }
+}
+
 export async function sendInvoicePaymentNotifications(
   admin: SupabaseClient,
   invoiceId: string,

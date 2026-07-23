@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       .from("invoices")
       .select("id")
       .eq("status", "paid")
+      .eq("payment_notification_eligible", true)
       .in("payment_notification_status", ["pending", "failed"])
       .order("paid_at", { ascending: true })
       .limit(BATCH_SIZE),
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
       .from("invoices")
       .select("id")
       .eq("status", "paid")
+      .eq("payment_notification_eligible", true)
       .eq("payment_notification_status", "processing")
       .lte("payment_notification_claimed_at", staleBefore)
       .order("paid_at", { ascending: true })
