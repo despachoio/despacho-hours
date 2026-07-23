@@ -53,6 +53,29 @@ type ProfileResponse = {
   requests: ChangeRequest[];
 };
 
+function profileFormFromData(data: ProfileResponse): EmployeeProfileChanges {
+  return {
+    ...emptyEmployeeProfileChanges(),
+    ...data.extended,
+    employee_code: data.employee.employee_code,
+    title: data.employee.title,
+    name: data.employee.name,
+    gender: data.employee.gender,
+    email: data.employee.email,
+    role: data.employee.role,
+    department: data.employee.department,
+    date_of_joining: data.employee.date_of_joining,
+    date_of_birth: data.employee.date_of_birth,
+    epf_number: data.employee.epf_number,
+    uan_number: data.employee.uan_number,
+    pan_number: data.statutory.pan_number,
+    aadhaar_number: data.statutory.aadhaar_number,
+    children: Array.isArray(data.extended?.children)
+      ? data.extended.children.map((child) => String(child || ""))
+      : [],
+  };
+}
+
 async function accessToken() {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token || null;
@@ -88,26 +111,7 @@ export default function MyProfilePage() {
       return;
     }
     setData(result);
-    setForm({
-      ...emptyEmployeeProfileChanges(),
-      ...result.extended,
-      employee_code: result.employee.employee_code,
-      title: result.employee.title,
-      name: result.employee.name,
-      gender: result.employee.gender,
-      email: result.employee.email,
-      role: result.employee.role,
-      department: result.employee.department,
-      date_of_joining: result.employee.date_of_joining,
-      date_of_birth: result.employee.date_of_birth,
-      epf_number: result.employee.epf_number,
-      uan_number: result.employee.uan_number,
-      pan_number: result.statutory.pan_number,
-      aadhaar_number: result.statutory.aadhaar_number,
-      children: Array.isArray(result.extended?.children)
-        ? result.extended.children.map((child) => String(child || ""))
-        : [],
-    });
+    setForm(profileFormFromData(result));
     setLoading(false);
   }
 
@@ -126,6 +130,20 @@ export default function MyProfilePage() {
     value: EmployeeProfileChanges[K],
   ) {
     setForm((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  function beginEditing() {
+    setForm(profileFormFromData(data!));
+    setMessage("");
+    setError("");
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setForm(profileFormFromData(data!));
+    setMessage("");
+    setError("");
+    setEditing(false);
   }
 
   async function submitRequest() {
@@ -199,14 +217,38 @@ export default function MyProfilePage() {
                 Review your employment information and request corrections.
               </p>
             </div>
-            <button
-              type="button"
-              disabled={Boolean(pendingRequest)}
-              onClick={() => setEditing((value) => !value)}
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {editing ? "Cancel Editing" : "Request a Change"}
-            </button>
+            {editing ? (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  data-shortcut-save
+                  data-shortcut-primary
+                  aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
+                  disabled={saving}
+                  onClick={() => void submitRequest()}
+                  className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Submitting..." : "Submit for Approval"}
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={cancelEditing}
+                  className="rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={Boolean(pendingRequest)}
+                onClick={beginEditing}
+                className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Request a Change
+              </button>
+            )}
           </div>
         </header>
 
@@ -240,13 +282,11 @@ export default function MyProfilePage() {
           />
         ) : (
           <section className="mt-6">
-            <div className="mb-5 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg">
-              <h2 className="text-xl font-bold text-slate-950">
-                Request profile corrections
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Your current profile remains unchanged until an Admin or Super
-                Admin approves this request.
+            <div className="mb-5 rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-emerald-50 p-5 shadow-sm">
+              <p className="text-sm font-semibold text-slate-700">
+                Edit the cards below. Joining Details, EPF Number, and UAN
+                Number remain locked. Any banking change is routed exclusively
+                to the Finance Admin for approval.
               </p>
             </div>
             <EmployeeProfileFormSections
@@ -264,23 +304,6 @@ export default function MyProfilePage() {
                 </>
               }
             />
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void submitRequest()}
-                className="rounded-xl bg-[#153E90] px-5 py-2.5 font-bold text-white disabled:opacity-60"
-              >
-                {saving ? "Submitting..." : "Submit for Approval"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="rounded-xl border border-slate-200 px-5 py-2.5 font-bold text-slate-700"
-              >
-                Cancel
-              </button>
-            </div>
           </section>
         )}
 

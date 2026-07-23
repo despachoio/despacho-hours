@@ -360,6 +360,14 @@ const accentClasses: Record<Accent, string> = {
   rose: "from-rose-500 to-pink-400",
   violet: "from-violet-600 to-fuchsia-400",
 };
+const accentSurfaces: Record<Accent, string> = {
+  blue: "from-blue-50/90 via-white to-cyan-50/60",
+  indigo: "from-indigo-50/90 via-white to-blue-50/60",
+  emerald: "from-emerald-50/90 via-white to-teal-50/60",
+  amber: "from-amber-50/90 via-white to-orange-50/60",
+  rose: "from-rose-50/90 via-white to-pink-50/60",
+  violet: "from-violet-50/90 via-white to-fuchsia-50/60",
+};
 
 function FormSection({
   eyebrow,
@@ -373,13 +381,21 @@ function FormSection({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative border-b border-slate-100 px-6 py-5">
+    <section
+      className={`relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-br ${accentSurfaces[accent]} shadow-[0_18px_50px_-30px_rgba(15,23,42,0.45)] ring-1 ring-slate-200/70`}
+    >
+      <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full border-[22px] border-white/45" />
+      <div className="relative border-b border-white/80 px-6 py-5">
         <div className={`absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${accentClasses[accent]}`} />
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
-        <h3 className="mt-1 text-lg font-bold text-slate-950">{title}</h3>
+        <div className="flex items-center gap-3">
+          <SectionIcon accent={accent} />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
+            <h3 className="mt-1 text-lg font-bold text-slate-950">{title}</h3>
+          </div>
+        </div>
       </div>
-      <div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="relative grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
         {children}
       </div>
     </section>
@@ -398,21 +414,93 @@ function DetailSection({
   details: Array<Array<string | null | undefined>>;
 }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative border-b border-slate-100 px-6 py-5">
+    <section
+      className={`relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-br ${accentSurfaces[accent]} shadow-[0_18px_50px_-30px_rgba(15,23,42,0.45)] ring-1 ring-slate-200/70`}
+    >
+      <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full border-[22px] border-white/45" />
+      <div className="relative border-b border-white/80 px-6 py-5">
         <div className={`absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${accentClasses[accent]}`} />
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-bold text-slate-950">{title}</h2>
+        <div className="flex items-center gap-3">
+          <SectionIcon accent={accent} />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
+            <h2 className="mt-1 text-lg font-bold text-slate-950">{title}</h2>
+          </div>
+        </div>
       </div>
-      <div className="grid gap-x-8 gap-y-5 p-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="relative grid gap-x-8 gap-y-5 p-6 sm:grid-cols-2 lg:grid-cols-3">
         {details.map(([label, rawValue]) => (
-          <div key={label} className="min-w-0">
+          <div
+            key={label}
+            className="min-w-0 rounded-2xl border border-white/80 bg-white/55 px-3.5 py-3 backdrop-blur-sm"
+          >
             <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-400">{label}</p>
             <p className="mt-1 break-words text-sm font-semibold text-slate-800">{rawValue || "—"}</p>
           </div>
         ))}
       </div>
     </section>
+  );
+}
+
+function SectionIcon({ accent }: { accent: Accent }) {
+  const paths: Record<Accent, ReactNode> = {
+    blue: (
+      <>
+        <circle cx="12" cy="8" r="3" />
+        <path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" />
+      </>
+    ),
+    indigo: (
+      <>
+        <path d="M4 7h16v12H4z" />
+        <path d="M9 7V5h6v2M8 12h8" />
+      </>
+    ),
+    emerald: (
+      <>
+        <rect x="3" y="6" width="18" height="13" rx="2" />
+        <path d="M3 11h18M7 15h3" />
+      </>
+    ),
+    amber: (
+      <>
+        <path d="M3 11 12 4l9 7" />
+        <path d="M5 10v10h14V10M9 20v-6h6v6" />
+      </>
+    ),
+    rose: (
+      <>
+        <circle cx="8" cy="9" r="3" />
+        <circle cx="16" cy="9" r="3" />
+        <path d="M3 20c.5-3.7 2.2-5.5 5-5.5M21 20c-.5-3.7-2.2-5.5-5-5.5M9 20c.4-3 1.4-4.5 3-4.5s2.6 1.5 3 4.5" />
+      </>
+    ),
+    violet: (
+      <>
+        <path d="M12 3 5 6v5c0 4.7 2.7 8.1 7 10 4.3-1.9 7-5.3 7-10V6z" />
+        <path d="m9 12 2 2 4-5" />
+      </>
+    ),
+  };
+
+  return (
+    <span
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accentClasses[accent]} text-white shadow-lg`}
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {paths[accent]}
+      </svg>
+    </span>
   );
 }
 

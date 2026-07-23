@@ -22,7 +22,6 @@ import type {
 } from "@/components/team/types";
 import { dateRange, employeeAnalytics } from "@/components/team/utils";
 import {
-  EMPLOYEE_DEPARTMENTS,
   emptyEmployeeProfileChanges,
   validateEmployeeProfileChanges,
   type EmployeeProfileChanges,
@@ -31,6 +30,12 @@ import {
   EmployeeProfileDetailsSections,
   EmployeeProfileFormSections,
 } from "@/components/team/EmployeeProfileSections";
+
+type EditSnapshot = {
+  value: EmployeeProfileChanges;
+  reportingManagerId: string;
+  accessRole: string;
+};
 
 function TeamDetailPageContent() {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +54,8 @@ function TeamDetailPageContent() {
   const [statusBusy, setStatusBusy] = useState(false);
   const [passwordResetBusy, setPasswordResetBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState<EditSnapshot | null>(null);
   const [employeeCode, setEmployeeCode] = useState("");
   const [title, setTitle] = useState("Mr");
   const [name, setName] = useState("");
@@ -331,15 +338,86 @@ function TeamDetailPageContent() {
     [entries, member, range.from, range.to, timer],
   );
 
+  function updateProfileField<K extends keyof EmployeeProfileChanges>(
+    key: K,
+    value: EmployeeProfileChanges[K],
+  ) {
+    if (key === "employee_code") setEmployeeCode(String(value || ""));
+    else if (key === "title") setTitle(String(value || ""));
+    else if (key === "name") setName(String(value || ""));
+    else if (key === "gender") setGender(String(value || ""));
+    else if (key === "email") setEmail(String(value || ""));
+    else if (key === "role") setMemberRole(String(value || ""));
+    else if (key === "department") setDepartment(String(value || ""));
+    else if (key === "date_of_joining") setDateOfJoining(String(value || ""));
+    else if (key === "date_of_birth") setDateOfBirth(String(value || ""));
+    else if (key === "epf_number") setEpfNumber(String(value || ""));
+    else if (key === "uan_number") setUanNumber(String(value || ""));
+    else if (key === "pan_number") setPanNumber(String(value || ""));
+    else if (key === "aadhaar_number") setAadhaarNumber(String(value || ""));
+    else
+      setExtendedDetails((current) => ({
+        ...current,
+        [key]: value,
+      }));
+  }
+
+  function applyProfileValue(value: EmployeeProfileChanges) {
+    setEmployeeCode(value.employee_code || "");
+    setTitle(value.title || "Mr");
+    setName(value.name || "");
+    setGender(value.gender || "Male");
+    setEmail(value.email || "");
+    setMemberRole(value.role || "");
+    setDepartment(value.department || "");
+    setDateOfJoining(value.date_of_joining || "");
+    setDateOfBirth(value.date_of_birth || "");
+    setEpfNumber(value.epf_number || "");
+    setUanNumber(value.uan_number || "");
+    setPanNumber(value.pan_number || "");
+    setAadhaarNumber(value.aadhaar_number || "");
+    setExtendedDetails({
+      ...emptyEmployeeProfileChanges(),
+      ...value,
+      children: [...value.children],
+    });
+  }
+
+  function beginEditing() {
+    setEditSnapshot({
+      value: {
+        ...employeeProfileValue,
+        children: [...employeeProfileValue.children],
+      },
+      reportingManagerId,
+      accessRole,
+    });
+    setError("");
+    router.push(`/team/${id}?action=edit`);
+  }
+
+  function cancelEditing() {
+    if (editSnapshot) {
+      applyProfileValue(editSnapshot.value);
+      setReportingManagerId(editSnapshot.reportingManagerId);
+      setAccessRole(editSnapshot.accessRole);
+    }
+    setEditSnapshot(null);
+    setError("");
+    router.push(`/team/${id}`);
+  }
+
   async function saveMember() {
-    if (!canManageMember) return;
+    if (!canManageMember || saving) return;
     const validation = validateEmployeeProfileChanges(employeeProfileValue);
     if ("error" in validation) {
       setError(validation.error || "Enter valid employee details.");
       return;
     }
     const normalized = validation.value;
+    setSaving(true);
     setError("");
+    try {
     const { error: employeeError } = await supabase
       .from("employees")
       .update({
@@ -464,8 +542,43 @@ if (profileError) {
   setError(profileError.message);
   return;
 }
+    const selectedManager = reportingManagers.find(
+      (manager) => manager.id === reportingManagerId,
+    );
+    applyProfileValue(normalized);
+    setMember((current) =>
+      current
+        ? {
+            ...current,
+            employee_code: normalized.employee_code,
+            title: normalized.title,
+            name: normalized.name,
+            gender: normalized.gender,
+            email: normalized.email,
+            role: normalized.role,
+            department: normalized.department,
+            date_of_joining: normalized.date_of_joining,
+            date_of_birth: normalized.date_of_birth,
+            reporting_manager_id: reportingManagerId || null,
+            reporting_manager: selectedManager
+              ? {
+                  id: selectedManager.id,
+                  name: selectedManager.name,
+                  title: null,
+                }
+              : null,
+          }
+        : current,
+    );
+    setEditSnapshot(null);
+    setError("Employee details updated.");
     router.push(`/team/${id}`);
     router.refresh();
+    } catch {
+      setError("Unable to save employee details right now.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function updateStatus(status: "active" | "inactive") {
@@ -601,13 +714,37 @@ if (profileError) {
     );
 
   const adminActions = canManageMember ? (
+    action === "edit" ? (
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          data-shortcut-save
+          data-shortcut-primary
+          aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
+          onClick={() => void saveMember()}
+          disabled={saving}
+          className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-2.5 text-center text-xs font-bold text-slate-950 shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+        <button
+          type="button"
+          onClick={cancelEditing}
+          disabled={saving}
+          className="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Cancel
+        </button>
+      </div>
+    ) : (
     <div className="flex flex-wrap gap-2">
-      <Link
-        href={`/team/${id}?action=edit`}
+      <button
+        type="button"
+        onClick={beginEditing}
         className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-center text-xs font-bold text-slate-950"
       >
         Edit
-      </Link>
+      </button>
       <button
         type="button"
         onClick={() => void sendPasswordReset()}
@@ -635,6 +772,7 @@ if (profileError) {
         Delete Employee
       </button>
     </div>
+    )
   ) : null;
 
   return (
@@ -648,85 +786,66 @@ if (profileError) {
         </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
         {isAdmin ? (
-          <EmployeeProfileDetailsSections
-            value={employeeProfileValue}
-            showFinanceDetails={isFinanceAdmin}
-            reportingManager={
-              member.reporting_manager
-                ? `${member.reporting_manager.title ? `${member.reporting_manager.title} ` : ""}${member.reporting_manager.name}`
-                : "—"
-            }
-            accessRole={accessRole}
-            status={member.status}
-          />
+          action === "edit" && canManageMember ? (
+            <div className="mt-6">
+              <EmployeeProfileFormSections
+                value={employeeProfileValue}
+                onChange={updateProfileField}
+                showFinanceDetails={isFinanceAdmin}
+                joiningExtras={
+                  <>
+                    <ProfileSelectField
+                      label="Reporting Manager"
+                      value={reportingManagerId}
+                      onChange={setReportingManagerId}
+                    >
+                      <option value="">No reporting manager</option>
+                      {reportingManagers.map((manager) => (
+                        <option key={manager.id} value={manager.id}>
+                          {manager.name} · {manager.access_role}
+                        </option>
+                      ))}
+                    </ProfileSelectField>
+                    <ProfileSelectField
+                      label="Access Type"
+                      value={accessRole}
+                      onChange={setAccessRole}
+                    >
+                      <option value="Employee">Employee</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Admin">Admin</option>
+                      {isSuperAdmin ? (
+                        <option value="Super Admin">Super Admin</option>
+                      ) : null}
+                      {isFinanceAdmin ? (
+                        <option value="Finance Admin">Finance Admin</option>
+                      ) : null}
+                    </ProfileSelectField>
+                  </>
+                }
+              />
+            </div>
+          ) : (
+            <EmployeeProfileDetailsSections
+              value={employeeProfileValue}
+              showFinanceDetails={isFinanceAdmin}
+              reportingManager={
+                member.reporting_manager
+                  ? `${member.reporting_manager.title ? `${member.reporting_manager.title} ` : ""}${member.reporting_manager.name}`
+                  : "—"
+              }
+              accessRole={accessRole}
+              status={member.status}
+            />
+          )
         ) : null}
         {error ? (
           <div
             role="status"
-            className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold ${error.includes("sent") ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}
+            className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold ${error.includes("sent") || error.includes("updated") ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}
           >
             {error}
           </div>
-        ) : null}
-        {action === "edit" && canManageMember ? (
-          <AdminEditForm
-            value={employeeProfileValue}
-            onChange={(key, value) => {
-              if (key === "employee_code") setEmployeeCode(String(value || ""));
-              else if (key === "title") setTitle(String(value || ""));
-              else if (key === "name") setName(String(value || ""));
-              else if (key === "gender") setGender(String(value || ""));
-              else if (key === "email") setEmail(String(value || ""));
-              else if (key === "role") setMemberRole(String(value || ""));
-              else if (key === "department") setDepartment(String(value || ""));
-              else if (key === "date_of_joining") setDateOfJoining(String(value || ""));
-              else if (key === "date_of_birth") setDateOfBirth(String(value || ""));
-              else if (key === "epf_number") setEpfNumber(String(value || ""));
-              else if (key === "uan_number") setUanNumber(String(value || ""));
-              else if (key === "pan_number") setPanNumber(String(value || ""));
-              else if (key === "aadhaar_number") setAadhaarNumber(String(value || ""));
-              else
-                setExtendedDetails((current) => ({
-                  ...current,
-                  [key]: value,
-                }));
-            }}
-            employeeCode={employeeCode}
-            setEmployeeCode={setEmployeeCode}
-            title={title}
-            setTitle={setTitle}
-            name={name}
-            setName={setName}
-            gender={gender}
-            setGender={setGender}
-            email={email}
-            setEmail={setEmail}
-            memberRole={memberRole}
-            setMemberRole={setMemberRole}
-            department={department}
-            setDepartment={setDepartment}
-            dateOfJoining={dateOfJoining}
-            setDateOfJoining={setDateOfJoining}
-            dateOfBirth={dateOfBirth}
-            setDateOfBirth={setDateOfBirth}
-            epfNumber={epfNumber}
-            setEpfNumber={setEpfNumber}
-            uanNumber={uanNumber}
-            setUanNumber={setUanNumber}
-            panNumber={panNumber}
-            setPanNumber={setPanNumber}
-            aadhaarNumber={aadhaarNumber}
-            setAadhaarNumber={setAadhaarNumber}
-            reportingManagerId={reportingManagerId}
-            setReportingManagerId={setReportingManagerId}
-            reportingManagers={reportingManagers}
-            accessRole={accessRole}
-            setAccessRole={setAccessRole}
-            canAssignSuperAdmin={isSuperAdmin}
-            canAssignFinanceAdmin={isFinanceAdmin}
-            onSave={() => void saveMember()}
-            onCancel={() => router.push(`/team/${id}`)}
-          />
         ) : null}
         {action === "deactivate" && canManageMember ? (
           <Confirmation
@@ -792,240 +911,6 @@ export default function TeamDetailPage() {
   );
 }
 
-type Setter = (value: string) => void;
-function AdminEditForm(props: {
-  value: EmployeeProfileChanges;
-  onChange: <K extends keyof EmployeeProfileChanges>(
-    key: K,
-    value: EmployeeProfileChanges[K],
-  ) => void;
-  employeeCode: string;
-  setEmployeeCode: Setter;
-  title: string;
-  setTitle: Setter;
-  name: string;
-  setName: Setter;
-  gender: string;
-  setGender: Setter;
-  email: string;
-  setEmail: Setter;
-  memberRole: string;
-  setMemberRole: Setter;
-  department: string;
-  setDepartment: Setter;
-  dateOfJoining: string;
-  setDateOfJoining: Setter;
-  dateOfBirth: string;
-  setDateOfBirth: Setter;
-  epfNumber: string;
-  setEpfNumber: Setter;
-  uanNumber: string;
-  setUanNumber: Setter;
-  panNumber: string;
-  setPanNumber: Setter;
-  aadhaarNumber: string;
-  setAadhaarNumber: Setter;
-  reportingManagerId: string;
-  setReportingManagerId: Setter;
-  reportingManagers: ReportingManagerOption[];
-  accessRole: string;
-  setAccessRole: Setter;
-  canAssignSuperAdmin: boolean;
-  canAssignFinanceAdmin: boolean;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg">
-      <h2 className="text-xl font-bold">Edit employee</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Employment details are retained for future time-off and payroll
-        modules.
-      </p>
-      <div className="mt-6">
-        <EmployeeProfileFormSections
-          value={props.value}
-          onChange={props.onChange}
-          showFinanceDetails={props.canAssignFinanceAdmin}
-          joiningExtras={
-            <>
-              <SelectField
-                label="Reporting Manager"
-                value={props.reportingManagerId}
-                onChange={props.setReportingManagerId}
-              >
-                <option value="">No reporting manager</option>
-                {props.reportingManagers.map((manager) => (
-                  <option key={manager.id} value={manager.id}>
-                    {manager.name} · {manager.access_role}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField
-                label="Access Type"
-                value={props.accessRole}
-                onChange={props.setAccessRole}
-              >
-                <option value="Employee">Employee</option>
-                <option value="Manager">Manager</option>
-                <option value="Admin">Admin</option>
-                {props.canAssignSuperAdmin ? (
-                  <option value="Super Admin">Super Admin</option>
-                ) : null}
-                {props.canAssignFinanceAdmin ? (
-                  <option value="Finance Admin">Finance Admin</option>
-                ) : null}
-              </SelectField>
-            </>
-          }
-        />
-      </div>
-      <div className="hidden">
-        <Input
-          label="Employee Code"
-          value={props.employeeCode}
-          onChange={props.setEmployeeCode}
-          required
-        />
-        <SelectField
-          label="Title"
-          value={props.title}
-          onChange={props.setTitle}
-        >
-          <option value="Mr">Mr</option>
-          <option value="Miss">Miss</option>
-          <option value="Mrs.">Mrs.</option>
-          <option value="Dr">Dr</option>
-        </SelectField>
-        <Input
-          label="Employee Name"
-          value={props.name}
-          onChange={props.setName}
-          required
-        />
-        <SelectField
-          label="Gender"
-          value={props.gender}
-          onChange={props.setGender}
-        >
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Others">Others</option>
-        </SelectField>
-        <Input
-          label="Email Address"
-          value={props.email}
-          onChange={props.setEmail}
-          type="email"
-          required
-        />
-        <Input
-          label="Role"
-          value={props.memberRole}
-          onChange={props.setMemberRole}
-        />
-        <SelectField
-          label="Department"
-          value={props.department}
-          onChange={props.setDepartment}
-        >
-          <option value="">Select department</option>
-          {EMPLOYEE_DEPARTMENTS.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </SelectField>
-        <Input
-          label="Date of Joining"
-          value={props.dateOfJoining}
-          onChange={props.setDateOfJoining}
-          type="date"
-        />
-        <Input
-          label="Date of Birth"
-          value={props.dateOfBirth}
-          onChange={props.setDateOfBirth}
-          type="date"
-        />
-        <Input
-          label="EPF Number"
-          value={props.epfNumber}
-          onChange={props.setEpfNumber}
-        />
-        <Input
-          label="UAN Number"
-          value={props.uanNumber}
-          onChange={props.setUanNumber}
-        />
-        <Input
-          label="PAN Number"
-          value={props.panNumber}
-          onChange={(value) => props.setPanNumber(value.toUpperCase())}
-          maxLength={10}
-          autoCapitalize="characters"
-          autoComplete="off"
-        />
-        <Input
-          label="Aadhaar Number"
-          value={props.aadhaarNumber}
-          onChange={(value) =>
-            props.setAadhaarNumber(value.replace(/\D/g, "").slice(0, 12))
-          }
-          maxLength={12}
-          inputMode="numeric"
-          autoComplete="off"
-        />
-        <SelectField
-          label="Reporting Manager"
-          value={props.reportingManagerId}
-          onChange={props.setReportingManagerId}
-        >
-          <option value="">No reporting manager</option>
-          {props.reportingManagers.map((manager) => (
-            <option key={manager.id} value={manager.id}>
-              {manager.name} · {manager.access_role}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label="Access Type"
-          value={props.accessRole}
-          onChange={props.setAccessRole}
-        >
-          <option value="Employee">Employee</option>
-          <option value="Manager">Manager</option>
-          <option value="Admin">Admin</option>
-          {props.canAssignSuperAdmin ? (
-            <option value="Super Admin">Super Admin</option>
-          ) : null}
-          {props.canAssignFinanceAdmin ? (
-            <option value="Finance Admin">Finance Admin</option>
-          ) : null}
-        </SelectField>
-      </div>
-      <div className="mt-5 flex gap-3">
-        <button
-          type="button"
-          data-shortcut-save
-          data-shortcut-primary
-          aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
-          onClick={props.onSave}
-          className="rounded-xl bg-[#153E90] px-5 py-2.5 font-bold text-white"
-        >
-          Save
-        </button>
-        <button
-          type="button"
-          onClick={props.onCancel}
-          className="rounded-xl border border-slate-200 px-5 py-2.5 font-bold"
-        >
-          Cancel
-        </button>
-      </div>
-    </section>
-  );
-}
 function Confirmation({
   text,
   confirm,
@@ -1064,49 +949,7 @@ function Confirmation({
     </section>
   );
 }
-function Input({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-  maxLength,
-  inputMode,
-  autoCapitalize,
-  autoComplete,
-}: {
-  label: string;
-  value: string;
-  onChange: Setter;
-  type?: string;
-  required?: boolean;
-  maxLength?: number;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  autoCapitalize?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
-      <span>
-        {label}
-        {required ? <span className="ml-1 text-red-500">*</span> : null}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        maxLength={maxLength}
-        inputMode={inputMode}
-        autoCapitalize={autoCapitalize}
-        autoComplete={autoComplete}
-        className="h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-400"
-      />
-    </label>
-  );
-}
-
-function SelectField({
+function ProfileSelectField({
   label,
   value,
   onChange,
@@ -1114,16 +957,16 @@ function SelectField({
 }: {
   label: string;
   value: string;
-  onChange: Setter;
+  onChange: (value: string) => void;
   children: React.ReactNode;
 }) {
   return (
-    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+    <label className="text-sm font-semibold text-slate-700">
       <span>{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-400"
+        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-normal text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
       >
         {children}
       </select>
