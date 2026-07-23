@@ -9,10 +9,12 @@ export default function EmployeeCard({
   analytics,
   now,
   canEdit = false,
+  canViewDetails = true,
 }: {
   analytics: EmployeeAnalytics;
   now: number;
   canEdit?: boolean;
+  canViewDetails?: boolean;
 }) {
   const { employee, timer, status } = analytics;
   const isActive = String(employee.status || "").toLowerCase() === "active";
@@ -30,14 +32,24 @@ export default function EmployeeCard({
         ? "text-emerald-600"
         : "text-amber-500";
   return (
-    <Link
-      href={`/team/${employee.id}`}
-      data-shortcut-row
-      data-shortcut-href={`/team/${employee.id}`}
+    <div
+      data-shortcut-row={canViewDetails ? true : undefined}
+      data-shortcut-href={
+        canViewDetails ? `/team/${employee.id}` : undefined
+      }
       data-shortcut-edit-href={canEdit ? `/team/${employee.id}?action=edit` : undefined}
-      className="group block rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+      className={`group relative block rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition ${
+        canViewDetails ? "hover:border-blue-200 hover:shadow-md" : ""
+      }`}
     >
-      <div className="grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_.75fr_1.1fr_1.5fr]">
+      {canViewDetails ? (
+        <Link
+          href={`/team/${employee.id}`}
+          aria-label={`View ${employee.name}'s employee details`}
+          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+        />
+      ) : null}
+      <div className="pointer-events-none relative grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_.75fr_1.1fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
           <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#153E90] text-xs font-bold text-white shadow-sm">
             {initials(employee.name)}
@@ -123,7 +135,7 @@ export default function EmployeeCard({
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

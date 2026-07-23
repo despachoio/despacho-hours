@@ -21,6 +21,7 @@ import type {
   TeamTimer,
 } from "@/components/team/types";
 import { dateRange, employeeAnalytics } from "@/components/team/utils";
+import { EMPLOYEE_DEPARTMENTS } from "@/lib/employee-profile";
 
 const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
@@ -92,7 +93,8 @@ function TeamDetailPageContent() {
         .toLowerCase();
       if (
         !current ||
-        (currentRole === "employee" && current.employee_id !== id)
+        (!["admin", "super admin"].includes(currentRole) &&
+          current.employee_id !== id)
       ) {
         setAccessDenied(true);
         setLoading(false);
@@ -120,8 +122,6 @@ function TeamDetailPageContent() {
         reporting_manager: null,
       };
       if (
-        (currentRole === "manager" &&
-          loaded.reporting_manager_id !== current.employee_id) ||
         (!["super admin", "admin"].includes(currentRole) &&
           String(loaded.status || "").trim().toLowerCase() !== "active")
       ) {
@@ -779,11 +779,18 @@ function AdminEditForm(props: {
           value={props.memberRole}
           onChange={props.setMemberRole}
         />
-        <Input
+        <SelectField
           label="Department"
           value={props.department}
           onChange={props.setDepartment}
-        />
+        >
+          <option value="">Select department</option>
+          {EMPLOYEE_DEPARTMENTS.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </SelectField>
         <Input
           label="Date of Joining"
           value={props.dateOfJoining}

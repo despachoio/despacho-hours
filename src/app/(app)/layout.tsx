@@ -379,6 +379,15 @@ export default function DashboardLayout({
               aria-label="Profile menu"
               className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
             >
+              <Link
+                href="/profile"
+                role="menuitem"
+                onClick={closeNavigation}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+              >
+                <NavigationIcon name="team" />
+                My Profile
+              </Link>
               {isAdminLevelRole(userRole) ? (
                 <Link
                   href="/settings"

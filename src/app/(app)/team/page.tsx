@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TeamFilters from "@/components/team/TeamFilters";
 import TeamSummaryCards from "@/components/team/TeamSummaryCards";
@@ -19,6 +20,7 @@ import {
   getTeamMetrics,
 } from "@/lib/metrics/team-metrics";
 import type { TeamMetrics } from "@/lib/metrics/types";
+import { EMPLOYEE_DEPARTMENTS } from "@/lib/employee-profile";
 
 const initialFilters: TeamFilterValue = {
   employeeId: "",
@@ -344,13 +346,21 @@ export default function TeamPage() {
               </p>
             </div>
             {isAdmin ? (
-              <button
-                type="button"
-                onClick={() => setShowNewMember((value) => !value)}
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
-              >
-                {showNewMember ? "Close" : "+ New Team Member"}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/team/profile-requests"
+                  className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white"
+                >
+                  Profile Approvals
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowNewMember((value) => !value)}
+                  className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
+                >
+                  {showNewMember ? "Close" : "+ New Team Member"}
+                </button>
+              </div>
             ) : null}
           </div>
         </header>
@@ -405,11 +415,18 @@ export default function TeamPage() {
                 value={memberRole}
                 onChange={setMemberRole}
               />
-              <FormInput
+              <FormSelect
                 label="Department"
                 value={department}
                 onChange={setDepartment}
-              />
+              >
+                <option value="">Select department</option>
+                {EMPLOYEE_DEPARTMENTS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </FormSelect>
               <FormInput
                 label="Date of Joining"
                 value={dateOfJoining}
@@ -539,6 +556,7 @@ export default function TeamPage() {
                       analytics={item}
                       now={now}
                       canEdit={isAdmin}
+                      canViewDetails={isAdmin || isEmployee}
                     />
                   ))}
                 </section>

@@ -140,32 +140,34 @@ export function calculateTeamMetrics(
 export async function getTeamMetrics(
   filters: TeamMetricFilters,
 ): Promise<TeamMetrics> {
-  let employeeQuery = supabase
-    .from("employees")
-    .select(
-      "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
-    )
-    .order("created_at", { ascending: true });
-
-  if (filters.employeeId) {
-    employeeQuery = employeeQuery.eq("id", filters.employeeId);
-  }
-  if (filters.employeeStatus) {
-    employeeQuery = employeeQuery.eq("status", filters.employeeStatus);
-  }
+  let employeeRows: Array<Omit<TeamEmployee, "reporting_manager">>;
   if (filters.reportingManagerId) {
-    employeeQuery = employeeQuery.eq(
-      "reporting_manager_id",
-      filters.reportingManagerId,
-    );
+    const employeeResult = await supabase.rpc("get_team_metric_employees");
+    if (employeeResult.error) throw employeeResult.error;
+    employeeRows = (employeeResult.data || []) as unknown as Array<
+      Omit<TeamEmployee, "reporting_manager">
+    >;
+  } else {
+    let employeeQuery = supabase
+      .from("employees")
+      .select(
+        "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
+      )
+      .order("created_at", { ascending: true });
+
+    if (filters.employeeId) {
+      employeeQuery = employeeQuery.eq("id", filters.employeeId);
+    }
+    if (filters.employeeStatus) {
+      employeeQuery = employeeQuery.eq("status", filters.employeeStatus);
+    }
+
+    const employeeResult = await employeeQuery;
+    if (employeeResult.error) throw employeeResult.error;
+    employeeRows = (employeeResult.data || []) as unknown as Array<
+      Omit<TeamEmployee, "reporting_manager">
+    >;
   }
-
-  const employeeResult = await employeeQuery;
-  if (employeeResult.error) throw employeeResult.error;
-
-  const employeeRows = (employeeResult.data || []) as unknown as Array<
-    Omit<TeamEmployee, "reporting_manager">
-  >;
   const managerIds = Array.from(
     new Set(
       employeeRows

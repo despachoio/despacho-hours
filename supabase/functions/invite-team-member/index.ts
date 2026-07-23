@@ -41,6 +41,7 @@ serve(async (req) => {
     const normalizedEmployeeCode = String(employee_code || "").trim();
     const normalizedTitle = String(title || "").trim();
     const normalizedGender = String(gender || "").trim();
+    const normalizedDepartment = String(department || "").trim();
     const normalizedPan = String(pan_number || "")
       .trim()
       .toUpperCase();
@@ -71,6 +72,14 @@ serve(async (req) => {
     if (!["Male", "Female", "Others"].includes(normalizedGender))
       throw new Error("Select a valid gender.");
     if (!requestedRole) throw new Error("Select a valid access role.");
+    if (
+      normalizedDepartment &&
+      !["Operations", "HR", "Finance", "Management"].includes(
+        normalizedDepartment,
+      )
+    ) {
+      throw new Error("Select a valid department.");
+    }
     if (
       normalizedPan &&
       !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(normalizedPan)
@@ -193,7 +202,7 @@ serve(async (req) => {
             name: normalizedName,
             gender: normalizedGender,
             role: designation || null,
-            department: department || null,
+            department: normalizedDepartment || null,
             date_of_joining: date_of_joining || null,
             date_of_birth: date_of_birth || null,
             epf_number: String(epf_number || "").trim() || null,
@@ -223,7 +232,7 @@ serve(async (req) => {
             gender: normalizedGender,
             email: normalizedEmail,
             role: designation || null,
-            department: department || null,
+            department: normalizedDepartment || null,
             date_of_joining: date_of_joining || null,
             date_of_birth: date_of_birth || null,
             epf_number: String(epf_number || "").trim() || null,
