@@ -1,4 +1,4 @@
-import { isAdminLevelRole } from "@/lib/roles";
+import { isAdminLevelRole, isFinanceAdminRole } from "@/lib/roles";
 import { getProfileApiContext } from "@/lib/server/profile-auth";
 
 export async function POST(
@@ -33,6 +33,42 @@ export async function POST(
   }
 
   const { id } = await params;
+  if (!isFinanceAdminRole(context.profile.role)) {
+    const requestResult = await context.admin
+      .from("employee_profile_change_requests")
+      .select("current_values,proposed_changes")
+      .eq("id", id)
+      .single();
+    if (requestResult.error || !requestResult.data) {
+      return Response.json(
+        { error: "Profile change request not found." },
+        { status: 404 },
+      );
+    }
+    const financeKeys = [
+      "epf_number",
+      "uan_number",
+      "bank_account_number",
+      "bank_name",
+      "ifsc_code",
+      "branch_name",
+    ];
+    if (
+      financeKeys.some(
+        (key) =>
+          requestResult.data.current_values?.[key] !==
+          requestResult.data.proposed_changes?.[key],
+      )
+    ) {
+      return Response.json(
+        {
+          error:
+            "Only a Finance Admin can review a request containing finance changes.",
+        },
+        { status: 403 },
+      );
+    }
+  }
   const result = await context.userClient.rpc(
     "review_employee_profile_change_request",
     {

@@ -178,6 +178,7 @@ export default function TimePage() {
 
   const [liveTimers, setLiveTimers] =
     useState<LiveTimer[]>([]);
+  const [directReporteeIds, setDirectReporteeIds] = useState<string[]>([]);
 
 
   const [elapsedSeconds, setElapsedSeconds] =
@@ -759,9 +760,16 @@ currentProfile?.role === "Admin" ||
 currentProfile?.role==="Manager"
 ){
 
+let managerReporteeIds: string[] = [];
+if (currentProfile.role === "Manager") {
+  const reporteeResult = await supabase.rpc("get_team_metric_employees");
+  managerReporteeIds = (reporteeResult.data || []).map(
+    (employee: { id: string }) => employee.id,
+  );
+  setDirectReporteeIds(managerReporteeIds);
+}
 
-const {data:liveData} =
-await supabase
+let liveTimerQuery = supabase
 
 .from("active_timers")
 
@@ -782,6 +790,18 @@ clients(name)
 )
 `);
 
+if (currentProfile.role === "Manager") {
+  if (!managerReporteeIds.length) {
+    setLiveTimers([]);
+  } else {
+    liveTimerQuery = liveTimerQuery.in("employee_id", managerReporteeIds);
+  }
+}
+
+const {data:liveData} =
+  currentProfile.role === "Manager" && !managerReporteeIds.length
+    ? { data: [] }
+    : await liveTimerQuery;
 
 if(liveData)
 
@@ -1662,7 +1682,11 @@ useEffect(() => {
     return;
 
   const interval = setInterval(async () => {
-    const { data: liveData } = await supabase
+    if (profile.role === "Manager" && !directReporteeIds.length) {
+      setLiveTimers([]);
+      return;
+    }
+    let liveTimerQuery = supabase
       .from("active_timers")
       .select(`
         id,
@@ -1680,6 +1704,13 @@ useEffect(() => {
           clients(name)
         )
       `);
+    if (profile.role === "Manager") {
+      liveTimerQuery = liveTimerQuery.in(
+        "employee_id",
+        directReporteeIds,
+      );
+    }
+    const { data: liveData } = await liveTimerQuery;
 
     if (liveData) {
       setLiveTimers(liveData as unknown as LiveTimer[]);
@@ -1687,7 +1718,7 @@ useEffect(() => {
   }, 5000);
 
   return () => clearInterval(interval);
-}, [profile?.role]);
+}, [profile?.role, directReporteeIds]);
 
 const timerAssignedProjects = useMemo(
   () => profile?.employee_id
@@ -1762,11 +1793,14 @@ const selectedEmployeeFilteredProjects = useMemo(() => {
 const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
   let visible: LiveTimer[] = [];
 
-  if (
+  if (profile?.role === "Manager") {
+    visible = liveTimers.filter((timer) =>
+      directReporteeIds.includes(timer.employee_id),
+    );
+  } else if (
     profile?.role === "Finance Admin" ||
     profile?.role === "Super Admin" ||
-    profile?.role === "Admin" ||
-    profile?.role === "Manager"
+    profile?.role === "Admin"
   ) {
     visible = [...liveTimers];
   } else if (profile?.role === "Employee" && activeTimer) {
@@ -1786,7 +1820,7 @@ const visibleLiveTimers = useMemo<LiveTimer[]>(() => {
     if (first.status !== second.status) return first.status === "running" ? -1 : 1;
     return calculateElapsed(second) - calculateElapsed(first);
   });
-}, [profile?.role, liveTimers, activeTimer, projects, employees, tick]);
+}, [profile?.role, liveTimers, activeTimer, projects, employees, tick, directReporteeIds]);
 
 const runningLiveTimerCount = visibleLiveTimers.filter((timer) => timer.status === "running").length;
 

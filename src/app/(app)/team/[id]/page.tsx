@@ -234,7 +234,12 @@ function TeamDetailPageContent() {
       setUanNumber(loaded.uan_number || "");
       setReportingManagerId(loaded.reporting_manager_id || "");
       if (["finance admin", "admin", "super admin"].includes(currentRole)) {
-        const [managerResult, statutoryResult, extendedResult] =
+        const [
+          managerResult,
+          statutoryResult,
+          extendedResult,
+          financeResult,
+        ] =
           await Promise.all([
           supabase.rpc("get_reporting_manager_options"),
           supabase
@@ -249,6 +254,15 @@ function TeamDetailPageContent() {
             )
             .eq("employee_id", id)
             .maybeSingle(),
+          currentRole === "finance admin"
+            ? supabase
+                .from("employee_finance_details")
+                .select(
+                  "epf_number,uan_number,bank_account_number,bank_name,ifsc_code,branch_name",
+                )
+                .eq("employee_id", id)
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null }),
         ]);
         const { data: managerData, error: managerError } = managerResult;
         if (managerError) setError(managerError.message);
@@ -270,12 +284,19 @@ function TeamDetailPageContent() {
           setExtendedDetails({
             ...emptyEmployeeProfileChanges(),
             ...extendedResult.data,
+            ...financeResult.data,
             children: Array.isArray(extendedResult.data?.children)
               ? extendedResult.data.children.map((child) =>
                   String(child || ""),
                 )
               : [],
           });
+        }
+        if (financeResult.error) {
+          setError(financeResult.error.message);
+        } else if (financeResult.data) {
+          setEpfNumber(financeResult.data.epf_number || "");
+          setUanNumber(financeResult.data.uan_number || "");
         }
       }
       setLoading(false);
@@ -331,8 +352,6 @@ function TeamDetailPageContent() {
         department: normalized.department,
         date_of_joining: normalized.date_of_joining,
         date_of_birth: normalized.date_of_birth,
-        epf_number: normalized.epf_number,
-        uan_number: normalized.uan_number,
         reporting_manager_id: reportingManagerId || null,
       })
       .eq("id", id);
@@ -364,10 +383,6 @@ function TeamDetailPageContent() {
           phone_number: normalized.phone_number,
           marital_status: normalized.marital_status,
           blood_group: normalized.blood_group,
-          bank_account_number: normalized.bank_account_number,
-          bank_name: normalized.bank_name,
-          ifsc_code: normalized.ifsc_code,
-          branch_name: normalized.branch_name,
           address_line_1: normalized.address_line_1,
           address_line_2: normalized.address_line_2,
           address_line_3: normalized.address_line_3,
@@ -391,6 +406,27 @@ function TeamDetailPageContent() {
     if (extendedError) {
       setError(extendedError.message);
       return;
+    }
+    if (isFinanceAdmin) {
+      const { error: financeError } = await supabase
+        .from("employee_finance_details")
+        .upsert(
+          {
+            employee_id: id,
+            epf_number: normalized.epf_number,
+            uan_number: normalized.uan_number,
+            bank_account_number: normalized.bank_account_number,
+            bank_name: normalized.bank_name,
+            ifsc_code: normalized.ifsc_code,
+            branch_name: normalized.branch_name,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "employee_id" },
+        );
+      if (financeError) {
+        setError(financeError.message);
+        return;
+      }
     }
     const { data: employeeRecord, error: employeeLookupError } = await supabase
   .from("employees")
@@ -614,6 +650,7 @@ if (profileError) {
         {isAdmin ? (
           <EmployeeProfileDetailsSections
             value={employeeProfileValue}
+            showFinanceDetails={isFinanceAdmin}
             reportingManager={
               member.reporting_manager
                 ? `${member.reporting_manager.title ? `${member.reporting_manager.title} ` : ""}${member.reporting_manager.name}`
@@ -809,6 +846,7 @@ function AdminEditForm(props: {
         <EmployeeProfileFormSections
           value={props.value}
           onChange={props.onChange}
+          showFinanceDetails={props.canAssignFinanceAdmin}
           joiningExtras={
             <>
               <SelectField

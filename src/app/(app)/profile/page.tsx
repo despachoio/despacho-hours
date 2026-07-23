@@ -252,6 +252,8 @@ export default function MyProfilePage() {
             <EmployeeProfileFormSections
               value={form}
               onChange={update}
+              joiningReadOnly
+              statutoryFinanceReadOnly
               joiningExtras={
                 <>
                   <ReadOnly

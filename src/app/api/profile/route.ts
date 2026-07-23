@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     employeeResult,
     statutoryResult,
     extendedResult,
+    financeResult,
     requestResult,
   ] = await Promise.all([
     context.admin
@@ -36,6 +37,13 @@ export async function GET(request: Request) {
       .eq("employee_id", employeeId)
       .maybeSingle(),
     context.admin
+      .from("employee_finance_details")
+      .select(
+        "epf_number,uan_number,bank_account_number,bank_name,ifsc_code,branch_name",
+      )
+      .eq("employee_id", employeeId)
+      .maybeSingle(),
+    context.admin
       .from("employee_profile_change_requests")
       .select(
         "id,status,proposed_changes,review_notes,created_at,reviewed_at",
@@ -51,12 +59,18 @@ export async function GET(request: Request) {
       { status: 404 },
     );
   }
-  if (statutoryResult.error || extendedResult.error || requestResult.error) {
+  if (
+    statutoryResult.error ||
+    extendedResult.error ||
+    financeResult.error ||
+    requestResult.error
+  ) {
     return Response.json(
       {
         error:
           statutoryResult.error?.message ||
           extendedResult.error?.message ||
+          financeResult.error?.message ||
           requestResult.error?.message ||
           "Unable to load employee profile",
       },
@@ -76,7 +90,11 @@ export async function GET(request: Request) {
   }
 
   return Response.json({
-    employee: employeeResult.data,
+    employee: {
+      ...employeeResult.data,
+      epf_number: financeResult.data?.epf_number || null,
+      uan_number: financeResult.data?.uan_number || null,
+    },
     statutory: statutoryResult.data || {
       pan_number: null,
       aadhaar_number: null,
@@ -86,6 +104,7 @@ export async function GET(request: Request) {
       country: "India",
       children: [],
       ...extendedResult.data,
+      ...financeResult.data,
     },
     reportingManager,
     accessRole: context.profile.role,

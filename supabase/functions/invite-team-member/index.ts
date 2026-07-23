@@ -278,8 +278,8 @@ serve(async (req) => {
             department: normalizedDepartment || null,
             date_of_joining: date_of_joining || null,
             date_of_birth: date_of_birth || null,
-            epf_number: String(epf_number || "").trim() || null,
-            uan_number: String(uan_number || "").trim() || null,
+            epf_number: null,
+            uan_number: null,
             reporting_manager_id: normalizedReportingManagerId || null,
             status: "active",
           })
@@ -308,8 +308,8 @@ serve(async (req) => {
             department: normalizedDepartment || null,
             date_of_joining: date_of_joining || null,
             date_of_birth: date_of_birth || null,
-            epf_number: String(epf_number || "").trim() || null,
-            uan_number: String(uan_number || "").trim() || null,
+            epf_number: null,
+            uan_number: null,
             reporting_manager_id: normalizedReportingManagerId || null,
             status: "active",
             active: true,
@@ -347,11 +347,6 @@ serve(async (req) => {
           phone_number: normalizedPhoneNumber || null,
           marital_status: normalizedMaritalStatus || null,
           blood_group: normalizedBloodGroup || null,
-          bank_account_number:
-            String(bank_account_number || "").trim() || null,
-          bank_name: String(bank_name || "").trim() || null,
-          ifsc_code: String(ifsc_code || "").trim().toUpperCase() || null,
-          branch_name: String(branch_name || "").trim() || null,
           address_line_1: String(address_line_1 || "").trim() || null,
           address_line_2: String(address_line_2 || "").trim() || null,
           address_line_3: String(address_line_3 || "").trim() || null,
@@ -377,6 +372,28 @@ serve(async (req) => {
       );
     if (extendedError) {
       throw extendedError;
+    }
+    if (callerRole === "finance admin") {
+      const { error: financeError } = await supabaseAdmin
+        .from("employee_finance_details")
+        .upsert(
+          {
+            employee_id: employeeId,
+            epf_number: String(epf_number || "").trim() || null,
+            uan_number: String(uan_number || "").trim() || null,
+            bank_account_number:
+              String(bank_account_number || "").trim() || null,
+            bank_name: String(bank_name || "").trim() || null,
+            ifsc_code:
+              String(ifsc_code || "").trim().toUpperCase() || null,
+            branch_name: String(branch_name || "").trim() || null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "employee_id" },
+        );
+      if (financeError) {
+        throw financeError;
+      }
     }
 
     const { error: profileError } = await supabaseAdmin

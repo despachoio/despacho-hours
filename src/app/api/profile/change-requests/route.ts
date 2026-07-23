@@ -1,4 +1,8 @@
-import { hasSuperAdminAccess, isAdminLevelRole } from "@/lib/roles";
+import {
+  hasSuperAdminAccess,
+  isAdminLevelRole,
+  isFinanceAdminRole,
+} from "@/lib/roles";
 import {
   emptyEmployeeProfileChanges,
   validateEmployeeProfileChanges,
@@ -44,6 +48,39 @@ export async function GET(request: Request) {
       requests = requests.filter((item) => !blocked.has(item.employee_id));
     }
   }
+  if (!isFinanceAdminRole(context.profile.role)) {
+    const financeKeyList = [
+      "epf_number",
+      "uan_number",
+      "bank_account_number",
+      "bank_name",
+      "ifsc_code",
+      "branch_name",
+    ];
+    const financeKeys = new Set(financeKeyList);
+    requests = requests
+      .filter(
+        (requestItem) =>
+          !financeKeyList.some(
+            (key) =>
+              requestItem.current_values?.[key] !==
+              requestItem.proposed_changes?.[key],
+          ),
+      )
+      .map((requestItem) => ({
+        ...requestItem,
+        current_values: Object.fromEntries(
+          Object.entries(requestItem.current_values || {}).filter(
+            ([key]) => !financeKeys.has(key),
+          ),
+        ),
+        proposed_changes: Object.fromEntries(
+          Object.entries(requestItem.proposed_changes || {}).filter(
+            ([key]) => !financeKeys.has(key),
+          ),
+        ),
+      }));
+  }
 
   return Response.json({ requests });
 }
@@ -72,7 +109,13 @@ export async function POST(request: Request) {
   }
 
   const employeeId = context.profile.employee_id;
-  const [employeeResult, statutoryResult, extendedResult, pendingResult] =
+  const [
+    employeeResult,
+    statutoryResult,
+    extendedResult,
+    financeResult,
+    pendingResult,
+  ] =
     await Promise.all([
     context.admin
       .from("employees")
@@ -94,6 +137,13 @@ export async function POST(request: Request) {
       .eq("employee_id", employeeId)
       .maybeSingle(),
     context.admin
+      .from("employee_finance_details")
+      .select(
+        "epf_number,uan_number,bank_account_number,bank_name,ifsc_code,branch_name",
+      )
+      .eq("employee_id", employeeId)
+      .maybeSingle(),
+    context.admin
       .from("employee_profile_change_requests")
       .select("id")
       .eq("employee_id", employeeId)
@@ -111,6 +161,7 @@ export async function POST(request: Request) {
     !employeeResult.data ||
     statutoryResult.error ||
     extendedResult.error ||
+    financeResult.error ||
     pendingResult.error
   ) {
     return Response.json(
@@ -119,6 +170,7 @@ export async function POST(request: Request) {
           employeeResult.error?.message ||
           statutoryResult.error?.message ||
           extendedResult.error?.message ||
+          financeResult.error?.message ||
           pendingResult.error?.message ||
           "Unable to prepare profile change request",
       },
@@ -132,11 +184,22 @@ export async function POST(request: Request) {
     pan_number: statutoryResult.data?.pan_number || null,
     aadhaar_number: statutoryResult.data?.aadhaar_number || null,
     ...extendedResult.data,
+    ...financeResult.data,
     children: Array.isArray(extendedResult.data?.children)
       ? extendedResult.data.children.map((child) => String(child || ""))
       : [],
   };
-  if (JSON.stringify(currentValues) === JSON.stringify(validation.value)) {
+  const proposedChanges: EmployeeProfileChanges = {
+    ...validation.value,
+    employee_code: currentValues.employee_code,
+    email: currentValues.email,
+    role: currentValues.role,
+    department: currentValues.department,
+    date_of_joining: currentValues.date_of_joining,
+    epf_number: currentValues.epf_number,
+    uan_number: currentValues.uan_number,
+  };
+  if (JSON.stringify(currentValues) === JSON.stringify(proposedChanges)) {
     return Response.json(
       { error: "No profile changes were detected." },
       { status: 400 },
@@ -149,7 +212,7 @@ export async function POST(request: Request) {
       employee_id: employeeId,
       requested_by: context.user.id,
       current_values: currentValues,
-      proposed_changes: validation.value,
+      proposed_changes: proposedChanges,
     })
     .select("id,status,created_at")
     .single();

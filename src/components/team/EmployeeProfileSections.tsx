@@ -20,10 +20,16 @@ export function EmployeeProfileFormSections({
   value,
   onChange,
   joiningExtras,
+  joiningReadOnly = false,
+  showFinanceDetails = true,
+  statutoryFinanceReadOnly = false,
 }: {
   value: EmployeeProfileChanges;
   onChange: ChangeHandler;
   joiningExtras?: ReactNode;
+  joiningReadOnly?: boolean;
+  showFinanceDetails?: boolean;
+  statutoryFinanceReadOnly?: boolean;
 }) {
   function resizeChildren(count: number) {
     const safeCount = Math.max(0, Math.min(20, count));
@@ -122,6 +128,7 @@ export function EmployeeProfileFormSections({
           value={value.employee_code}
           onChange={(next) => onChange("employee_code", next)}
           required
+          disabled={joiningReadOnly}
         />
         <TextField
           label="Email Address"
@@ -129,11 +136,13 @@ export function EmployeeProfileFormSections({
           value={value.email}
           onChange={(next) => onChange("email", next)}
           required
+          disabled={joiningReadOnly}
         />
         <TextField
           label="Role"
           value={value.role || ""}
           onChange={(next) => onChange("role", next || null)}
+          disabled={joiningReadOnly}
         />
         <SelectField
           label="Department"
@@ -141,54 +150,60 @@ export function EmployeeProfileFormSections({
           onChange={(next) => onChange("department", next || null)}
           options={EMPLOYEE_DEPARTMENTS}
           includeBlank
+          disabled={joiningReadOnly}
         />
         <TextField
           label="Date of Joining"
           type="date"
           value={value.date_of_joining || ""}
           onChange={(next) => onChange("date_of_joining", next || null)}
+          disabled={joiningReadOnly}
         />
         {joiningExtras}
       </FormSection>
 
-      <FormSection
-        eyebrow="Payroll & banking"
-        title="Finance Details"
-        accent="emerald"
-      >
-        <TextField
-          label="EPF Number"
-          value={value.epf_number || ""}
-          onChange={(next) => onChange("epf_number", next || null)}
-        />
-        <TextField
-          label="UAN Number"
-          value={value.uan_number || ""}
-          onChange={(next) => onChange("uan_number", next || null)}
-        />
-        <TextField
-          label="Bank Account Number"
-          value={value.bank_account_number || ""}
-          onChange={(next) => onChange("bank_account_number", next || null)}
-        />
-        <TextField
-          label="Bank Name"
-          value={value.bank_name || ""}
-          onChange={(next) => onChange("bank_name", next || null)}
-        />
-        <TextField
-          label="IFSC Code"
-          value={value.ifsc_code || ""}
-          onChange={(next) =>
-            onChange("ifsc_code", next.toUpperCase() || null)
-          }
-        />
-        <TextField
-          label="Branch Name"
-          value={value.branch_name || ""}
-          onChange={(next) => onChange("branch_name", next || null)}
-        />
-      </FormSection>
+      {showFinanceDetails ? (
+        <FormSection
+          eyebrow="Payroll & banking"
+          title="Finance Details"
+          accent="emerald"
+        >
+          <TextField
+            label="EPF Number"
+            value={value.epf_number || ""}
+            onChange={(next) => onChange("epf_number", next || null)}
+            disabled={statutoryFinanceReadOnly}
+          />
+          <TextField
+            label="UAN Number"
+            value={value.uan_number || ""}
+            onChange={(next) => onChange("uan_number", next || null)}
+            disabled={statutoryFinanceReadOnly}
+          />
+          <TextField
+            label="Bank Account Number"
+            value={value.bank_account_number || ""}
+            onChange={(next) => onChange("bank_account_number", next || null)}
+          />
+          <TextField
+            label="Bank Name"
+            value={value.bank_name || ""}
+            onChange={(next) => onChange("bank_name", next || null)}
+          />
+          <TextField
+            label="IFSC Code"
+            value={value.ifsc_code || ""}
+            onChange={(next) =>
+              onChange("ifsc_code", next.toUpperCase() || null)
+            }
+          />
+          <TextField
+            label="Branch Name"
+            value={value.branch_name || ""}
+            onChange={(next) => onChange("branch_name", next || null)}
+          />
+        </FormSection>
+      ) : null}
 
       <FormSection
         eyebrow="Residential information"
@@ -254,11 +269,13 @@ export function EmployeeProfileDetailsSections({
   reportingManager,
   accessRole,
   status,
+  showFinanceDetails = true,
 }: {
   value: EmployeeProfileChanges;
   reportingManager: string;
   accessRole: string;
   status?: string | null;
+  showFinanceDetails?: boolean;
 }) {
   const personal = [
     ["Title", value.title],
@@ -324,7 +341,9 @@ export function EmployeeProfileDetailsSections({
     <div className="mt-6 grid gap-5 xl:grid-cols-2">
       <DetailSection title="Personal Details" eyebrow="Identity & wellbeing" accent="blue" details={personal} />
       <DetailSection title="Joining Details" eyebrow="Organisation" accent="indigo" details={joining} />
-      <DetailSection title="Finance Details" eyebrow="Payroll & banking" accent="emerald" details={finance} />
+      {showFinanceDetails ? (
+        <DetailSection title="Finance Details" eyebrow="Payroll & banking" accent="emerald" details={finance} />
+      ) : null}
       <DetailSection title="Address Details" eyebrow="Residential information" accent="amber" details={address} />
       <DetailSection title="Family Details" eyebrow="Dependants & emergency" accent="rose" details={family} />
       <DetailSection title="Nominee Details" eyebrow="Benefits & succession" accent="violet" details={nominee} />
@@ -407,6 +426,7 @@ function TextField({
   inputMode,
   min,
   max,
+  disabled = false,
 }: {
   label: string;
   value: string;
@@ -417,6 +437,7 @@ function TextField({
   inputMode?: "numeric" | "tel";
   min?: number;
   max?: number;
+  disabled?: boolean;
 }) {
   return (
     <label className="text-sm font-semibold text-slate-700">
@@ -430,8 +451,9 @@ function TextField({
         inputMode={inputMode}
         min={min}
         max={max}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
       />
     </label>
   );
@@ -443,20 +465,23 @@ function SelectField({
   onChange,
   options,
   includeBlank = false,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: readonly string[];
   includeBlank?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label className="text-sm font-semibold text-slate-700">
       {label}
       <select
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
       >
         {includeBlank ? <option value="">Select</option> : null}
         {options.map((option) => (

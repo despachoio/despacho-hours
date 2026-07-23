@@ -346,6 +346,7 @@ export default function TeamPage() {
             <div className="mt-6">
               <EmployeeProfileFormSections
                 value={memberDraft}
+                showFinanceDetails={isFinanceAdmin}
                 onChange={(key, value) =>
                   setMemberDraft((current) => ({
                     ...current,
