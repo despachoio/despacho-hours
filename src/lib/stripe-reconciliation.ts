@@ -3,6 +3,7 @@ import "server-only";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { loadPublicInvoice } from "@/lib/public-invoice-payment";
+import { sendInvoicePaymentNotifications } from "@/lib/invoice-payment-notifications";
 import {
   fromMinorUnits,
   supportedCurrency,
@@ -141,6 +142,7 @@ export async function reconcileStripePaymentIntent({
     paymentIntentId: paymentIntent.id,
     paymentId: result?.payment_id,
   });
+  await sendInvoicePaymentNotifications(admin, invoice.id);
   return {
     alreadyCompleted: Boolean(existing.data),
     paymentId: result?.payment_id as string,

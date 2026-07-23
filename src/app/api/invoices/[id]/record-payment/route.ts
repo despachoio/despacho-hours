@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { sendInvoicePaymentNotifications } from "@/lib/invoice-payment-notifications";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -233,6 +234,7 @@ export async function POST(
   }
 
   const recordedPayment = paymentResult as PaymentRpcResult;
+  await sendInvoicePaymentNotifications(adminClient, invoiceId);
 
   return Response.json({
     success: true,

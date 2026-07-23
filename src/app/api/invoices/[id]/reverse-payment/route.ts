@@ -126,6 +126,33 @@ export async function POST(
   }
 
   const result = data as ReversePaymentResult;
+  const notificationReset = await adminClient
+    .from("invoices")
+    .update({
+      receipt_sent_at: null,
+      receipt_sent_to: null,
+      receipt_gmail_message_id: null,
+      payment_intimation_sent_at: null,
+      payment_intimation_sent_to: null,
+      payment_intimation_gmail_message_id: null,
+      payment_notification_status: "pending",
+      payment_notification_claimed_at: null,
+      payment_notification_error: null,
+    })
+    .eq("id", invoiceId);
+  if (notificationReset.error) {
+    console.error(
+      "Payment notification state reset after reversal failed:",
+      notificationReset.error,
+    );
+    return Response.json(
+      {
+        error:
+          "Payment was reversed, but receipt notification state could not be reset",
+      },
+      { status: 500 },
+    );
+  }
   const { data: updatedInvoice, error: invoiceError } = await adminClient
     .from("invoices")
     .select(`
