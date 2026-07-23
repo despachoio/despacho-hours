@@ -7,6 +7,7 @@ import TeamSummaryCards from "@/components/team/TeamSummaryCards";
 import EmployeeCard from "@/components/team/EmployeeCard";
 import type {
   EmployeeAnalytics,
+  ReportingManagerOption,
   TeamEmployee,
   TeamFilterValue,
   TeamProfile,
@@ -30,6 +31,25 @@ const initialFilters: TeamFilterValue = {
 };
 const EMPTY_ANALYTICS: EmployeeAnalytics[] = [];
 
+function teamDataErrorMessage(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : String(
+          (error as { message?: string } | null | undefined)?.message || "",
+        );
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes("reporting_manager") ||
+    normalized.includes("date_of_joining") ||
+    normalized.includes("get_reporting_manager_options") ||
+    normalized.includes("employees_reporting_manager_id_fkey")
+  ) {
+    return "The employee profile database update is pending. Apply migration 202607210001 before deploying this version.";
+  }
+  return "Unable to load team metrics right now.";
+}
+
 export default function TeamPage() {
   const [profile, setProfile] = useState<TeamProfile | null>(null);
   const [teamMetrics, setTeamMetrics] = useState<TeamMetrics | null>(null);
@@ -44,11 +64,20 @@ export default function TeamPage() {
   const [now, setNow] = useState(0);
   const [showNewMember, setShowNewMember] = useState(false);
   const [employeeCode, setEmployeeCode] = useState("");
+  const [title, setTitle] = useState("Mr");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("Male");
   const [email, setEmail] = useState("");
   const [memberRole, setMemberRole] = useState("");
   const [department, setDepartment] = useState("");
-  const [hourlyCost, setHourlyCost] = useState("");
+  const [dateOfJoining, setDateOfJoining] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [epfNumber, setEpfNumber] = useState("");
+  const [uanNumber, setUanNumber] = useState("");
+  const [reportingManagerId, setReportingManagerId] = useState("");
+  const [reportingManagers, setReportingManagers] = useState<
+    ReportingManagerOption[]
+  >([]);
   const [accessRole, setAccessRole] = useState("Employee");
   const role = String(profile?.role || "")
     .trim()
@@ -111,6 +140,16 @@ export default function TeamPage() {
         setLoading(false);
         return;
       }
+      if (["admin", "super admin"].includes(currentRole)) {
+        const { data: managerData, error: managerError } = await supabase.rpc(
+          "get_reporting_manager_options",
+        );
+        if (managerError) setError(teamDataErrorMessage(managerError));
+        else
+          setReportingManagers(
+            (managerData || []) as ReportingManagerOption[],
+          );
+      }
       setNow(Date.now());
       setLoading(false);
     }
@@ -129,6 +168,10 @@ export default function TeamPage() {
           endDate: range.to,
           employeeId:
             currentRole === "employee" ? profile?.employee_id || undefined : undefined,
+          reportingManagerId:
+            currentRole === "manager"
+              ? profile?.employee_id || undefined
+              : undefined,
           employeeStatus:
             currentRole === "employee" || currentRole === "manager"
               ? "active"
@@ -137,7 +180,7 @@ export default function TeamPage() {
         if (!cancelled) setTeamMetrics(metrics);
       } catch (metricError) {
         console.error("Unable to load team metrics", metricError);
-        if (!cancelled) setError("Unable to load team metrics right now.");
+        if (!cancelled) setError(teamDataErrorMessage(metricError));
       } finally {
         if (!cancelled) setMetricsLoading(false);
       }
@@ -180,7 +223,7 @@ export default function TeamPage() {
           return false;
         if (
           debouncedSearch &&
-          !`${item.employee.name} ${item.employee.email} ${item.employee.employee_code} ${item.employee.role} ${item.employee.department}`
+          !`${item.employee.title} ${item.employee.name} ${item.employee.email} ${item.employee.employee_code} ${item.employee.role} ${item.employee.department} ${item.employee.epf_number} ${item.employee.uan_number} ${item.employee.reporting_manager?.name}`
             .toLowerCase()
             .includes(debouncedSearch)
         )
@@ -219,7 +262,12 @@ export default function TeamPage() {
   );
 
   async function addTeamMember() {
-    if (!isAdmin || !name.trim() || !email.trim()) return;
+    if (!isAdmin) return;
+    if (!employeeCode.trim() || !name.trim() || !email.trim()) {
+      setError("Employee code, employee name, and email address are required.");
+      return;
+    }
+    setError("");
     const { error: inviteError } = await supabase.functions.invoke(
       "invite-team-member",
       {
@@ -227,9 +275,15 @@ export default function TeamPage() {
           email: email.trim(),
           full_name: name.trim(),
           employee_code: employeeCode.trim() || null,
+          title,
+          gender,
           designation: memberRole.trim() || null,
           department: department.trim() || null,
-          hourly_cost: hourlyCost || 0,
+          date_of_joining: dateOfJoining || null,
+          date_of_birth: dateOfBirth || null,
+          epf_number: epfNumber.trim() || null,
+          uan_number: uanNumber.trim() || null,
+          reporting_manager_id: reportingManagerId || null,
           access_role: accessRole,
         },
       },
@@ -239,11 +293,17 @@ export default function TeamPage() {
       return;
     }
     setEmployeeCode("");
+    setTitle("Mr");
     setName("");
+    setGender("Male");
     setEmail("");
     setMemberRole("");
     setDepartment("");
-    setHourlyCost("");
+    setDateOfJoining("");
+    setDateOfBirth("");
+    setEpfNumber("");
+    setUanNumber("");
+    setReportingManagerId("");
     setAccessRole("Employee");
     setShowNewMember(false);
     window.location.reload();
@@ -288,40 +348,97 @@ export default function TeamPage() {
         {showNewMember && isAdmin ? (
           <section className="relative z-10 -mt-4 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:mx-5">
             <h2 className="text-xl font-bold">Add team member</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Input
+            <p className="mt-1 text-sm text-slate-500">
+              Add employment details now so the profile is ready for future
+              time-off and payroll workflows.
+            </p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <FormInput
+                label="Employee Code"
                 value={employeeCode}
                 onChange={setEmployeeCode}
-                placeholder="Employee code"
+                required
               />
-              <Input value={name} onChange={setName} placeholder="Full name" />
-              <Input value={email} onChange={setEmail} placeholder="Email" />
-              <Input
+              <FormSelect label="Title" value={title} onChange={setTitle}>
+                <option value="Mr">Mr</option>
+                <option value="Miss">Miss</option>
+                <option value="Mrs.">Mrs.</option>
+                <option value="Dr">Dr</option>
+              </FormSelect>
+              <FormInput
+                label="Employee Name"
+                value={name}
+                onChange={setName}
+                required
+              />
+              <FormSelect label="Gender" value={gender} onChange={setGender}>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Others">Others</option>
+              </FormSelect>
+              <FormInput
+                label="Email Address"
+                value={email}
+                onChange={setEmail}
+                type="email"
+                required
+              />
+              <FormInput
+                label="Role"
                 value={memberRole}
                 onChange={setMemberRole}
-                placeholder="Role"
               />
-              <Input
+              <FormInput
+                label="Department"
                 value={department}
                 onChange={setDepartment}
-                placeholder="Department"
               />
-              <Input
-                value={hourlyCost}
-                onChange={setHourlyCost}
-                placeholder="Hourly cost"
-                type="number"
+              <FormInput
+                label="Date of Joining"
+                value={dateOfJoining}
+                onChange={setDateOfJoining}
+                type="date"
               />
-              <select
-                value={accessRole}
-                onChange={(event) => setAccessRole(event.target.value)}
-                className="rounded-2xl border border-slate-200 px-4 py-3"
+              <FormInput
+                label="Date of Birth"
+                value={dateOfBirth}
+                onChange={setDateOfBirth}
+                type="date"
+              />
+              <FormInput
+                label="EPF Number"
+                value={epfNumber}
+                onChange={setEpfNumber}
+              />
+              <FormInput
+                label="UAN Number"
+                value={uanNumber}
+                onChange={setUanNumber}
+              />
+              <FormSelect
+                label="Reporting Manager"
+                value={reportingManagerId}
+                onChange={setReportingManagerId}
               >
-                <option>Employee</option>
-                <option>Manager</option>
-                <option>Admin</option>
-                {isSuperAdmin ? <option>Super Admin</option> : null}
-              </select>
+                <option value="">No reporting manager</option>
+                {reportingManagers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.name} · {manager.access_role}
+                  </option>
+                ))}
+              </FormSelect>
+              <FormSelect
+                label="Access Type"
+                value={accessRole}
+                onChange={setAccessRole}
+              >
+                <option value="Employee">Employee</option>
+                <option value="Manager">Manager</option>
+                <option value="Admin">Admin</option>
+                {isSuperAdmin ? (
+                  <option value="Super Admin">Super Admin</option>
+                ) : null}
+              </FormSelect>
             </div>
             <button
               type="button"
@@ -403,24 +520,57 @@ export default function TeamPage() {
   );
 }
 
-function Input({
+function FormInput({
+  label,
   value,
   onChange,
-  placeholder,
   type = "text",
+  required = false,
 }: {
+  label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
-    <input
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400"
-    />
+    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+      <span>
+        {label}
+        {required ? <span className="ml-1 text-red-500">*</span> : null}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        className="h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-400"
+      />
+    </label>
+  );
+}
+
+function FormSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+      <span>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-normal outline-none focus:border-blue-400"
+      >
+        {children}
+      </select>
+    </label>
   );
 }
