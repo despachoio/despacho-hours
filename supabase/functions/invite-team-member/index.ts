@@ -30,6 +30,8 @@ serve(async (req) => {
       date_of_birth,
       epf_number,
       uan_number,
+      pan_number,
+      aadhaar_number,
       reporting_manager_id,
       access_role,
     } = await req.json();
@@ -39,6 +41,10 @@ serve(async (req) => {
     const normalizedEmployeeCode = String(employee_code || "").trim();
     const normalizedTitle = String(title || "").trim();
     const normalizedGender = String(gender || "").trim();
+    const normalizedPan = String(pan_number || "")
+      .trim()
+      .toUpperCase();
+    const normalizedAadhaar = String(aadhaar_number || "").replace(/\s+/g, "");
     const normalizedReportingManagerId = String(
       reporting_manager_id || "",
     ).trim();
@@ -65,6 +71,17 @@ serve(async (req) => {
     if (!["Male", "Female", "Others"].includes(normalizedGender))
       throw new Error("Select a valid gender.");
     if (!requestedRole) throw new Error("Select a valid access role.");
+    if (
+      normalizedPan &&
+      !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(normalizedPan)
+    ) {
+      throw new Error(
+        "PAN must contain 5 letters, 4 digits, and 1 final letter.",
+      );
+    }
+    if (normalizedAadhaar && !/^[0-9]{12}$/.test(normalizedAadhaar)) {
+      throw new Error("Aadhaar must contain exactly 12 digits.");
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -223,6 +240,20 @@ serve(async (req) => {
       }
 
       employeeId = newEmployee.id;
+    }
+
+    const { error: statutoryError } = await supabaseAdmin
+      .from("employee_statutory_details")
+      .upsert(
+        {
+          employee_id: employeeId,
+          pan_number: normalizedPan || null,
+          aadhaar_number: normalizedAadhaar || null,
+        },
+        { onConflict: "employee_id" },
+      );
+    if (statutoryError) {
+      throw statutoryError;
     }
 
     const { error: profileError } = await supabaseAdmin

@@ -22,6 +22,8 @@ import type {
 } from "@/components/team/types";
 import { dateRange, employeeAnalytics } from "@/components/team/utils";
 
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+
 function TeamDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -50,6 +52,8 @@ function TeamDetailPageContent() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [epfNumber, setEpfNumber] = useState("");
   const [uanNumber, setUanNumber] = useState("");
+  const [panNumber, setPanNumber] = useState("");
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
   const [reportingManagerId, setReportingManagerId] = useState("");
   const [reportingManagers, setReportingManagers] = useState<
     ReportingManagerOption[]
@@ -168,9 +172,15 @@ function TeamDetailPageContent() {
       setUanNumber(loaded.uan_number || "");
       setReportingManagerId(loaded.reporting_manager_id || "");
       if (["admin", "super admin"].includes(currentRole)) {
-        const { data: managerData, error: managerError } = await supabase.rpc(
-          "get_reporting_manager_options",
-        );
+        const [managerResult, statutoryResult] = await Promise.all([
+          supabase.rpc("get_reporting_manager_options"),
+          supabase
+            .from("employee_statutory_details")
+            .select("pan_number,aadhaar_number")
+            .eq("employee_id", id)
+            .maybeSingle(),
+        ]);
+        const { data: managerData, error: managerError } = managerResult;
         if (managerError) setError(managerError.message);
         else
           setReportingManagers(
@@ -178,6 +188,12 @@ function TeamDetailPageContent() {
               (manager) => manager.id !== id,
             ),
           );
+        if (statutoryResult.error) {
+          setError(statutoryResult.error.message);
+        } else {
+          setPanNumber(statutoryResult.data?.pan_number || "");
+          setAadhaarNumber(statutoryResult.data?.aadhaar_number || "");
+        }
       }
       setLoading(false);
     }
@@ -217,6 +233,16 @@ function TeamDetailPageContent() {
       setError("Employee code, employee name, and email address are required.");
       return;
     }
+    const normalizedPan = panNumber.trim().toUpperCase();
+    const normalizedAadhaar = aadhaarNumber.replace(/\s+/g, "");
+    if (normalizedPan && !PAN_PATTERN.test(normalizedPan)) {
+      setError("PAN must contain 5 letters, 4 digits, and 1 final letter.");
+      return;
+    }
+    if (normalizedAadhaar && !/^[0-9]{12}$/.test(normalizedAadhaar)) {
+      setError("Aadhaar must contain exactly 12 digits.");
+      return;
+    }
     setError("");
     const { error: employeeError } = await supabase
       .from("employees")
@@ -237,6 +263,21 @@ function TeamDetailPageContent() {
       .eq("id", id);
     if (employeeError) {
       setError(employeeError.message);
+      return;
+    }
+    const { error: statutoryError } = await supabase
+      .from("employee_statutory_details")
+      .upsert(
+        {
+          employee_id: id,
+          pan_number: normalizedPan || null,
+          aadhaar_number: normalizedAadhaar || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "employee_id" },
+      );
+    if (statutoryError) {
+      setError(statutoryError.message);
       return;
     }
     const { data: employeeRecord, error: employeeLookupError } = await supabase
@@ -458,7 +499,13 @@ if (profileError) {
           ← Back to Team
         </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
-        <EmployeeProfileDetails employee={member} accessRole={accessRole} />
+        <EmployeeProfileDetails
+          employee={member}
+          accessRole={accessRole}
+          panNumber={panNumber}
+          aadhaarNumber={aadhaarNumber}
+          showStatutoryDetails={isAdmin}
+        />
         {error ? (
           <div
             role="status"
@@ -491,6 +538,10 @@ if (profileError) {
             setEpfNumber={setEpfNumber}
             uanNumber={uanNumber}
             setUanNumber={setUanNumber}
+            panNumber={panNumber}
+            setPanNumber={setPanNumber}
+            aadhaarNumber={aadhaarNumber}
+            setAadhaarNumber={setAadhaarNumber}
             reportingManagerId={reportingManagerId}
             setReportingManagerId={setReportingManagerId}
             reportingManagers={reportingManagers}
@@ -560,9 +611,15 @@ if (profileError) {
 function EmployeeProfileDetails({
   employee,
   accessRole,
+  panNumber,
+  aadhaarNumber,
+  showStatutoryDetails,
 }: {
   employee: TeamEmployee;
   accessRole: string;
+  panNumber: string;
+  aadhaarNumber: string;
+  showStatutoryDetails: boolean;
 }) {
   const details = [
     ["Employee Code", employee.employee_code || "—"],
@@ -576,6 +633,12 @@ function EmployeeProfileDetails({
     ["Date of Birth", formatProfileDate(employee.date_of_birth)],
     ["EPF Number", employee.epf_number || "—"],
     ["UAN Number", employee.uan_number || "—"],
+    ...(showStatutoryDetails
+      ? [
+          ["PAN Number", panNumber || "—"],
+          ["Aadhaar Number", maskAadhaar(aadhaarNumber)],
+        ]
+      : []),
     [
       "Reporting Manager",
       employee.reporting_manager
@@ -602,6 +665,12 @@ function EmployeeProfileDetails({
       </div>
     </section>
   );
+}
+
+function maskAadhaar(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "—";
+  return `•••• •••• ${digits.slice(-4)}`;
 }
 
 function formatProfileDate(value: string | null) {
@@ -646,6 +715,10 @@ function AdminEditForm(props: {
   setEpfNumber: Setter;
   uanNumber: string;
   setUanNumber: Setter;
+  panNumber: string;
+  setPanNumber: Setter;
+  aadhaarNumber: string;
+  setAadhaarNumber: Setter;
   reportingManagerId: string;
   setReportingManagerId: Setter;
   reportingManagers: ReportingManagerOption[];
@@ -732,6 +805,24 @@ function AdminEditForm(props: {
           label="UAN Number"
           value={props.uanNumber}
           onChange={props.setUanNumber}
+        />
+        <Input
+          label="PAN Number"
+          value={props.panNumber}
+          onChange={(value) => props.setPanNumber(value.toUpperCase())}
+          maxLength={10}
+          autoCapitalize="characters"
+          autoComplete="off"
+        />
+        <Input
+          label="Aadhaar Number"
+          value={props.aadhaarNumber}
+          onChange={(value) =>
+            props.setAadhaarNumber(value.replace(/\D/g, "").slice(0, 12))
+          }
+          maxLength={12}
+          inputMode="numeric"
+          autoComplete="off"
         />
         <SelectField
           label="Reporting Manager"
@@ -824,12 +915,20 @@ function Input({
   onChange,
   type = "text",
   required = false,
+  maxLength,
+  inputMode,
+  autoCapitalize,
+  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: Setter;
   type?: string;
   required?: boolean;
+  maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoCapitalize?: string;
+  autoComplete?: string;
 }) {
   return (
     <label className="space-y-1.5 text-sm font-semibold text-slate-700">
@@ -842,6 +941,10 @@ function Input({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
+        maxLength={maxLength}
+        inputMode={inputMode}
+        autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
         className="h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-400"
       />
     </label>

@@ -30,6 +30,7 @@ const initialFilters: TeamFilterValue = {
   search: "",
 };
 const EMPTY_ANALYTICS: EmployeeAnalytics[] = [];
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
 function teamDataErrorMessage(error: unknown) {
   const message =
@@ -74,6 +75,8 @@ export default function TeamPage() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [epfNumber, setEpfNumber] = useState("");
   const [uanNumber, setUanNumber] = useState("");
+  const [panNumber, setPanNumber] = useState("");
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
   const [reportingManagerId, setReportingManagerId] = useState("");
   const [reportingManagers, setReportingManagers] = useState<
     ReportingManagerOption[]
@@ -267,6 +270,16 @@ export default function TeamPage() {
       setError("Employee code, employee name, and email address are required.");
       return;
     }
+    const normalizedPan = panNumber.trim().toUpperCase();
+    const normalizedAadhaar = aadhaarNumber.replace(/\s+/g, "");
+    if (normalizedPan && !PAN_PATTERN.test(normalizedPan)) {
+      setError("PAN must contain 5 letters, 4 digits, and 1 final letter.");
+      return;
+    }
+    if (normalizedAadhaar && !/^[0-9]{12}$/.test(normalizedAadhaar)) {
+      setError("Aadhaar must contain exactly 12 digits.");
+      return;
+    }
     setError("");
     const { error: inviteError } = await supabase.functions.invoke(
       "invite-team-member",
@@ -283,6 +296,8 @@ export default function TeamPage() {
           date_of_birth: dateOfBirth || null,
           epf_number: epfNumber.trim() || null,
           uan_number: uanNumber.trim() || null,
+          pan_number: normalizedPan || null,
+          aadhaar_number: normalizedAadhaar || null,
           reporting_manager_id: reportingManagerId || null,
           access_role: accessRole,
         },
@@ -303,6 +318,8 @@ export default function TeamPage() {
     setDateOfBirth("");
     setEpfNumber("");
     setUanNumber("");
+    setPanNumber("");
+    setAadhaarNumber("");
     setReportingManagerId("");
     setAccessRole("Employee");
     setShowNewMember(false);
@@ -415,6 +432,24 @@ export default function TeamPage() {
                 value={uanNumber}
                 onChange={setUanNumber}
               />
+              <FormInput
+                label="PAN Number"
+                value={panNumber}
+                onChange={(value) => setPanNumber(value.toUpperCase())}
+                maxLength={10}
+                autoCapitalize="characters"
+                autoComplete="off"
+              />
+              <FormInput
+                label="Aadhaar Number"
+                value={aadhaarNumber}
+                onChange={(value) =>
+                  setAadhaarNumber(value.replace(/\D/g, "").slice(0, 12))
+                }
+                maxLength={12}
+                inputMode="numeric"
+                autoComplete="off"
+              />
               <FormSelect
                 label="Reporting Manager"
                 value={reportingManagerId}
@@ -526,12 +561,20 @@ function FormInput({
   onChange,
   type = "text",
   required = false,
+  maxLength,
+  inputMode,
+  autoCapitalize,
+  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   required?: boolean;
+  maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoCapitalize?: string;
+  autoComplete?: string;
 }) {
   return (
     <label className="space-y-1.5 text-sm font-semibold text-slate-700">
@@ -544,6 +587,10 @@ function FormInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
+        maxLength={maxLength}
+        inputMode={inputMode}
+        autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
         className="h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-400"
       />
     </label>
