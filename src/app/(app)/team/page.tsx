@@ -20,7 +20,12 @@ import {
   getTeamMetrics,
 } from "@/lib/metrics/team-metrics";
 import type { TeamMetrics } from "@/lib/metrics/types";
-import { EMPLOYEE_DEPARTMENTS } from "@/lib/employee-profile";
+import {
+  emptyEmployeeProfileChanges,
+  validateEmployeeProfileChanges,
+  type EmployeeProfileChanges,
+} from "@/lib/employee-profile";
+import { EmployeeProfileFormSections } from "@/components/team/EmployeeProfileSections";
 
 const initialFilters: TeamFilterValue = {
   employeeId: "",
@@ -32,7 +37,6 @@ const initialFilters: TeamFilterValue = {
   search: "",
 };
 const EMPTY_ANALYTICS: EmployeeAnalytics[] = [];
-const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
 function teamDataErrorMessage(error: unknown) {
   const message =
@@ -66,19 +70,9 @@ export default function TeamPage() {
   >("active");
   const [now, setNow] = useState(0);
   const [showNewMember, setShowNewMember] = useState(false);
-  const [employeeCode, setEmployeeCode] = useState("");
-  const [title, setTitle] = useState("Mr");
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState("Male");
-  const [email, setEmail] = useState("");
-  const [memberRole, setMemberRole] = useState("");
-  const [department, setDepartment] = useState("");
-  const [dateOfJoining, setDateOfJoining] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [epfNumber, setEpfNumber] = useState("");
-  const [uanNumber, setUanNumber] = useState("");
-  const [panNumber, setPanNumber] = useState("");
-  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [memberDraft, setMemberDraft] = useState<EmployeeProfileChanges>(
+    emptyEmployeeProfileChanges,
+  );
   const [reportingManagerId, setReportingManagerId] = useState("");
   const [reportingManagers, setReportingManagers] = useState<
     ReportingManagerOption[]
@@ -268,18 +262,9 @@ export default function TeamPage() {
 
   async function addTeamMember() {
     if (!isAdmin) return;
-    if (!employeeCode.trim() || !name.trim() || !email.trim()) {
-      setError("Employee code, employee name, and email address are required.");
-      return;
-    }
-    const normalizedPan = panNumber.trim().toUpperCase();
-    const normalizedAadhaar = aadhaarNumber.replace(/\s+/g, "");
-    if (normalizedPan && !PAN_PATTERN.test(normalizedPan)) {
-      setError("PAN must contain 5 letters, 4 digits, and 1 final letter.");
-      return;
-    }
-    if (normalizedAadhaar && !/^[0-9]{12}$/.test(normalizedAadhaar)) {
-      setError("Aadhaar must contain exactly 12 digits.");
+    const validation = validateEmployeeProfileChanges(memberDraft);
+    if ("error" in validation) {
+      setError(validation.error || "Enter valid employee details.");
       return;
     }
     setError("");
@@ -287,19 +272,9 @@ export default function TeamPage() {
       "invite-team-member",
       {
         body: {
-          email: email.trim(),
-          full_name: name.trim(),
-          employee_code: employeeCode.trim() || null,
-          title,
-          gender,
-          designation: memberRole.trim() || null,
-          department: department.trim() || null,
-          date_of_joining: dateOfJoining || null,
-          date_of_birth: dateOfBirth || null,
-          epf_number: epfNumber.trim() || null,
-          uan_number: uanNumber.trim() || null,
-          pan_number: normalizedPan || null,
-          aadhaar_number: normalizedAadhaar || null,
+          ...validation.value,
+          full_name: validation.value.name,
+          designation: validation.value.role,
           reporting_manager_id: reportingManagerId || null,
           access_role: accessRole,
         },
@@ -309,19 +284,7 @@ export default function TeamPage() {
       setError(inviteError.message);
       return;
     }
-    setEmployeeCode("");
-    setTitle("Mr");
-    setName("");
-    setGender("Male");
-    setEmail("");
-    setMemberRole("");
-    setDepartment("");
-    setDateOfJoining("");
-    setDateOfBirth("");
-    setEpfNumber("");
-    setUanNumber("");
-    setPanNumber("");
-    setAadhaarNumber("");
+    setMemberDraft(emptyEmployeeProfileChanges());
     setReportingManagerId("");
     setAccessRole("Employee");
     setShowNewMember(false);
@@ -379,118 +342,44 @@ export default function TeamPage() {
               Add employment details now so the profile is ready for future
               time-off and payroll workflows.
             </p>
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <FormInput
-                label="Employee Code"
-                value={employeeCode}
-                onChange={setEmployeeCode}
-                required
-              />
-              <FormSelect label="Title" value={title} onChange={setTitle}>
-                <option value="Mr">Mr</option>
-                <option value="Miss">Miss</option>
-                <option value="Mrs.">Mrs.</option>
-                <option value="Dr">Dr</option>
-              </FormSelect>
-              <FormInput
-                label="Employee Name"
-                value={name}
-                onChange={setName}
-                required
-              />
-              <FormSelect label="Gender" value={gender} onChange={setGender}>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Others">Others</option>
-              </FormSelect>
-              <FormInput
-                label="Email Address"
-                value={email}
-                onChange={setEmail}
-                type="email"
-                required
-              />
-              <FormInput
-                label="Role"
-                value={memberRole}
-                onChange={setMemberRole}
-              />
-              <FormSelect
-                label="Department"
-                value={department}
-                onChange={setDepartment}
-              >
-                <option value="">Select department</option>
-                {EMPLOYEE_DEPARTMENTS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </FormSelect>
-              <FormInput
-                label="Date of Joining"
-                value={dateOfJoining}
-                onChange={setDateOfJoining}
-                type="date"
-              />
-              <FormInput
-                label="Date of Birth"
-                value={dateOfBirth}
-                onChange={setDateOfBirth}
-                type="date"
-              />
-              <FormInput
-                label="EPF Number"
-                value={epfNumber}
-                onChange={setEpfNumber}
-              />
-              <FormInput
-                label="UAN Number"
-                value={uanNumber}
-                onChange={setUanNumber}
-              />
-              <FormInput
-                label="PAN Number"
-                value={panNumber}
-                onChange={(value) => setPanNumber(value.toUpperCase())}
-                maxLength={10}
-                autoCapitalize="characters"
-                autoComplete="off"
-              />
-              <FormInput
-                label="Aadhaar Number"
-                value={aadhaarNumber}
-                onChange={(value) =>
-                  setAadhaarNumber(value.replace(/\D/g, "").slice(0, 12))
+            <div className="mt-6">
+              <EmployeeProfileFormSections
+                value={memberDraft}
+                onChange={(key, value) =>
+                  setMemberDraft((current) => ({
+                    ...current,
+                    [key]: value,
+                  }))
                 }
-                maxLength={12}
-                inputMode="numeric"
-                autoComplete="off"
+                joiningExtras={
+                  <>
+                    <FormSelect
+                      label="Reporting Manager"
+                      value={reportingManagerId}
+                      onChange={setReportingManagerId}
+                    >
+                      <option value="">No reporting manager</option>
+                      {reportingManagers.map((manager) => (
+                        <option key={manager.id} value={manager.id}>
+                          {manager.name} · {manager.access_role}
+                        </option>
+                      ))}
+                    </FormSelect>
+                    <FormSelect
+                      label="Access Type"
+                      value={accessRole}
+                      onChange={setAccessRole}
+                    >
+                      <option value="Employee">Employee</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Admin">Admin</option>
+                      {isSuperAdmin ? (
+                        <option value="Super Admin">Super Admin</option>
+                      ) : null}
+                    </FormSelect>
+                  </>
+                }
               />
-              <FormSelect
-                label="Reporting Manager"
-                value={reportingManagerId}
-                onChange={setReportingManagerId}
-              >
-                <option value="">No reporting manager</option>
-                {reportingManagers.map((manager) => (
-                  <option key={manager.id} value={manager.id}>
-                    {manager.name} · {manager.access_role}
-                  </option>
-                ))}
-              </FormSelect>
-              <FormSelect
-                label="Access Type"
-                value={accessRole}
-                onChange={setAccessRole}
-              >
-                <option value="Employee">Employee</option>
-                <option value="Manager">Manager</option>
-                <option value="Admin">Admin</option>
-                {isSuperAdmin ? (
-                  <option value="Super Admin">Super Admin</option>
-                ) : null}
-              </FormSelect>
             </div>
             <button
               type="button"
@@ -570,48 +459,6 @@ export default function TeamPage() {
         </div>
       </div>
     </main>
-  );
-}
-
-function FormInput({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-  maxLength,
-  inputMode,
-  autoCapitalize,
-  autoComplete,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  required?: boolean;
-  maxLength?: number;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  autoCapitalize?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="space-y-1.5 text-sm font-semibold text-slate-700">
-      <span>
-        {label}
-        {required ? <span className="ml-1 text-red-500">*</span> : null}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        maxLength={maxLength}
-        inputMode={inputMode}
-        autoCapitalize={autoCapitalize}
-        autoComplete={autoComplete}
-        className="h-12 w-full rounded-2xl border border-slate-200 px-4 font-normal outline-none focus:border-blue-400"
-      />
-    </label>
   );
 }
 

@@ -21,9 +21,16 @@ import type {
   TeamTimer,
 } from "@/components/team/types";
 import { dateRange, employeeAnalytics } from "@/components/team/utils";
-import { EMPLOYEE_DEPARTMENTS } from "@/lib/employee-profile";
-
-const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+import {
+  EMPLOYEE_DEPARTMENTS,
+  emptyEmployeeProfileChanges,
+  validateEmployeeProfileChanges,
+  type EmployeeProfileChanges,
+} from "@/lib/employee-profile";
+import {
+  EmployeeProfileDetailsSections,
+  EmployeeProfileFormSections,
+} from "@/components/team/EmployeeProfileSections";
 
 function TeamDetailPageContent() {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +62,8 @@ function TeamDetailPageContent() {
   const [uanNumber, setUanNumber] = useState("");
   const [panNumber, setPanNumber] = useState("");
   const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [extendedDetails, setExtendedDetails] =
+    useState<EmployeeProfileChanges>(emptyEmployeeProfileChanges);
   const [reportingManagerId, setReportingManagerId] = useState("");
   const [reportingManagers, setReportingManagers] = useState<
     ReportingManagerOption[]
@@ -67,6 +76,22 @@ function TeamDetailPageContent() {
   const isAdmin = isSuperAdmin || role === "admin";
   const canManageMember =
     isAdmin && (isSuperAdmin || accessRole !== "Super Admin");
+  const employeeProfileValue: EmployeeProfileChanges = {
+    ...extendedDetails,
+    employee_code: employeeCode,
+    title,
+    name,
+    gender,
+    email,
+    role: memberRole || null,
+    department: department || null,
+    date_of_joining: dateOfJoining || null,
+    date_of_birth: dateOfBirth || null,
+    epf_number: epfNumber || null,
+    uan_number: uanNumber || null,
+    pan_number: panNumber || null,
+    aadhaar_number: aadhaarNumber || null,
+  };
   const range = useMemo(
     () => dateRange(period, customFrom, customTo),
     [customFrom, customTo, period],
@@ -204,11 +229,19 @@ function TeamDetailPageContent() {
       setUanNumber(loaded.uan_number || "");
       setReportingManagerId(loaded.reporting_manager_id || "");
       if (["admin", "super admin"].includes(currentRole)) {
-        const [managerResult, statutoryResult] = await Promise.all([
+        const [managerResult, statutoryResult, extendedResult] =
+          await Promise.all([
           supabase.rpc("get_reporting_manager_options"),
           supabase
             .from("employee_statutory_details")
             .select("pan_number,aadhaar_number")
+            .eq("employee_id", id)
+            .maybeSingle(),
+          supabase
+            .from("employee_extended_details")
+            .select(
+              "phone_country_code,phone_number,marital_status,blood_group,bank_account_number,bank_name,ifsc_code,branch_name,address_line_1,address_line_2,address_line_3,city,state,country,pincode,father_name,mother_name,spouse_name,children,emergency_contact_person,emergency_contact_number,nominee_name,nominee_relationship,nominee_date_of_birth",
+            )
             .eq("employee_id", id)
             .maybeSingle(),
         ]);
@@ -225,6 +258,19 @@ function TeamDetailPageContent() {
         } else {
           setPanNumber(statutoryResult.data?.pan_number || "");
           setAadhaarNumber(statutoryResult.data?.aadhaar_number || "");
+        }
+        if (extendedResult.error) {
+          setError(extendedResult.error.message);
+        } else {
+          setExtendedDetails({
+            ...emptyEmployeeProfileChanges(),
+            ...extendedResult.data,
+            children: Array.isArray(extendedResult.data?.children)
+              ? extendedResult.data.children.map((child) =>
+                  String(child || ""),
+                )
+              : [],
+          });
         }
       }
       setLoading(false);
@@ -261,35 +307,27 @@ function TeamDetailPageContent() {
 
   async function saveMember() {
     if (!canManageMember) return;
-    if (!employeeCode.trim() || !name.trim() || !email.trim()) {
-      setError("Employee code, employee name, and email address are required.");
+    const validation = validateEmployeeProfileChanges(employeeProfileValue);
+    if ("error" in validation) {
+      setError(validation.error || "Enter valid employee details.");
       return;
     }
-    const normalizedPan = panNumber.trim().toUpperCase();
-    const normalizedAadhaar = aadhaarNumber.replace(/\s+/g, "");
-    if (normalizedPan && !PAN_PATTERN.test(normalizedPan)) {
-      setError("PAN must contain 5 letters, 4 digits, and 1 final letter.");
-      return;
-    }
-    if (normalizedAadhaar && !/^[0-9]{12}$/.test(normalizedAadhaar)) {
-      setError("Aadhaar must contain exactly 12 digits.");
-      return;
-    }
+    const normalized = validation.value;
     setError("");
     const { error: employeeError } = await supabase
       .from("employees")
       .update({
-        employee_code: employeeCode.trim(),
-        title,
-        name: name.trim(),
-        gender,
-        email: email.trim().toLowerCase(),
-        role: memberRole || null,
-        department: department || null,
-        date_of_joining: dateOfJoining || null,
-        date_of_birth: dateOfBirth || null,
-        epf_number: epfNumber.trim() || null,
-        uan_number: uanNumber.trim() || null,
+        employee_code: normalized.employee_code,
+        title: normalized.title,
+        name: normalized.name,
+        gender: normalized.gender,
+        email: normalized.email,
+        role: normalized.role,
+        department: normalized.department,
+        date_of_joining: normalized.date_of_joining,
+        date_of_birth: normalized.date_of_birth,
+        epf_number: normalized.epf_number,
+        uan_number: normalized.uan_number,
         reporting_manager_id: reportingManagerId || null,
       })
       .eq("id", id);
@@ -302,14 +340,51 @@ function TeamDetailPageContent() {
       .upsert(
         {
           employee_id: id,
-          pan_number: normalizedPan || null,
-          aadhaar_number: normalizedAadhaar || null,
+          pan_number: normalized.pan_number,
+          aadhaar_number: normalized.aadhaar_number,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "employee_id" },
       );
     if (statutoryError) {
       setError(statutoryError.message);
+      return;
+    }
+    const { error: extendedError } = await supabase
+      .from("employee_extended_details")
+      .upsert(
+        {
+          employee_id: id,
+          phone_country_code: normalized.phone_country_code,
+          phone_number: normalized.phone_number,
+          marital_status: normalized.marital_status,
+          blood_group: normalized.blood_group,
+          bank_account_number: normalized.bank_account_number,
+          bank_name: normalized.bank_name,
+          ifsc_code: normalized.ifsc_code,
+          branch_name: normalized.branch_name,
+          address_line_1: normalized.address_line_1,
+          address_line_2: normalized.address_line_2,
+          address_line_3: normalized.address_line_3,
+          city: normalized.city,
+          state: normalized.state,
+          country: normalized.country,
+          pincode: normalized.pincode,
+          father_name: normalized.father_name,
+          mother_name: normalized.mother_name,
+          spouse_name: normalized.spouse_name,
+          children: normalized.children,
+          emergency_contact_person: normalized.emergency_contact_person,
+          emergency_contact_number: normalized.emergency_contact_number,
+          nominee_name: normalized.nominee_name,
+          nominee_relationship: normalized.nominee_relationship,
+          nominee_date_of_birth: normalized.nominee_date_of_birth,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "employee_id" },
+      );
+    if (extendedError) {
+      setError(extendedError.message);
       return;
     }
     const { data: employeeRecord, error: employeeLookupError } = await supabase
@@ -531,13 +606,16 @@ if (profileError) {
           ← Back to Team
         </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
-        {role !== "manager" ? (
-          <EmployeeProfileDetails
-            employee={member}
+        {isAdmin ? (
+          <EmployeeProfileDetailsSections
+            value={employeeProfileValue}
+            reportingManager={
+              member.reporting_manager
+                ? `${member.reporting_manager.title ? `${member.reporting_manager.title} ` : ""}${member.reporting_manager.name}`
+                : "—"
+            }
             accessRole={accessRole}
-            panNumber={panNumber}
-            aadhaarNumber={aadhaarNumber}
-            showStatutoryDetails={isAdmin}
+            status={member.status}
           />
         ) : null}
         {error ? (
@@ -550,6 +628,27 @@ if (profileError) {
         ) : null}
         {action === "edit" && canManageMember ? (
           <AdminEditForm
+            value={employeeProfileValue}
+            onChange={(key, value) => {
+              if (key === "employee_code") setEmployeeCode(String(value || ""));
+              else if (key === "title") setTitle(String(value || ""));
+              else if (key === "name") setName(String(value || ""));
+              else if (key === "gender") setGender(String(value || ""));
+              else if (key === "email") setEmail(String(value || ""));
+              else if (key === "role") setMemberRole(String(value || ""));
+              else if (key === "department") setDepartment(String(value || ""));
+              else if (key === "date_of_joining") setDateOfJoining(String(value || ""));
+              else if (key === "date_of_birth") setDateOfBirth(String(value || ""));
+              else if (key === "epf_number") setEpfNumber(String(value || ""));
+              else if (key === "uan_number") setUanNumber(String(value || ""));
+              else if (key === "pan_number") setPanNumber(String(value || ""));
+              else if (key === "aadhaar_number") setAadhaarNumber(String(value || ""));
+              else
+                setExtendedDetails((current) => ({
+                  ...current,
+                  [key]: value,
+                }));
+            }}
             employeeCode={employeeCode}
             setEmployeeCode={setEmployeeCode}
             title={title}
@@ -642,81 +741,6 @@ if (profileError) {
   );
 }
 
-function EmployeeProfileDetails({
-  employee,
-  accessRole,
-  panNumber,
-  aadhaarNumber,
-  showStatutoryDetails,
-}: {
-  employee: TeamEmployee;
-  accessRole: string;
-  panNumber: string;
-  aadhaarNumber: string;
-  showStatutoryDetails: boolean;
-}) {
-  const details = [
-    ["Employee Code", employee.employee_code || "—"],
-    ["Title", employee.title || "—"],
-    ["Employee Name", employee.name],
-    ["Gender", employee.gender || "—"],
-    ["Email Address", employee.email],
-    ["Role", employee.role || "—"],
-    ["Department", employee.department || "—"],
-    ["Date of Joining", formatProfileDate(employee.date_of_joining)],
-    ["Date of Birth", formatProfileDate(employee.date_of_birth)],
-    ["EPF Number", employee.epf_number || "—"],
-    ["UAN Number", employee.uan_number || "—"],
-    ...(showStatutoryDetails
-      ? [
-          ["PAN Number", panNumber || "—"],
-          ["Aadhaar Number", maskAadhaar(aadhaarNumber)],
-        ]
-      : []),
-    [
-      "Reporting Manager",
-      employee.reporting_manager
-        ? `${employee.reporting_manager.title ? `${employee.reporting_manager.title} ` : ""}${employee.reporting_manager.name}`
-        : "—",
-    ],
-    ["Access Type", accessRole],
-  ];
-
-  return (
-    <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-slate-950">Employee details</h2>
-      <div className="mt-5 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {details.map(([label, value]) => (
-          <div key={label} className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-              {label}
-            </p>
-            <p className="mt-1 break-words text-sm font-semibold text-slate-800">
-              {value}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function maskAadhaar(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (!digits) return "—";
-  return `•••• •••• ${digits.slice(-4)}`;
-}
-
-function formatProfileDate(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00Z`));
-}
-
 export default function TeamDetailPage() {
   return (
     <Suspense fallback={null}>
@@ -727,6 +751,11 @@ export default function TeamDetailPage() {
 
 type Setter = (value: string) => void;
 function AdminEditForm(props: {
+  value: EmployeeProfileChanges;
+  onChange: <K extends keyof EmployeeProfileChanges>(
+    key: K,
+    value: EmployeeProfileChanges[K],
+  ) => void;
   employeeCode: string;
   setEmployeeCode: Setter;
   title: string;
@@ -769,7 +798,41 @@ function AdminEditForm(props: {
         Employment details are retained for future time-off and payroll
         modules.
       </p>
-      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6">
+        <EmployeeProfileFormSections
+          value={props.value}
+          onChange={props.onChange}
+          joiningExtras={
+            <>
+              <SelectField
+                label="Reporting Manager"
+                value={props.reportingManagerId}
+                onChange={props.setReportingManagerId}
+              >
+                <option value="">No reporting manager</option>
+                {props.reportingManagers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.name} · {manager.access_role}
+                  </option>
+                ))}
+              </SelectField>
+              <SelectField
+                label="Access Type"
+                value={props.accessRole}
+                onChange={props.setAccessRole}
+              >
+                <option value="Employee">Employee</option>
+                <option value="Manager">Manager</option>
+                <option value="Admin">Admin</option>
+                {props.canAssignSuperAdmin ? (
+                  <option value="Super Admin">Super Admin</option>
+                ) : null}
+              </SelectField>
+            </>
+          }
+        />
+      </div>
+      <div className="hidden">
         <Input
           label="Employee Code"
           value={props.employeeCode}

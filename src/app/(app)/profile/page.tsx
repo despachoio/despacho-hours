@@ -3,17 +3,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
-  EMPLOYEE_DEPARTMENTS,
-  EMPLOYEE_GENDERS,
-  EMPLOYEE_TITLES,
+  emptyEmployeeProfileChanges,
   type EmployeeProfileChanges,
 } from "@/lib/employee-profile";
+import {
+  EmployeeProfileDetailsSections,
+  EmployeeProfileFormSections,
+} from "@/components/team/EmployeeProfileSections";
 
-type EmployeeRecord = Omit<
-  EmployeeProfileChanges,
-  "pan_number" | "aadhaar_number"
-> & {
+type EmployeeRecord = {
   id: string;
+  employee_code: string;
+  title: string | null;
+  name: string;
+  gender: string | null;
+  email: string;
+  role: string | null;
+  department: string | null;
+  date_of_joining: string | null;
+  date_of_birth: string | null;
+  epf_number: string | null;
+  uan_number: string | null;
   reporting_manager_id: string | null;
   status: string | null;
 };
@@ -33,6 +43,7 @@ type ProfileResponse = {
     pan_number: string | null;
     aadhaar_number: string | null;
   };
+  extended: Partial<EmployeeProfileChanges> & { children?: unknown };
   reportingManager: {
     id: string;
     name: string;
@@ -78,6 +89,8 @@ export default function MyProfilePage() {
     }
     setData(result);
     setForm({
+      ...emptyEmployeeProfileChanges(),
+      ...result.extended,
       employee_code: result.employee.employee_code,
       title: result.employee.title,
       name: result.employee.name,
@@ -91,6 +104,9 @@ export default function MyProfilePage() {
       uan_number: result.employee.uan_number,
       pan_number: result.statutory.pan_number,
       aadhaar_number: result.statutory.aadhaar_number,
+      children: Array.isArray(result.extended?.children)
+        ? result.extended.children.map((child) => String(child || ""))
+        : [],
     });
     setLoading(false);
   }
@@ -162,29 +178,9 @@ export default function MyProfilePage() {
   }
 
   const employee = data.employee;
-  const details: Array<[string, string]> = [
-    ["Employee Code", employee.employee_code || "—"],
-    ["Title", employee.title || "—"],
-    ["Employee Name", employee.name],
-    ["Gender", employee.gender || "—"],
-    ["Email Address", employee.email],
-    ["Role", employee.role || "—"],
-    ["Department", employee.department || "—"],
-    ["Date of Joining", profileDate(employee.date_of_joining)],
-    ["Date of Birth", profileDate(employee.date_of_birth)],
-    ["EPF Number", employee.epf_number || "—"],
-    ["UAN Number", employee.uan_number || "—"],
-    ["PAN Number", data.statutory.pan_number || "—"],
-    ["Aadhaar Number", data.statutory.aadhaar_number || "—"],
-    [
-      "Reporting Manager",
-      data.reportingManager
-        ? `${data.reportingManager.title ? `${data.reportingManager.title} ` : ""}${data.reportingManager.name}`
-        : "—",
-    ],
-    ["Access Type", data.accessRole],
-    ["Status", employee.status || "—"],
-  ];
+  const reportingManagerLabel = data.reportingManager
+    ? `${data.reportingManager.title ? `${data.reportingManager.title} ` : ""}${data.reportingManager.name}`
+    : "—";
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
@@ -236,49 +232,36 @@ export default function MyProfilePage() {
         ) : null}
 
         {!editing ? (
-          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-950">
-              Employee details
-            </h2>
-            <div className="mt-6 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {details.map(([label, value]) => (
-                <div key={label} className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    {label}
-                  </p>
-                  <p className="mt-1 break-words text-sm font-semibold text-slate-800">
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <EmployeeProfileDetailsSections
+            value={form}
+            reportingManager={reportingManagerLabel}
+            accessRole={data.accessRole}
+            status={employee.status}
+          />
         ) : (
-          <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg">
-            <h2 className="text-xl font-bold text-slate-950">
-              Request profile corrections
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Your current profile remains unchanged until an Admin or Super
-              Admin approves this request.
-            </p>
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <Field label="Employee Code" value={form.employee_code} onChange={(value) => update("employee_code", value)} />
-              <SelectField label="Title" value={form.title || ""} onChange={(value) => update("title", value || null)} options={EMPLOYEE_TITLES} />
-              <Field label="Employee Name" value={form.name} onChange={(value) => update("name", value)} />
-              <SelectField label="Gender" value={form.gender || ""} onChange={(value) => update("gender", value || null)} options={EMPLOYEE_GENDERS} />
-              <Field label="Email Address" value={form.email} type="email" onChange={(value) => update("email", value)} />
-              <Field label="Role" value={form.role || ""} onChange={(value) => update("role", value || null)} />
-              <SelectField label="Department" value={form.department || ""} onChange={(value) => update("department", value || null)} options={EMPLOYEE_DEPARTMENTS} includeBlank />
-              <Field label="Date of Joining" value={form.date_of_joining || ""} type="date" onChange={(value) => update("date_of_joining", value || null)} />
-              <Field label="Date of Birth" value={form.date_of_birth || ""} type="date" onChange={(value) => update("date_of_birth", value || null)} />
-              <Field label="EPF Number" value={form.epf_number || ""} onChange={(value) => update("epf_number", value || null)} />
-              <Field label="UAN Number" value={form.uan_number || ""} onChange={(value) => update("uan_number", value || null)} />
-              <Field label="PAN Number" value={form.pan_number || ""} maxLength={10} onChange={(value) => update("pan_number", value.toUpperCase() || null)} />
-              <Field label="Aadhaar Number" value={form.aadhaar_number || ""} maxLength={12} inputMode="numeric" onChange={(value) => update("aadhaar_number", value.replace(/\D/g, "").slice(0, 12) || null)} />
-              <ReadOnly label="Reporting Manager" value={details.find(([label]) => label === "Reporting Manager")?.[1] || "—"} />
-              <ReadOnly label="Access Type" value={data.accessRole} />
+          <section className="mt-6">
+            <div className="mb-5 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg">
+              <h2 className="text-xl font-bold text-slate-950">
+                Request profile corrections
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Your current profile remains unchanged until an Admin or Super
+                Admin approves this request.
+              </p>
             </div>
+            <EmployeeProfileFormSections
+              value={form}
+              onChange={update}
+              joiningExtras={
+                <>
+                  <ReadOnly
+                    label="Reporting Manager"
+                    value={reportingManagerLabel}
+                  />
+                  <ReadOnly label="Access Type" value={data.accessRole} />
+                </>
+              }
+            />
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
@@ -331,68 +314,6 @@ export default function MyProfilePage() {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  maxLength,
-  inputMode,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  maxLength?: number;
-  inputMode?: "numeric";
-}) {
-  return (
-    <label className="text-sm font-semibold text-slate-700">
-      {label}
-      <input
-        type={type}
-        value={value}
-        maxLength={maxLength}
-        inputMode={inputMode}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
-      />
-    </label>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-  includeBlank = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: readonly string[];
-  includeBlank?: boolean;
-}) {
-  return (
-    <label className="text-sm font-semibold text-slate-700">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
-      >
-        {includeBlank ? <option value="">Select department</option> : null}
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function ReadOnly({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -416,16 +337,6 @@ function Notice({
       {children}
     </div>
   );
-}
-
-function profileDate(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function dateTime(value: string) {

@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const [
     employeeResult,
     statutoryResult,
+    extendedResult,
     requestResult,
   ] = await Promise.all([
     context.admin
@@ -25,6 +26,13 @@ export async function GET(request: Request) {
     context.admin
       .from("employee_statutory_details")
       .select("pan_number,aadhaar_number")
+      .eq("employee_id", employeeId)
+      .maybeSingle(),
+    context.admin
+      .from("employee_extended_details")
+      .select(
+        "phone_country_code,phone_number,marital_status,blood_group,bank_account_number,bank_name,ifsc_code,branch_name,address_line_1,address_line_2,address_line_3,city,state,country,pincode,father_name,mother_name,spouse_name,children,emergency_contact_person,emergency_contact_number,nominee_name,nominee_relationship,nominee_date_of_birth",
+      )
       .eq("employee_id", employeeId)
       .maybeSingle(),
     context.admin
@@ -43,11 +51,12 @@ export async function GET(request: Request) {
       { status: 404 },
     );
   }
-  if (statutoryResult.error || requestResult.error) {
+  if (statutoryResult.error || extendedResult.error || requestResult.error) {
     return Response.json(
       {
         error:
           statutoryResult.error?.message ||
+          extendedResult.error?.message ||
           requestResult.error?.message ||
           "Unable to load employee profile",
       },
@@ -71,6 +80,12 @@ export async function GET(request: Request) {
     statutory: statutoryResult.data || {
       pan_number: null,
       aadhaar_number: null,
+    },
+    extended: {
+      phone_country_code: "+91",
+      country: "India",
+      children: [],
+      ...extendedResult.data,
     },
     reportingManager,
     accessRole: context.profile.role,

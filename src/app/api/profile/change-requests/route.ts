@@ -1,5 +1,6 @@
 import { isAdminLevelRole, isSuperAdminRole } from "@/lib/roles";
 import {
+  emptyEmployeeProfileChanges,
   validateEmployeeProfileChanges,
   type EmployeeProfileChanges,
 } from "@/lib/employee-profile";
@@ -63,12 +64,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
   const validation = validateEmployeeProfileChanges(body);
-  if (validation.error) {
-    return Response.json({ error: validation.error }, { status: 400 });
+  if ("error" in validation) {
+    return Response.json(
+      { error: validation.error || "Enter valid employee details." },
+      { status: 400 },
+    );
   }
 
   const employeeId = context.profile.employee_id;
-  const [employeeResult, statutoryResult, pendingResult] = await Promise.all([
+  const [employeeResult, statutoryResult, extendedResult, pendingResult] =
+    await Promise.all([
     context.admin
       .from("employees")
       .select(
@@ -79,6 +84,13 @@ export async function POST(request: Request) {
     context.admin
       .from("employee_statutory_details")
       .select("pan_number,aadhaar_number")
+      .eq("employee_id", employeeId)
+      .maybeSingle(),
+    context.admin
+      .from("employee_extended_details")
+      .select(
+        "phone_country_code,phone_number,marital_status,blood_group,bank_account_number,bank_name,ifsc_code,branch_name,address_line_1,address_line_2,address_line_3,city,state,country,pincode,father_name,mother_name,spouse_name,children,emergency_contact_person,emergency_contact_number,nominee_name,nominee_relationship,nominee_date_of_birth",
+      )
       .eq("employee_id", employeeId)
       .maybeSingle(),
     context.admin
@@ -98,6 +110,7 @@ export async function POST(request: Request) {
     employeeResult.error ||
     !employeeResult.data ||
     statutoryResult.error ||
+    extendedResult.error ||
     pendingResult.error
   ) {
     return Response.json(
@@ -105,6 +118,7 @@ export async function POST(request: Request) {
         error:
           employeeResult.error?.message ||
           statutoryResult.error?.message ||
+          extendedResult.error?.message ||
           pendingResult.error?.message ||
           "Unable to prepare profile change request",
       },
@@ -113,9 +127,14 @@ export async function POST(request: Request) {
   }
 
   const currentValues: EmployeeProfileChanges = {
+    ...emptyEmployeeProfileChanges(),
     ...employeeResult.data,
     pan_number: statutoryResult.data?.pan_number || null,
     aadhaar_number: statutoryResult.data?.aadhaar_number || null,
+    ...extendedResult.data,
+    children: Array.isArray(extendedResult.data?.children)
+      ? extendedResult.data.children.map((child) => String(child || ""))
+      : [],
   };
   if (JSON.stringify(currentValues) === JSON.stringify(validation.value)) {
     return Response.json(

@@ -174,10 +174,10 @@ export default function ProfileRequestsPage() {
                           {PROFILE_FIELD_LABELS[key]}
                         </span>
                         <span className="break-words text-slate-500">
-                          {request.current_values[key] || "—"}
+                          {formatProfileValue(request.current_values[key])}
                         </span>
                         <span className="break-words font-semibold text-[#153E90]">
-                          {request.proposed_changes[key] || "—"}
+                          {formatProfileValue(request.proposed_changes[key])}
                         </span>
                       </div>
                     ))}
@@ -232,4 +232,9 @@ export default function ProfileRequestsPage() {
       </div>
     </main>
   );
+}
+
+function formatProfileValue(value: EmployeeProfileChanges[keyof EmployeeProfileChanges]) {
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  return value || "—";
 }

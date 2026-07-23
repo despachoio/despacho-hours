@@ -32,6 +32,30 @@ serve(async (req) => {
       uan_number,
       pan_number,
       aadhaar_number,
+      phone_country_code,
+      phone_number,
+      marital_status,
+      blood_group,
+      bank_account_number,
+      bank_name,
+      ifsc_code,
+      branch_name,
+      address_line_1,
+      address_line_2,
+      address_line_3,
+      city,
+      state,
+      country,
+      pincode,
+      father_name,
+      mother_name,
+      spouse_name,
+      children,
+      emergency_contact_person,
+      emergency_contact_number,
+      nominee_name,
+      nominee_relationship,
+      nominee_date_of_birth,
       reporting_manager_id,
       access_role,
     } = await req.json();
@@ -46,6 +70,17 @@ serve(async (req) => {
       .trim()
       .toUpperCase();
     const normalizedAadhaar = String(aadhaar_number || "").replace(/\s+/g, "");
+    const normalizedPhoneCountryCode =
+      String(phone_country_code || "+91").trim() || "+91";
+    const normalizedPhoneNumber = String(phone_number || "").replace(/\D/g, "");
+    const normalizedMaritalStatus = String(marital_status || "").trim();
+    const normalizedBloodGroup = String(blood_group || "").trim();
+    const normalizedChildren = Array.isArray(children)
+      ? children
+          .map((child) => String(child || "").trim())
+          .filter(Boolean)
+          .slice(0, 20)
+      : [];
     const normalizedReportingManagerId = String(
       reporting_manager_id || "",
     ).trim();
@@ -90,6 +125,31 @@ serve(async (req) => {
     }
     if (normalizedAadhaar && !/^[0-9]{12}$/.test(normalizedAadhaar)) {
       throw new Error("Aadhaar must contain exactly 12 digits.");
+    }
+    if (!/^\+[0-9]{1,4}$/.test(normalizedPhoneCountryCode)) {
+      throw new Error("Select a valid phone country code.");
+    }
+    if (
+      normalizedPhoneNumber &&
+      !/^[0-9]{6,15}$/.test(normalizedPhoneNumber)
+    ) {
+      throw new Error("Phone number must contain 6 to 15 digits.");
+    }
+    if (
+      normalizedMaritalStatus &&
+      !["Single", "Married", "Divorced", "Widow", "Widower"].includes(
+        normalizedMaritalStatus,
+      )
+    ) {
+      throw new Error("Select a valid marital status.");
+    }
+    if (
+      normalizedBloodGroup &&
+      !["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].includes(
+        normalizedBloodGroup,
+      )
+    ) {
+      throw new Error("Select a valid blood group.");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -263,6 +323,47 @@ serve(async (req) => {
       );
     if (statutoryError) {
       throw statutoryError;
+    }
+
+    const { error: extendedError } = await supabaseAdmin
+      .from("employee_extended_details")
+      .upsert(
+        {
+          employee_id: employeeId,
+          phone_country_code: normalizedPhoneCountryCode,
+          phone_number: normalizedPhoneNumber || null,
+          marital_status: normalizedMaritalStatus || null,
+          blood_group: normalizedBloodGroup || null,
+          bank_account_number:
+            String(bank_account_number || "").trim() || null,
+          bank_name: String(bank_name || "").trim() || null,
+          ifsc_code: String(ifsc_code || "").trim().toUpperCase() || null,
+          branch_name: String(branch_name || "").trim() || null,
+          address_line_1: String(address_line_1 || "").trim() || null,
+          address_line_2: String(address_line_2 || "").trim() || null,
+          address_line_3: String(address_line_3 || "").trim() || null,
+          city: String(city || "").trim() || null,
+          state: String(state || "").trim() || null,
+          country: String(country || "").trim() || null,
+          pincode: String(pincode || "").trim() || null,
+          father_name: String(father_name || "").trim() || null,
+          mother_name: String(mother_name || "").trim() || null,
+          spouse_name: String(spouse_name || "").trim() || null,
+          children: normalizedChildren,
+          emergency_contact_person:
+            String(emergency_contact_person || "").trim() || null,
+          emergency_contact_number:
+            String(emergency_contact_number || "").trim() || null,
+          nominee_name: String(nominee_name || "").trim() || null,
+          nominee_relationship:
+            String(nominee_relationship || "").trim() || null,
+          nominee_date_of_birth: nominee_date_of_birth || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "employee_id" },
+      );
+    if (extendedError) {
+      throw extendedError;
     }
 
     const { error: profileError } = await supabaseAdmin
