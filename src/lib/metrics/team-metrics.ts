@@ -36,25 +36,29 @@ export function employeeAnalytics(
   );
   const workdays = weekdays(from, to);
   const expectedHours = workdays * 8;
+  const isOperationsEmployee =
+    String(employee.department || "").trim().toLowerCase() === "operations";
   const billableHours = entries.reduce(
     (sum, entry) =>
       sum + (entry.projects?.is_billable !== false ? Number(entry.hours || 0) : 0),
     0,
   );
   const nonBillableHours = Math.max(0, hours - billableHours);
+  const utilisation =
+    isOperationsEmployee && expectedHours
+      ? (billableHours / expectedHours) * 100
+      : 0;
   return {
     employee,
     entries,
     timer,
     hours,
     expectedHours,
-    utilisation: expectedHours ? (hours / expectedHours) * 100 : 0,
+    utilisation,
     billableHours,
     nonBillableHours,
-    billableUtilisation: expectedHours ? (billableHours / expectedHours) * 100 : 0,
-    nonBillableUtilisation: expectedHours
-      ? (nonBillableHours / expectedHours) * 100
-      : 0,
+    billableUtilisation: utilisation,
+    nonBillableUtilisation: 0,
     projects: new Set(entries.map((entry) => entry.project_id)).size,
     clients: new Set(
       entries.map((entry) => entry.projects?.clients?.id).filter(Boolean),
@@ -103,13 +107,22 @@ export function calculateTeamMetrics(
     (sum, item) => sum + item.billableHours,
     0,
   );
-  const totalExpectedHours = employees.reduce(
+  const operationsEmployees = employees.filter(
+    (item) =>
+      String(item.employee.department || "").trim().toLowerCase() ===
+      "operations",
+  );
+  const totalExpectedHours = operationsEmployees.reduce(
     (sum, item) => sum + item.expectedHours,
+    0,
+  );
+  const operationsBillableHours = operationsEmployees.reduce(
+    (sum, item) => sum + item.billableHours,
     0,
   );
   const entries = employees.flatMap((item) => item.entries);
   const aggregateUtilization = totalExpectedHours
-    ? (totalHoursLogged / totalExpectedHours) * 100
+    ? (operationsBillableHours / totalExpectedHours) * 100
     : 0;
   return {
     employeeCount: employees.length,
@@ -120,9 +133,9 @@ export function calculateTeamMetrics(
     totalBillableHours,
     totalExpectedHours,
     aggregateUtilization,
-    averageEmployeeUtilization: employees.length
-      ? employees.reduce((sum, item) => sum + item.utilisation, 0) /
-        employees.length
+    averageEmployeeUtilization: operationsEmployees.length
+      ? operationsEmployees.reduce((sum, item) => sum + item.utilisation, 0) /
+        operationsEmployees.length
       : 0,
     projectsWorked: new Set(entries.map((entry) => entry.project_id)).size,
     clientsServed: new Set(

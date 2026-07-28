@@ -68,7 +68,13 @@ serve(async (req) => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedName = String(full_name || "").trim();
     const normalizedEmployeeCode = String(employee_code || "").trim();
-    const normalizedTitle = String(title || "").trim();
+    const requestedTitle = String(title || "").trim();
+    const normalizedTitle =
+      requestedTitle === "Mr"
+        ? "Mr."
+        : requestedTitle === "Miss"
+          ? "Ms."
+          : requestedTitle;
     const normalizedGender = String(gender || "").trim();
     const normalizedDepartment = String(department || "").trim();
     const normalizedPan = String(pan_number || "")
@@ -108,14 +114,14 @@ serve(async (req) => {
     if (!normalizedEmployeeCode || !normalizedEmail || !normalizedName) {
       throw new Error("Employee code, name, and email are required.");
     }
-    if (!["Mr", "Miss", "Mrs.", "Dr"].includes(normalizedTitle))
+    if (!["Mr.", "Ms.", "Mrs.", "Dr"].includes(normalizedTitle))
       throw new Error("Select a valid title.");
     if (!["Male", "Female", "Others"].includes(normalizedGender))
       throw new Error("Select a valid gender.");
     if (!requestedRole) throw new Error("Select a valid access role.");
     if (
       normalizedDepartment &&
-      !["Operations", "HR", "Finance", "Management"].includes(
+      !["Operations", "Admin", "HR", "Finance", "Management"].includes(
         normalizedDepartment,
       )
     ) {

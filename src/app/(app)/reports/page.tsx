@@ -49,7 +49,12 @@ type ActiveProject = {
   clients: { id: string; name: string } | null;
   project_resources: { employee_id: string }[];
 };
-type ActiveEmployee = { id: string; name: string; status: string };
+type ActiveEmployee = {
+  id: string;
+  name: string;
+  status: string;
+  department: string | null;
+};
 
 const initialFilters: ReportFiltersValue = {
   employeeId: "",
@@ -62,7 +67,7 @@ const initialFilters: ReportFiltersValue = {
   status: "all",
   search: "",
 };
-const entrySelect = `id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,employees(id,name),projects(id,name,project_code,remaining_hours,is_billable,clients(id,name))`;
+const entrySelect = `id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,employees(id,name,department),projects(id,name,project_code,remaining_hours,is_billable,clients(id,name))`;
 const reportPageSize = 1_000;
 
 async function fetchAllTimeEntries({
@@ -162,7 +167,7 @@ export default function ReportsPage() {
 
       let employeeQuery = supabase
         .from("employees")
-        .select("id,name,status")
+        .select("id,name,status,department")
         .order("name");
       if (currentRole === "employee" && currentProfile?.employee_id)
         employeeQuery = employeeQuery.eq("id", currentProfile.employee_id);
@@ -421,6 +426,22 @@ export default function ReportsPage() {
             (employee) => employee.id === appliedFilters.employeeId,
           )
         : activeEmployees;
+    const operationsEmployees = visibleEmployees.filter(
+      (employee) =>
+        String(employee.department || "").trim().toLowerCase() ===
+        "operations",
+    );
+    const operationsEmployeeIds = new Set(
+      operationsEmployees.map((employee) => employee.id),
+    );
+    const operationsBillableWeekHours = weekEntries.reduce(
+      (sum, entry) =>
+        operationsEmployeeIds.has(entry.employee_id) &&
+        entry.projects?.is_billable !== false
+          ? sum + Number(entry.hours || 0)
+          : sum,
+      0,
+    );
     const trackedHours = filteredOperational.reduce(
       (sum, entry) => sum + Number(entry.hours || 0),
       0,
@@ -457,12 +478,9 @@ export default function ReportsPage() {
       averageSession: filteredOperational.length
         ? trackedHours / filteredOperational.length
         : 0,
-      averageUtilisation: visibleEmployees.length
-        ? (weekEntries.reduce(
-            (sum, entry) => sum + Number(entry.hours || 0),
-            0,
-          ) /
-            (visibleEmployees.length * 40)) *
+      averageUtilisation: operationsEmployees.length
+        ? (operationsBillableWeekHours /
+            (operationsEmployees.length * 40)) *
           100
         : 0,
       remainingHours: visibleProjects.reduce(

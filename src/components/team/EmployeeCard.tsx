@@ -88,20 +88,13 @@ export default function EmployeeCard({
             valueClassName={utilisationTextTone}
           />
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="flex h-full">
-              <div
-                className="h-full shrink-0 bg-[#153E90]"
-                style={{ width: `${Math.min(100, analytics.billableUtilisation)}%` }}
-              />
-              <div
-                className="h-full shrink-0 bg-violet-400"
-                style={{ width: `${Math.min(100, analytics.nonBillableUtilisation)}%` }}
-              />
-            </div>
+            <div
+              className="h-full bg-[#153E90]"
+              style={{ width: `${Math.min(100, analytics.billableUtilisation)}%` }}
+            />
           </div>
-          <div className="mt-1.5 flex gap-3 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="mt-1.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
             <span><span className="mr-1 text-[#153E90]">●</span>Billable</span>
-            <span><span className="mr-1 text-violet-400">●</span>Non-billable</span>
           </div>
         </div>
         <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">

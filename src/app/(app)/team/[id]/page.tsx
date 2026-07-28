@@ -57,7 +57,7 @@ function TeamDetailPageContent() {
   const [saving, setSaving] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState<EditSnapshot | null>(null);
   const [employeeCode, setEmployeeCode] = useState("");
-  const [title, setTitle] = useState("Mr");
+  const [title, setTitle] = useState("Mr.");
   const [name, setName] = useState("");
   const [gender, setGender] = useState("Male");
   const [email, setEmail] = useState("");
@@ -231,7 +231,7 @@ function TeamDetailPageContent() {
       setTimer((timerResult.data || null) as unknown as TeamTimer | null);
       setAccessRole(accessResult.data?.role || "Employee");
       setEmployeeCode(loaded.employee_code || "");
-      setTitle(loaded.title || "Mr");
+      setTitle(loaded.title || "Mr.");
       setName(loaded.name);
       setGender(loaded.gender || "Male");
       setEmail(loaded.email);
@@ -380,7 +380,7 @@ function TeamDetailPageContent() {
 
   function applyProfileValue(value: EmployeeProfileChanges) {
     setEmployeeCode(value.employee_code || "");
-    setTitle(value.title || "Mr");
+    setTitle(value.title || "Mr.");
     setName(value.name || "");
     setGender(value.gender || "Male");
     setEmail(value.email || "");

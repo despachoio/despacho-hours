@@ -94,6 +94,10 @@ export function aggregateEntries(
         : 0,
       longestSession,
       utilisation: expectedHoursPerEmployee
+        && String(first.employees?.department || "")
+          .trim()
+          .toLowerCase() === "operations"
+        && first.projects?.is_billable !== false
         ? (totalHours / expectedHoursPerEmployee) * 100
         : 0,
       sourceEntries: [...sourceEntries].sort((a, b) =>

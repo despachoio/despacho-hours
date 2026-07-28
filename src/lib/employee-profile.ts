@@ -1,11 +1,12 @@
 export const EMPLOYEE_DEPARTMENTS = [
   "Operations",
+  "Admin",
   "HR",
   "Finance",
   "Management",
 ] as const;
 
-export const EMPLOYEE_TITLES = ["Mr", "Miss", "Mrs.", "Dr"] as const;
+export const EMPLOYEE_TITLES = ["Mr.", "Ms.", "Mrs.", "Dr"] as const;
 export const EMPLOYEE_GENDERS = ["Male", "Female", "Others"] as const;
 export const MARITAL_STATUSES = [
   "Single",
@@ -85,7 +86,7 @@ export type EmployeeProfileChanges = {
 export function emptyEmployeeProfileChanges(): EmployeeProfileChanges {
   return {
     employee_code: "",
-    title: "Mr",
+    title: "Mr.",
     name: "",
     gender: "Male",
     email: "",

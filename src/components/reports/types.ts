@@ -9,7 +9,7 @@ export type ReportEntry = {
   stopped_at: string | null;
   hours: number;
   description: string | null;
-  employees: { id: string; name: string } | null;
+  employees: { id: string; name: string; department: string | null } | null;
   projects: {
     id: string;
     name: string;
