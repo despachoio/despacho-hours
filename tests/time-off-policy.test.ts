@@ -4,6 +4,10 @@ import {
   calculateLeaveDuration,
   completedServiceMonths,
   encashableLeaveDays,
+  contractorPolicyStage,
+  employeeAnnualLopReference,
+  employeeLopSalaryMultiplier,
+  employeePaidEntitlement,
   expectedCapacityHours,
   extendedPlannedLeaveEligibility,
   firstAnniversary,
@@ -91,6 +95,35 @@ describe("Time Off policy engine", () => {
   it("applies the 1.5 LOP payroll multiplier", () => {
     expect(lopSalaryDeductionDays(2)).toBe(3);
     expect(lopSalaryDeductionDays(0.5)).toBe(0.75);
+  });
+
+  it("blocks contractor paid entitlement during the first six completed months", () => {
+    expect(contractorPolicyStage("Contractor", "2026-01-15", "2026-07-14")).toBe("waiting_period");
+    expect(employeePaidEntitlement("Contractor", "2026-01-15", "2026-07-14")).toBe(0);
+  });
+
+  it("accrues contractor paid leave monthly from six months until the first anniversary", () => {
+    expect(contractorPolicyStage("Contractor", "2026-01-15", "2026-07-15")).toBe("first_year");
+    expect(employeePaidEntitlement("Contractor", "2026-01-15", "2026-07-15")).toBe(1);
+    expect(employeePaidEntitlement("Contractor", "2026-01-15", "2026-11-15")).toBe(5);
+  });
+
+  it("moves contractors to the standard entitlement after one year", () => {
+    expect(contractorPolicyStage("Contractor", "2025-07-29", "2026-07-29")).toBe("standard");
+    expect(employeePaidEntitlement("Contractor", "2025-07-29", "2026-07-29")).toBe(12);
+  });
+
+  it("uses unlimited 1x LOP before six months and the standard rule afterwards", () => {
+    expect(employeeAnnualLopReference("Contractor", "2026-01-15", "2026-07-14")).toBeNull();
+    expect(employeeLopSalaryMultiplier("Contractor", "2026-01-15", "2026-07-14")).toBe(1);
+    expect(employeeAnnualLopReference("Contractor", "2026-01-15", "2026-07-15")).toBe(3);
+    expect(employeeLopSalaryMultiplier("Contractor", "2026-01-15", "2026-07-15")).toBe(1.5);
+  });
+
+  it("leaves the standard employee policy unchanged", () => {
+    expect(contractorPolicyStage("Employee", "2026-01-15", "2026-07-15")).toBeNull();
+    expect(employeePaidEntitlement("Employee", "2026-01-15", "2026-07-15")).toBe(6);
+    expect(employeeAnnualLopReference("Employee", "2026-01-15", "2026-07-15")).toBe(3);
   });
 
   it("uses actual LOP days 1:1 for encashment and never goes negative", () => {

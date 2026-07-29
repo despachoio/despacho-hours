@@ -80,6 +80,53 @@ export function paidEntitlement(joiningDate: string, asOf: string) {
   );
 }
 
+export type ContractorPolicyStage = "waiting_period" | "first_year" | "standard";
+
+export function contractorPolicyStage(
+  employmentRole: string | null,
+  joiningDate: string,
+  asOf: string,
+): ContractorPolicyStage | null {
+  if (String(employmentRole || "").trim().toLowerCase() !== "contractor") return null;
+  const months = completedServiceMonths(joiningDate, asOf);
+  if (months < 6) return "waiting_period";
+  return months < 12 ? "first_year" : "standard";
+}
+
+export function employeePaidEntitlement(
+  employmentRole: string | null,
+  joiningDate: string,
+  asOf: string,
+) {
+  const stage = contractorPolicyStage(employmentRole, joiningDate, asOf);
+  if (!stage || stage === "standard") return paidEntitlement(joiningDate, asOf);
+  if (stage === "waiting_period") return 0;
+  const beforeYear = addDateDays(`${asOf.slice(0, 4)}-01-01`, -1);
+  const completed = completedServiceMonths(joiningDate, asOf);
+  const completedBeforeYear = completedServiceMonths(joiningDate, beforeYear);
+  return Math.min(12, Math.max(completed - Math.max(completedBeforeYear, 5), 0));
+}
+
+export function employeeLopSalaryMultiplier(
+  employmentRole: string | null,
+  joiningDate: string,
+  asOf: string,
+) {
+  return contractorPolicyStage(employmentRole, joiningDate, asOf) === "waiting_period"
+    ? 1
+    : 1.5;
+}
+
+export function employeeAnnualLopReference(
+  employmentRole: string | null,
+  joiningDate: string,
+  asOf: string,
+) {
+  return contractorPolicyStage(employmentRole, joiningDate, asOf) === "waiting_period"
+    ? null
+    : 3;
+}
+
 function partsForDate(
   date: string,
   startDate: string,

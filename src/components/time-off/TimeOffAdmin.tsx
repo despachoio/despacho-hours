@@ -375,6 +375,8 @@ function TimeOffReports({ data, holidays }: { data: TimeOffAdminData; holidays: 
           ? usage.filter((row) => row.leave_requests?.status === "pending")
           : approved.filter((row) => kind !== "unplanned" || row.leave_requests?.leave_types?.code === "UL").filter((row) => kind !== "upcoming" || row.leave_date >= businessDateKey());
         const group = new Map<string, number>();
+        const lopPayroll = new Map<string, number>();
+        const countedLopRequests = new Set<string>();
         for (const row of selectedRows) {
           const request = row.leave_requests;
           const key = kind === "monthly_usage" ? row.leave_date.slice(0, 7)
@@ -385,9 +387,12 @@ function TimeOffReports({ data, holidays }: { data: TimeOffAdminData; holidays: 
             : kind === "lop" ? (request?.leave_types?.code === "LOP" ? request.employees?.name || "Unknown" : "")
             : request?.leave_types?.name || "Unknown";
           if (key) group.set(key, (group.get(key) || 0) + Number(row.duration || 0));
+          if (kind === "lop" && key && request?.leave_types?.code === "LOP" && !countedLopRequests.has(request.id)) {
+            countedLopRequests.add(request.id);
+            lopPayroll.set(key, (lopPayroll.get(key) || 0) + Number(request.lop_salary_deduction_days || 0));
+          }
         }
-        const lopMultiplier = Number(data.policyRules.find((rule) => rule.rule_key === "lop_salary_multiplier")?.rule_value || 1.5);
-        download(`${kind}.csv`, kind === "lop" ? [["Employee", "LOP Days", "Payroll Deduction Equivalent"], ...[...group.entries()].map(([key, days]) => [key, days, days * lopMultiplier])] : [["Group", "Leave Days"], ...[...group.entries()]]);
+        download(`${kind}.csv`, kind === "lop" ? [["Employee", "LOP Days", "Payroll Deduction Equivalent"], ...[...group.entries()].map(([key, days]) => [key, days, lopPayroll.get(key) || 0])] : [["Group", "Leave Days"], ...[...group.entries()]]);
       }
       setMessage("Report downloaded. Access permissions were applied to the exported data.");
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Unable to export report."); }

@@ -65,6 +65,9 @@ export type PolicyEvaluation = {
   selected_month_application_count: number;
   selected_month_paid_days: number;
   lop_salary_deduction_days: number;
+  lop_salary_multiplier?: number;
+  annual_lop_reference?: number | null;
+  contractor_policy_stage?: "waiting_period" | "first_year" | "standard" | null;
   extended_exception_status: string;
   extended_exception_reason: string | null;
   extended_exception_consumed: boolean;
