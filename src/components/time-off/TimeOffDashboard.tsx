@@ -55,12 +55,12 @@ export default function TimeOffDashboard({
     ["Unplanned Used", dayValue(dashboard.unplanned_used_days), "text-orange-600"],
     ["LOP Used", dayValue(dashboard.lop_used_days), "text-red-600"],
     [
-      "Next Company Holiday",
-      dashboard.next_holiday
-        ? `${dashboard.next_holiday.name} <br /> ${formatDate(dashboard.next_holiday.date)}`
-        : "No upcoming holiday",
-      "text-violet-700",
-    ],
+  "Next Company Holiday",
+  dashboard.next_holiday
+    ? `${dashboard.next_holiday.name} <span class="block">${formatDate(dashboard.next_holiday.date)}</span>`
+    : "No upcoming holiday",
+  "text-violet-700",
+]
   ];
   const entitlement = Number(dashboard.entitlement_days || 0);
   const used = Number(dashboard.used_paid_days || 0);
