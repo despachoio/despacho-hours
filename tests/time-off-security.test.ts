@@ -84,4 +84,11 @@ describe("Time Off database security contract", () => {
     expect(migrations).toContain("employee.employee_code");
     expect(migrations).toContain("manager.employee_code");
   });
+
+  it("prevents gender-ineligible parental leave balances", () => {
+    expect(migrations).toContain("remove_ineligible_gender_leave_balance");
+    expect(migrations).toContain("leave_type.gender_eligibility");
+    expect(migrations).toContain("employee.gender");
+    expect(migrations).toContain("v_gender <> v_eligibility");
+  });
 });

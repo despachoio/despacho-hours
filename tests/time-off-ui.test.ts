@@ -21,6 +21,18 @@ describe("Time Off UI contract", () => {
     expect(request).toContain("informational_messages");
   });
 
+  it("separates current-year requests from future approved leave", () => {
+    const client = source("src/lib/time-off/client.ts");
+    const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
+    const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
+    expect(client).toContain("upcomingRequests");
+    expect(client).toContain('.gte("submitted_at", `${from}T00:00:00+05:30`)');
+    expect(client).toContain('.lt("submitted_at", `${nextYear}T00:00:00+05:30`)');
+    expect(client).toContain('.gte("end_date", today)');
+    expect(dashboard).toContain("request.end_date >= today");
+    expect(workspace).toContain("upcomingRequests={data.upcomingRequests}");
+  });
+
   it("requires comments for rejection paths", () => {
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
     expect(approval).toContain("A rejection comment is required");

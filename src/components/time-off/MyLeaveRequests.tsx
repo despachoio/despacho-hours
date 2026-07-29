@@ -96,7 +96,7 @@ export default function MyLeaveRequests({ requests, leaveTypes, onChanged }: { r
     </KairoCard>
     {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</p> : null}
     <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(21,62,144,.65)]">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-white to-slate-50 px-6 py-5"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><TimeOffIcon name="document" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">My Requests</h2><p className="mt-1 text-sm text-slate-500">Complete leave history with policy and approval details.</p></div></div></div>
+      <div className="border-b border-slate-100 bg-gradient-to-r from-white to-slate-50 px-6 py-5"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><TimeOffIcon name="document" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">My Requests</h2><p className="mt-1 text-sm text-slate-500">Requests submitted during the current calendar year.</p></div></div></div>
       <div className="divide-y divide-slate-100">
         {rows.length ? rows.map((request) => <article key={request.id}>
           <button type="button" onClick={() => setExpanded(expanded === request.id ? null : request.id)} aria-expanded={expanded === request.id} className="grid w-full gap-3 px-5 py-4 text-left transition hover:bg-slate-50 sm:grid-cols-[1.2fr_1fr_.65fr_.85fr_auto] sm:items-center">

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { businessDateKey } from "@/lib/metrics/date-ranges";
 import type { DayPart, PolicyEvaluation } from "./types";
 
 export type TimeOffProfile = {
@@ -166,6 +167,7 @@ export type TimeOffData = {
   dashboard: TimeOffDashboard;
   leaveTypes: LeaveType[];
   requests: LeaveRequest[];
+  upcomingRequests: LeaveRequest[];
   holidays: Holiday[];
   calendar: CalendarLeave[];
   approvalQueue: LeaveRequest[];
@@ -307,7 +309,9 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
   profile.gender = employeeResult.data?.gender || null;
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
-  const [dashboardResult, typeResult, requestResult, holidayResult, calendarResult, notificationResult] =
+  const nextYear = `${year + 1}-01-01`;
+  const today = businessDateKey();
+  const [dashboardResult, typeResult, requestResult, upcomingResult, holidayResult, calendarResult, notificationResult] =
     await Promise.all([
       supabase.rpc("get_time_off_dashboard", {
         p_employee_id: profile.employee_id,
@@ -321,9 +325,16 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
         .from("leave_requests")
         .select(requestSelect)
         .eq("employee_id", profile.employee_id)
-        .lte("start_date", to)
-        .gte("end_date", from)
+        .gte("submitted_at", `${from}T00:00:00+05:30`)
+        .lt("submitted_at", `${nextYear}T00:00:00+05:30`)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("leave_requests")
+        .select(requestSelect)
+        .eq("employee_id", profile.employee_id)
+        .in("status", ["approved", "cancellation_rejected"])
+        .gte("end_date", today)
+        .order("start_date", { ascending: true }),
       supabase
         .from("holidays")
         .select(
@@ -344,6 +355,7 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     dashboardResult.error ||
     typeResult.error ||
     requestResult.error ||
+    upcomingResult.error ||
     holidayResult.error ||
     calendarResult.error ||
     notificationResult.error;
@@ -387,6 +399,7 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     dashboard,
     leaveTypes: (typeResult.data || []) as LeaveType[],
     requests: (requestResult.data || []) as unknown as LeaveRequest[],
+    upcomingRequests: (upcomingResult.data || []) as unknown as LeaveRequest[],
     holidays: (holidayResult.data || []) as unknown as Holiday[],
     calendar: (calendarResult.data || []) as CalendarLeave[],
     approvalQueue,

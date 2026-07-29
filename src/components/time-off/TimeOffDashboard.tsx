@@ -7,6 +7,7 @@ import type {
   TimeOffNotification,
 } from "@/lib/time-off/client";
 import { markNotificationRead } from "@/lib/time-off/client";
+import { businessDateKey } from "@/lib/metrics/date-ranges";
 
 function dayValue(value: number) {
   return `${Number(value || 0).toFixed(value % 1 ? 1 : 0)} Days`;
@@ -40,6 +41,7 @@ function formatService(completedMonths: number) {
 export default function TimeOffDashboard({
   dashboard,
   requests,
+  upcomingRequests,
   holidays,
   notifications,
   onChanged,
@@ -47,13 +49,16 @@ export default function TimeOffDashboard({
 }: {
   dashboard: DashboardData;
   requests: LeaveRequest[];
+  upcomingRequests: LeaveRequest[];
   holidays: Holiday[];
   notifications: TimeOffNotification[];
   onChanged: () => void;
   onRequestLeave: () => void;
 }) {
-  const upcoming = requests
+  const today = businessDateKey();
+  const upcoming = upcomingRequests
     .filter((request) => ["approved", "cancellation_rejected"].includes(request.status))
+    .filter((request) => request.end_date >= today)
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
     .slice(0, 4);
   const stats: Array<{ label: string; value: ReactNode; tone: string }> = [
