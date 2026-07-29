@@ -118,7 +118,7 @@ export default function TimeOffDashboard({
               ["Pending", dayValue(pending)],
               ["Available", dayValue(available)],
               ["LOP", dayValue(dashboard.lop_used_days)],
-              ["Encashable estimate", dayValue(dashboard.encashable_estimate_days)],
+              ["Encashable", dayValue(dashboard.encashable_estimate_days)],
             ].map(([label, value]) => (
               <div key={label}>
                 <dt className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</dt>

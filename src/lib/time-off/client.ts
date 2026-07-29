@@ -173,8 +173,11 @@ export type TimeOffData = {
     used_days: number;
     pending_days: number;
     available_days: number;
-    employees: { name: string; title: string | null; employee_code: string | null } | null;
-    leave_types: { name: string; code: string } | null;
+    employee_name: string;
+    employee_title: string | null;
+    employee_code: string | null;
+    leave_type_name: string;
+    leave_type_code: string;
   }>;
   recentTeamRequests: LeaveRequest[];
 };
@@ -343,7 +346,7 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
   if (canApprove) {
     const [queueResult, balancesResult, recentResult] = await Promise.all([
       supabase.from("leave_requests").select(requestSelect).in("status", ["pending", "cancellation_requested"]).neq("employee_id", profile.employee_id).order("submitted_at"),
-      supabase.from("employee_leave_balances").select("id,employee_id,leave_year,entitled_days,used_days,pending_days,available_days,employees(name,title,employee_code),leave_types(name,code)").eq("leave_year", year).neq("employee_id", profile.employee_id).order("employee_id"),
+      supabase.rpc("get_time_off_managed_balances", { p_leave_year: year }),
       supabase.from("leave_requests").select(requestSelect).in("status", ["approved", "rejected", "cancelled", "cancellation_rejected", "cancelled_by_admin"]).neq("employee_id", profile.employee_id).order("updated_at", { ascending: false }).limit(20),
     ]);
     const managerError = queueResult.error || balancesResult.error || recentResult.error;

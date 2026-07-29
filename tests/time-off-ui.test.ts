@@ -26,6 +26,14 @@ describe("Time Off UI contract", () => {
     expect(approval).toContain("A rejection comment is required");
   });
 
+  it("provides searchable direct-report balance filters", () => {
+    const approval = source("src/components/time-off/ApprovalCentre.tsx");
+    expect(approval).toContain("balance-search");
+    expect(approval).toContain("All reporting employees");
+    expect(approval).toContain("All leave types");
+    expect(approval).toContain("filteredBalances");
+  });
+
   it("provides request filters, pagination, cancellation, and export", () => {
     const requests = source("src/components/time-off/MyLeaveRequests.tsx");
     expect(requests).toContain("Export CSV");

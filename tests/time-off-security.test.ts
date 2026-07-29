@@ -26,6 +26,7 @@ describe("Time Off database security contract", () => {
 
   it("scopes managers through the existing reporting hierarchy", () => {
     expect(migrations).toContain("employee.reporting_manager_id = public.get_my_employee_id()");
+    expect(migrations).toContain("employee.reporting_manager_id = v_current_employee_id");
   });
 
   it("prevents managers approving themselves", () => {
