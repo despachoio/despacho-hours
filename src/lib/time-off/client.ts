@@ -144,6 +144,7 @@ export type CalendarLeave = {
   id: string;
   employee_id: string;
   employee_name: string;
+  employee_code: string | null;
   department: string | null;
   leave_type_name: string;
   leave_type_code: string;
@@ -157,6 +158,7 @@ export type CalendarLeave = {
   can_view_details: boolean;
   reporting_manager_id: string | null;
   manager_name: string | null;
+  manager_code: string | null;
 };
 
 export type TimeOffData = {
@@ -527,7 +529,7 @@ export async function loadTimeOffAdminData(): Promise<TimeOffAdminData> {
     supabase
       .from("employees")
       .select("id,employee_code,title,name,department,status")
-      .order("name"),
+      .order("employee_code"),
     supabase.from("leave_policies").select("*").order("effective_start_date", { ascending: false }),
     supabase.from("leave_policy_rules").select("*").order("rule_key"),
     supabase.from("holiday_calendars").select("id,name,calendar_year,audience,country,location,department,is_active,notes").order("calendar_year", { ascending: false }),

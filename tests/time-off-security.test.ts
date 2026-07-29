@@ -79,4 +79,9 @@ describe("Time Off database security contract", () => {
     expect(migrations).toContain("enforce_time_off_administration_access");
     expect(migrations).toContain("Only a Super Admin or Finance Admin can perform Time Off administration");
   });
+
+  it("returns employee codes for code-ordered calendar filters", () => {
+    expect(migrations).toContain("employee.employee_code");
+    expect(migrations).toContain("manager.employee_code");
+  });
 });

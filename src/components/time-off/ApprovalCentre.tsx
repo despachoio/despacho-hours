@@ -7,6 +7,7 @@ import KairoSelect from "@/components/ui/KairoSelect";
 import TimeOffStatusBadge from "./TimeOffStatusBadge";
 import { addLeaveComment, openLeaveAttachment, processLeave, type CalendarLeave, type LeaveRequest } from "@/lib/time-off/client";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
+import { compareEmployeeCodes, employeeOptionLabel } from "@/lib/time-off/employee-order";
 
 type ManagerBalance = { id: string; employee_id: string; leave_year: number; entitled_days: number; used_days: number; pending_days: number; available_days: number; employee_name: string; employee_title: string | null; employee_code: string | null; leave_type_name: string; leave_type_code: string };
 
@@ -23,7 +24,7 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
   const [balanceSearchApplied, setBalanceSearchApplied] = useState(false);
   const [today] = useState(() => businessDateKey());
   const conflicts = selected ? calendar.filter((leave) => leave.id !== selected.id && leave.status !== "rejected" && leave.start_date <= selected.end_date && leave.end_date >= selected.start_date) : [];
-  const balanceEmployees = useMemo(() => Array.from(new Map(balances.map((balance) => [balance.employee_id, { id: balance.employee_id, name: balance.employee_name, code: balance.employee_code }])).values()).sort((a, b) => a.name.localeCompare(b.name)), [balances]);
+  const balanceEmployees = useMemo(() => Array.from(new Map(balances.map((balance) => [balance.employee_id, { id: balance.employee_id, name: balance.employee_name, code: balance.employee_code }])).values()).sort((a, b) => compareEmployeeCodes(a.code, b.code, a.name, b.name)), [balances]);
   const balanceTypes = useMemo(() => Array.from(new Map(balances.map((balance) => [balance.leave_type_code, { code: balance.leave_type_code, name: balance.leave_type_name }])).values()).sort((a, b) => a.name.localeCompare(b.name)), [balances]);
   const filteredBalances = useMemo(() => {
     if (!balanceSearchApplied) return [];
@@ -31,7 +32,7 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
       if (appliedBalanceEmployee && balance.employee_id !== appliedBalanceEmployee) return false;
       if (appliedBalanceType && balance.leave_type_code !== appliedBalanceType) return false;
       return true;
-    });
+    }).sort((left, right) => compareEmployeeCodes(left.employee_code, right.employee_code, left.employee_name, right.employee_name));
   }, [appliedBalanceEmployee, appliedBalanceType, balanceSearchApplied, balances]);
 
   function searchBalances() {
@@ -142,13 +143,14 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Direct-Report Balances</h2>
 <p className="mt-1 text-sm text-slate-500">Search and filter employees visible through your reporting hierarchy.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{balanceSearchApplied ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
-<div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto]"><KairoSelect id="balance-employee" label="Employee" value={balanceEmployee} onChange={(event) => setBalanceEmployee(event.target.value)}><option value="">All reporting employees</option>{balanceEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.code ? ` · ${employee.code}` : ""}</option>)}</KairoSelect><KairoSelect id="balance-type" label="Leave type" value={balanceType} onChange={(event) => setBalanceType(event.target.value)}><option value="">All leave types</option>{balanceTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={searchBalances}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={resetBalanceSearch}>Reset</KairoButton></div></div>
+<div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto]"><KairoSelect id="balance-employee" label="Employee" value={balanceEmployee} onChange={(event) => setBalanceEmployee(event.target.value)}><option value="">All reporting employees</option>{balanceEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.code, employee.name)}</option>)}</KairoSelect><KairoSelect id="balance-type" label="Leave type" value={balanceType} onChange={(event) => setBalanceType(event.target.value)}><option value="">All leave types</option>{balanceTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={searchBalances}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={resetBalanceSearch}>Reset</KairoButton></div></div>
 </div>
 <div className="overflow-x-auto">
 <table className="min-w-full text-left text-sm">
 <thead className="bg-[#0F172A] text-xs uppercase text-slate-300">
 <tr>
-<th className="px-5 py-4">Employee</th>
+<th className="px-5 py-4">Employee Code</th>
+<th className="px-5 py-4">Employee Name</th>
 <th className="px-5 py-4">Leave Type</th>
 <th className="px-5 py-4">Entitled</th>
 <th className="px-5 py-4">Used</th>
@@ -157,14 +159,14 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 </tr>
 </thead>
 <tbody className="divide-y">{filteredBalances.map((balance) => <tr key={balance.id}>
-<td className="px-5 py-4 font-bold">{balance.employee_title} {balance.employee_name}<span className="ml-2 text-xs text-slate-400">{balance.employee_code}</span>
-</td>
+<td className="px-5 py-4 font-bold text-[#153E90]">{balance.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold">{balance.employee_title} {balance.employee_name}</td>
 <td className="px-5 py-4">{balance.leave_type_name}</td>
 <td className="px-5 py-4">{balance.entitled_days}</td>
 <td className="px-5 py-4">{balance.used_days}</td>
 <td className="px-5 py-4">{balance.pending_days}</td>
 <td className="px-5 py-4 font-bold text-[#153E90]">{balance.available_days}</td>
-</tr>)}{!balanceSearchApplied ? <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">Select an employee and leave type, then click Search to view balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
+</tr>)}{!balanceSearchApplied ? <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400">Select an employee and leave type, then click Search to view balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
 </table>
 </div>
 </KairoCard>

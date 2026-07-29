@@ -57,7 +57,7 @@ export default function TimeOffDashboard({
     [
       "Next Company Holiday",
       dashboard.next_holiday
-        ? `${dashboard.next_holiday.name} · ${formatDate(dashboard.next_holiday.date)}`
+        ? `${dashboard.next_holiday.name} <br /> ${formatDate(dashboard.next_holiday.date)}`
         : "No upcoming holiday",
       "text-violet-700",
     ],

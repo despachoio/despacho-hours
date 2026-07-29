@@ -25,9 +25,23 @@ import {
   type TimeOffAdminData,
 } from "@/lib/time-off/client";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
+import { compareEmployeeCodes, employeeOptionLabel } from "@/lib/time-off/employee-order";
 import TimeOffBalanceExportButtons from "./TimeOffBalanceExportButtons";
 
 type AdminTab = "types" | "policies" | "holidays" | "balances" | "exceptions" | "year_end" | "reports" | "audit";
+
+function sortedEmployees(employees: TimeOffAdminData["employees"]) {
+  return [...employees].sort((left, right) => compareEmployeeCodes(
+    left.employee_code,
+    right.employee_code,
+    left.name,
+    right.name,
+  ));
+}
+
+function employeeName(employee: TimeOffAdminData["employees"][number]) {
+  return [employee.title, employee.name].filter(Boolean).join(" ");
+}
 
 export default function TimeOffAdmin({ data, leaveTypes, holidays, onChanged }: { data: TimeOffAdminData; leaveTypes: LeaveType[]; holidays: Holiday[]; onChanged: () => void }) {
   const [tab, setTab] = useState<AdminTab>("types");
@@ -164,7 +178,7 @@ function AdjustmentAdminLegacy({ data, leaveTypes, onChanged }: { data: TimeOffA
 <p className="mt-2 text-sm text-slate-500">Every credit or debit records the acting user, previous balance, new balance, reason, and timestamp.</p>
 <form onSubmit={save} className="mt-7 grid gap-5 sm:grid-cols-2">
 <KairoSelect id="adjust-employee" label="Employee" required value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-<option value="">Select employee</option>{data.employees.filter((employee) => employee.status === "active").map((employee) => <option key={employee.id} value={employee.id}>{employee.title} {employee.name} · {employee.employee_code}</option>)}</KairoSelect>
+<option value="">Select employee</option>{sortedEmployees(data.employees.filter((employee) => employee.status === "active")).map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.employee_code, employeeName(employee))}</option>)}</KairoSelect>
 <KairoSelect id="adjust-type" label="Leave type" required value={typeId} onChange={(e) => setTypeId(e.target.value)}>
 <option value="">Select leave type</option>{leaveTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</KairoSelect>
 <KairoInput id="adjust-amount" type="number" step="0.5" label="Adjustment days (+ credit / − debit)" required value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -188,7 +202,7 @@ function YearEndAdminLegacy({ data, onChanged }: { data: TimeOffAdminData; onCha
 <div className="mt-7 grid gap-5 sm:grid-cols-2">
 <KairoInput id="close-year" type="number" min="2000" max={currentYear - 1} label="Closed leave year" value={year} onChange={(e) => setYear(Number(e.target.value))} />
 <KairoSelect id="close-employee" label="Employee" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-<option value="">Select employee</option>{data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.title} {employee.name}</option>)}</KairoSelect>
+<option value="">Select employee</option>{sortedEmployees(data.employees.filter((employee) => employee.status === "active")).map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.employee_code, employeeName(employee))}</option>)}</KairoSelect>
 </div>
 <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
 <p className="font-bold">Before closing</p>
@@ -302,6 +316,11 @@ function PolicyRuleEditor({ rule, onChanged }: { rule: TimeOffAdminData["policyR
 }
 
 function ExtendedExceptionsAdmin({ data }: { data: TimeOffAdminData }) {
+  const rows = [...data.exceptions].sort((left, right) => {
+    const leftEmployee = left.employees as { name?: string; employee_code?: string } | null;
+    const rightEmployee = right.employees as { name?: string; employee_code?: string } | null;
+    return compareEmployeeCodes(leftEmployee?.employee_code, rightEmployee?.employee_code, leftEmployee?.name, rightEmployee?.name);
+  });
   return <KairoCard className="overflow-hidden">
 <div className="border-b px-6 py-5">
 <h2 className="text-xl font-bold">Extended Planned-Leave Exceptions</h2>
@@ -311,15 +330,16 @@ function ExtendedExceptionsAdmin({ data }: { data: TimeOffAdminData }) {
 <table className="min-w-full text-left text-sm">
 <thead className="bg-[#0F172A] text-xs uppercase text-slate-300">
 <tr>
-<th className="px-5 py-4">Employee</th>
+<th className="px-5 py-4">Employee Code</th>
+<th className="px-5 py-4">Employee Name</th>
 <th className="px-5 py-4">Year</th>
 <th className="px-5 py-4">Status</th>
 <th className="px-5 py-4">Reason</th>
 </tr>
 </thead>
-<tbody className="divide-y">{data.exceptions.map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return <tr key={String(item.id)}>
-<td className="px-5 py-4 font-bold">{employee?.name || "Unknown"}<span className="ml-2 text-xs text-slate-400">{employee?.employee_code}</span>
-</td>
+<tbody className="divide-y">{rows.map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return <tr key={String(item.id)}>
+<td className="px-5 py-4 font-bold text-[#153E90]">{employee?.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold">{employee?.name || "Unknown"}</td>
 <td className="px-5 py-4">{String(item.leave_year)}</td>
 <td className="px-5 py-4 font-bold capitalize">{String(item.status).replaceAll("_", " ")}</td>
 <td className="px-5 py-4 text-slate-500">{String(item.unavailable_reason || "—")}</td>
@@ -343,10 +363,10 @@ function TimeOffReports({ data, holidays }: { data: TimeOffAdminData; holidays: 
   async function exportReport() {
     setMessage("Preparing report…");
     try {
-      if (kind === "balances") download("leave-balances.csv", [["Employee", "Code", "Department", "Year", "Leave Type", "Entitled", "Used", "Pending", "Adjusted", "Available"], ...data.balances.map((row) => [row.employees?.name, row.employees?.employee_code, row.employees?.department, row.leave_year, row.leave_types?.name, row.entitled_days, row.used_days, row.pending_days, row.adjustment_days, row.available_days])]);
-      else if (kind === "adjustments") download("leave-adjustments.csv", [["Timestamp", "Employee", "Code", "Leave Type", "Year", "Days", "Previous", "New", "Reason", "Reference"], ...data.adjustments.map((row) => [row.created_at, row.employees?.name, row.employees?.employee_code, row.leave_types?.name, row.leave_year, row.adjustment_days, row.previous_balance, row.new_balance, row.reason, row.reference])]);
+      if (kind === "balances") download("leave-balances.csv", [["Employee Code", "Employee Name", "Department", "Year", "Leave Type", "Entitled", "Used", "Pending", "Adjusted", "Available"], ...data.balances.map((row) => [row.employees?.employee_code, row.employees?.name, row.employees?.department, row.leave_year, row.leave_types?.name, row.entitled_days, row.used_days, row.pending_days, row.adjustment_days, row.available_days])]);
+      else if (kind === "adjustments") download("leave-adjustments.csv", [["Timestamp", "Employee Code", "Employee Name", "Leave Type", "Year", "Days", "Previous", "New", "Reason", "Reference"], ...data.adjustments.map((row) => [row.created_at, row.employees?.employee_code, row.employees?.name, row.leave_types?.name, row.leave_year, row.adjustment_days, row.previous_balance, row.new_balance, row.reason, row.reference])]);
       else if (kind === "holidays") download("holiday-calendar.csv", [["Date", "Holiday", "Duration", "Audience"], ...holidays.map((holiday) => [holiday.holiday_date, holiday.name, holiday.day_part, holiday.holiday_calendars?.audience])]);
-      else if (kind === "encashment") download("year-end-encashment.csv", [["Employee", "Code", "Year", "Encashable Days", "Status", "Payroll Reference"], ...data.encashments.map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return [employee?.name, employee?.employee_code, item.leave_year, item.encashable_leave_days, item.status, item.payroll_reference]; })]);
+      else if (kind === "encashment") download("year-end-encashment.csv", [["Employee Code", "Employee Name", "Year", "Encashable Days", "Status", "Payroll Reference"], ...data.encashments.map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return [employee?.employee_code, employee?.name, item.leave_year, item.encashable_leave_days, item.status, item.payroll_reference]; })]);
       else {
         const usage = await loadTimeOffUsageRows(from, to);
         const approved = usage.filter((row) => ["approved", "cancellation_requested"].includes(row.status) && ["approved", "cancellation_rejected", "cancellation_requested"].includes(row.leave_requests?.status || ""));
@@ -403,7 +423,7 @@ function YearEndAdmin({ data, onChanged }: { data: TimeOffAdminData; onChanged: 
   const [employeeId, setEmployeeId] = useState("");
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
   const [message, setMessage] = useState("");
-  const activeEmployees = useMemo(() => data.employees.filter((employee) => employee.status === "active"), [data.employees]);
+  const activeEmployees = useMemo(() => sortedEmployees(data.employees.filter((employee) => employee.status === "active")), [data.employees]);
   const reviewYears = Array.from({ length: 6 }, (_, index) => currentYear - index);
   async function review() {
     if (!employeeId) return;
@@ -425,7 +445,7 @@ function YearEndAdmin({ data, onChanged }: { data: TimeOffAdminData; onChanged: 
 <p className="mt-1 text-sm text-slate-500">Review entitlement, usage, LOP, and encashment before closing.</p>
 <div className="mt-5 grid gap-4 sm:grid-cols-3">
 <KairoSelect id="review-employee" label="Employee" value={employeeId} onChange={(event) => { setEmployeeId(event.target.value); setPreview(null); }}>
-<option value="">Select active employee</option>{activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.title} {employee.name}</option>)}</KairoSelect>
+<option value="">Select active employee</option>{activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.employee_code, employeeName(employee))}</option>)}</KairoSelect>
 <KairoSelect id="review-year" label="Leave year" value={year} onChange={(event) => { setYear(Number(event.target.value)); setPreview(null); }}>{reviewYears.map((reviewYear) => <option key={reviewYear} value={reviewYear}>{reviewYear}</option>)}</KairoSelect>
 <div className="self-end">
 <KairoButton type="button" onClick={review} disabled={!employeeId}>Review Calculation</KairoButton>
@@ -443,14 +463,16 @@ function YearEndAdmin({ data, onChanged }: { data: TimeOffAdminData; onChanged: 
 <table className="min-w-full text-left text-sm">
 <thead className="bg-[#0F172A] text-xs uppercase text-slate-300">
 <tr>
-<th className="px-5 py-4">Employee</th>
+<th className="px-5 py-4">Employee Code</th>
+<th className="px-5 py-4">Employee Name</th>
 <th className="px-5 py-4">Year</th>
 <th className="px-5 py-4">Days</th>
 <th className="px-5 py-4">Status</th>
 <th className="px-5 py-4">Action</th>
 </tr>
 </thead>
-<tbody className="divide-y">{data.encashments.map((item) => { const employee = item.employees as { name?: string } | null; return <tr key={String(item.id)}>
+<tbody className="divide-y">{[...data.encashments].sort((left, right) => { const a = left.employees as { name?: string; employee_code?: string } | null; const b = right.employees as { name?: string; employee_code?: string } | null; return compareEmployeeCodes(a?.employee_code, b?.employee_code, a?.name, b?.name); }).map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return <tr key={String(item.id)}>
+<td className="px-5 py-4 font-bold text-[#153E90]">{employee?.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{employee?.name}</td>
 <td className="px-5 py-4">{String(item.leave_year)}</td>
 <td className="px-5 py-4">{String(item.encashable_leave_days)}</td>
@@ -464,9 +486,9 @@ function YearEndAdmin({ data, onChanged }: { data: TimeOffAdminData; onChanged: 
 <div className="border-b px-6 py-5">
 <h2 className="text-xl font-bold">Closure History</h2>
 </div>
-<div className="divide-y">{data.closures.map((item) => { const employee = item.employees as { name?: string } | null; return <div key={String(item.id)} className="flex flex-wrap items-center gap-4 px-6 py-4">
+<div className="divide-y">{[...data.closures].sort((left, right) => { const a = left.employees as { name?: string; employee_code?: string } | null; const b = right.employees as { name?: string; employee_code?: string } | null; return compareEmployeeCodes(a?.employee_code, b?.employee_code, a?.name, b?.name); }).map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return <div key={String(item.id)} className="flex flex-wrap items-center gap-4 px-6 py-4">
 <div className="flex-1">
-<p className="font-bold">{employee?.name} · {String(item.leave_year)}</p>
+<p className="font-bold">{employeeOptionLabel(employee?.employee_code, employee?.name || "Unknown")} · {String(item.leave_year)}</p>
 <p className="mt-1 text-xs text-slate-500">{String(item.status)} · Encashable {String(item.encashable_leave_days)} days</p>
 </div>{item.status === "closed" ? <KairoButton type="button" variant="danger" onClick={() => reverse(item)}>Reverse Closure</KairoButton> : null}</div>; })}</div>
 </KairoCard>{message ? <p className="rounded-xl bg-slate-100 p-4 text-sm font-semibold">{message}</p> : null}</div>;
@@ -576,13 +598,13 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
   const [appliedLeaveTypeCode, setAppliedLeaveTypeCode] = useState("");
   const [appliedLeaveYear, setAppliedLeaveYear] = useState(currentYear);
   const [searched, setSearched] = useState(false);
-  const activeEmployees = useMemo(() => data.employees.filter((employee) => employee.status === "active"), [data.employees]);
+  const activeEmployees = useMemo(() => sortedEmployees(data.employees.filter((employee) => employee.status === "active")), [data.employees]);
   const years = useMemo(() => Array.from(new Set([currentYear, ...data.balances.map((row) => row.leave_year)])).sort((a, b) => b - a), [currentYear, data.balances]);
   const filteredBalances = useMemo(() => searched ? data.balances.filter((row) => {
     if (appliedEmployeeId && row.employee_id !== appliedEmployeeId) return false;
     if (appliedLeaveTypeCode && row.leave_types?.code !== appliedLeaveTypeCode) return false;
     return row.leave_year === appliedLeaveYear;
-  }) : [], [appliedEmployeeId, appliedLeaveTypeCode, appliedLeaveYear, data.balances, searched]);
+  }).sort((left, right) => compareEmployeeCodes(left.employees?.employee_code, right.employees?.employee_code, left.employees?.name, right.employees?.name)) : [], [appliedEmployeeId, appliedLeaveTypeCode, appliedLeaveYear, data.balances, searched]);
   function search() { setAppliedEmployeeId(employeeId); setAppliedLeaveTypeCode(leaveTypeCode); setAppliedLeaveYear(leaveYear); setSearched(true); }
   function reset() { setEmployeeId(""); setLeaveTypeCode(""); setLeaveYear(currentYear); setAppliedEmployeeId(""); setAppliedLeaveTypeCode(""); setAppliedLeaveYear(currentYear); setSearched(false); }
   return <div className="space-y-6">
@@ -590,14 +612,15 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Employee Leave Balances</h2>
 <p className="mt-1 text-sm text-slate-500">Filter active employees, leave types, and leave year before viewing or exporting balances.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{searched ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
-<div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_.65fr_auto_auto]"><KairoSelect id="admin-balance-employee" label="Employee" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">All active employees</option>{activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.title} {employee.name} · {employee.employee_code}</option>)}</KairoSelect><KairoSelect id="admin-balance-type" label="Leave type" value={leaveTypeCode} onChange={(event) => setLeaveTypeCode(event.target.value)}><option value="">All leave types</option>{leaveTypes.map((type) => <option key={type.id} value={type.code}>{type.name}</option>)}</KairoSelect><KairoSelect id="admin-balance-year" label="Year" value={leaveYear} onChange={(event) => setLeaveYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={search}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton></div></div>
+<div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_.65fr_auto_auto]"><KairoSelect id="admin-balance-employee" label="Employee" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">All active employees</option>{activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.employee_code, employeeName(employee))}</option>)}</KairoSelect><KairoSelect id="admin-balance-type" label="Leave type" value={leaveTypeCode} onChange={(event) => setLeaveTypeCode(event.target.value)}><option value="">All leave types</option>{leaveTypes.map((type) => <option key={type.id} value={type.code}>{type.name}</option>)}</KairoSelect><KairoSelect id="admin-balance-year" label="Year" value={leaveYear} onChange={(event) => setLeaveYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={search}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton></div></div>
 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-sm font-semibold text-slate-600">Exports contain only the results applied with Search.</p><TimeOffBalanceExportButtons rows={filteredBalances} year={appliedLeaveYear} /></div>
 </div>
 <div className="max-h-[520px] overflow-auto">
 <table className="min-w-full text-left text-sm">
 <thead className="sticky top-0 bg-[#0F172A] text-xs uppercase text-slate-300">
 <tr>
-<th className="px-5 py-4">Employee</th>
+<th className="px-5 py-4">Employee Code</th>
+<th className="px-5 py-4">Employee Name</th>
 <th className="px-5 py-4">Year</th>
 <th className="px-5 py-4">Type</th>
 <th className="px-5 py-4">Entitled</th>
@@ -608,8 +631,8 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 </tr>
 </thead>
 <tbody className="divide-y">{filteredBalances.map((row) => <tr key={row.id}>
-<td className="px-5 py-4 font-bold">{row.employees?.name}<span className="ml-2 text-xs text-slate-400">{row.employees?.employee_code}</span>
-</td>
+<td className="px-5 py-4 font-bold text-[#153E90]">{row.employees?.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold">{row.employees?.name}</td>
 <td className="px-5 py-4">{row.leave_year}</td>
 <td className="px-5 py-4">{row.leave_types?.name}</td>
 <td className="px-5 py-4">{row.entitled_days}</td>
@@ -617,7 +640,7 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 <td className="px-5 py-4">{row.pending_days}</td>
 <td className="px-5 py-4">{row.adjustment_days}</td>
 <td className="px-5 py-4 font-bold text-[#153E90]">{row.available_days}</td>
-</tr>)}{!searched ? <tr><td colSpan={8} className="px-6 py-12 text-center text-sm text-slate-400">Choose filters and click Search to view employee leave balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={8} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
+</tr>)}{!searched ? <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-slate-400">Choose filters and click Search to view employee leave balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
 </table>
 </div>
 </KairoCard>
@@ -631,15 +654,17 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 <thead className="bg-[#0F172A] text-xs uppercase text-slate-300">
 <tr>
 <th className="px-5 py-4">Timestamp</th>
-<th className="px-5 py-4">Employee</th>
+<th className="px-5 py-4">Employee Code</th>
+<th className="px-5 py-4">Employee Name</th>
 <th className="px-5 py-4">Type</th>
 <th className="px-5 py-4">Change</th>
 <th className="px-5 py-4">Previous → New</th>
 <th className="px-5 py-4">Reason</th>
 </tr>
 </thead>
-<tbody className="divide-y">{data.adjustments.map((row) => <tr key={row.id}>
+<tbody className="divide-y">{[...data.adjustments].sort((left, right) => compareEmployeeCodes(left.employees?.employee_code, right.employees?.employee_code, left.employees?.name, right.employees?.name)).map((row) => <tr key={row.id}>
 <td className="whitespace-nowrap px-5 py-4">{new Date(row.created_at).toLocaleString("en-IN")}</td>
+<td className="px-5 py-4 font-bold text-[#153E90]">{row.employees?.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{row.employees?.name}</td>
 <td className="px-5 py-4">{row.leave_types?.name}</td>
 <td className="px-5 py-4 font-bold">{row.adjustment_days > 0 ? "+" : ""}{row.adjustment_days}</td>

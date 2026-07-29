@@ -89,4 +89,19 @@ describe("Time Off UI contract", () => {
     expect(administration).toContain("const [year, setYear] = useState(currentYear)");
     expect(administration).toContain('id="review-year"');
   });
+
+  it("orders employee dropdowns by code and separates result columns", () => {
+    const approvals = source("src/components/time-off/ApprovalCentre.tsx");
+    const administration = source("src/components/time-off/TimeOffAdmin.tsx");
+    const calendar = source("src/components/time-off/LeaveCalendar.tsx");
+    const exports = source("src/components/time-off/TimeOffBalanceExportButtons.tsx");
+    for (const content of [approvals, administration, calendar]) {
+      expect(content).toContain("compareEmployeeCodes");
+      expect(content).toContain("employeeOptionLabel");
+    }
+    for (const content of [approvals, administration, exports]) {
+      expect(content).toContain("Employee Code");
+      expect(content).toContain("Employee Name");
+    }
+  });
 });

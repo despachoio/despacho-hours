@@ -8,8 +8,8 @@ type BalanceRow = TimeOffAdminData["balances"][number];
 
 function records(rows: BalanceRow[]) {
   return rows.map((row) => ({
-    Employee: row.employees?.name || "",
     "Employee Code": row.employees?.employee_code || "",
+    "Employee Name": row.employees?.name || "",
     Department: row.employees?.department || "",
     Year: row.leave_year,
     "Leave Type": row.leave_types?.name || "",
@@ -70,11 +70,12 @@ const styles = StyleSheet.create({
   subtitle: { color: "#64748B", marginBottom: 14 },
   row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#CBD5E1", paddingVertical: 5 },
   header: { backgroundColor: "#0F172A", color: "#FFFFFF", fontWeight: "bold" },
-  employee: { width: "22%", paddingHorizontal: 3 },
-  type: { width: "18%", paddingHorizontal: 3 },
+  code: { width: "12%", paddingHorizontal: 3 },
+  employee: { width: "18%", paddingHorizontal: 3 },
+  type: { width: "16%", paddingHorizontal: 3 },
   number: { width: "10%", paddingHorizontal: 3, textAlign: "right" },
 });
 
 function BalanceReportPdf({ rows, year }: { rows: BalanceRow[]; year: number }) {
-  return <Document><Page size="A4" orientation="landscape" style={styles.page}><Text style={styles.title}>Kairo Employee Leave Balances</Text><Text style={styles.subtitle}>Leave year {year} · {rows.length} filtered records</Text><View style={[styles.row, styles.header]}><Text style={styles.employee}>Employee</Text><Text style={styles.type}>Leave Type</Text><Text style={styles.number}>Entitled</Text><Text style={styles.number}>Used</Text><Text style={styles.number}>Pending</Text><Text style={styles.number}>Adjusted</Text><Text style={styles.number}>Available</Text></View>{rows.map((row) => <View key={row.id} style={styles.row} wrap={false}><Text style={styles.employee}>{row.employees?.name || ""} · {row.employees?.employee_code || ""}</Text><Text style={styles.type}>{row.leave_types?.name || ""}</Text><Text style={styles.number}>{row.entitled_days}</Text><Text style={styles.number}>{row.used_days}</Text><Text style={styles.number}>{row.pending_days}</Text><Text style={styles.number}>{row.adjustment_days}</Text><Text style={styles.number}>{row.available_days}</Text></View>)}</Page></Document>;
+  return <Document><Page size="A4" orientation="landscape" style={styles.page}><Text style={styles.title}>Kairo Employee Leave Balances</Text><Text style={styles.subtitle}>Leave year {year} · {rows.length} filtered records</Text><View style={[styles.row, styles.header]}><Text style={styles.code}>Employee Code</Text><Text style={styles.employee}>Employee Name</Text><Text style={styles.type}>Leave Type</Text><Text style={styles.number}>Entitled</Text><Text style={styles.number}>Used</Text><Text style={styles.number}>Pending</Text><Text style={styles.number}>Adjusted</Text><Text style={styles.number}>Available</Text></View>{rows.map((row) => <View key={row.id} style={styles.row} wrap={false}><Text style={styles.code}>{row.employees?.employee_code || "—"}</Text><Text style={styles.employee}>{row.employees?.name || ""}</Text><Text style={styles.type}>{row.leave_types?.name || ""}</Text><Text style={styles.number}>{row.entitled_days}</Text><Text style={styles.number}>{row.used_days}</Text><Text style={styles.number}>{row.pending_days}</Text><Text style={styles.number}>{row.adjustment_days}</Text><Text style={styles.number}>{row.available_days}</Text></View>)}</Page></Document>;
 }
