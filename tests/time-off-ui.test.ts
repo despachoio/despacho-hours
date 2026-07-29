@@ -38,6 +38,15 @@ describe("Time Off UI contract", () => {
     expect(approval).toContain("A rejection comment is required");
   });
 
+  it("allows an approver to close a selected request without taking action", () => {
+    const approval = source("src/components/time-off/ApprovalCentre.tsx");
+    expect(approval).toContain("closeApprovalDetail");
+    expect(approval).toContain('aria-label="Close approval detail"');
+    expect(approval).toContain('setSelected(null)');
+    expect(approval).toContain('setComment("")');
+    expect(approval).toContain('setOverrideReason("")');
+  });
+
   it("provides searchable direct-report balance filters", () => {
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
     expect(approval).not.toContain("balance-search\"");
