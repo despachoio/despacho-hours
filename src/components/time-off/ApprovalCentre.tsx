@@ -88,31 +88,32 @@ export default function ApprovalCentre({ requests, managedEmployees, managedRequ
 
   const upcoming = calendar.filter((leave) => ["approved", "cancellation_rejected"].includes(leave.status) && leave.start_date >= today).slice(0, 8);
   return <div className="grid gap-6 xl:grid-cols-[1fr_.85fr]">
-    <KairoCard className="overflow-hidden border-amber-100/80 bg-gradient-to-br from-white via-amber-50/25 to-orange-50/45 shadow-[0_24px_60px_-40px_rgba(217,119,6,.65)] before:from-amber-500 before:via-orange-400 before:to-rose-400">
-<div className="border-b border-amber-100/80 bg-gradient-to-r from-amber-50/95 via-white to-orange-50/65 px-6 py-5">
-<div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-900/15"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold">Requires My Action</h2>
-<p className="mt-1 text-sm text-slate-500">Pending direct-report requests and cancellation approvals.</p></div></div>
+    <KairoCard className="overflow-hidden border-indigo-100 bg-[#f2f3ff] shadow-[0_28px_75px_-42px_rgba(21,62,144,.85)] before:from-blue-600 before:via-indigo-500 before:to-violet-500">
+<div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-r from-slate-950 via-indigo-950 to-blue-950 px-6 py-5 text-white">
+<span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-blue-500/25 blur-3xl" /><span className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
+<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-blue-100 shadow-xl ring-1 ring-inset ring-white/10 backdrop-blur"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold">Requires My Action</h2>
+<p className="mt-1 text-sm text-slate-300">Pending direct-report requests and cancellation approvals.</p></div></div>
 </div>
-<div className="space-y-3 p-5">{requests.length ? requests.map((request) => {
+<div className="space-y-3 bg-[#f2f3ff] p-5">{requests.length ? requests.map((request) => {
 const isSelected = selected?.id === request.id;
-return <button key={request.id} type="button" aria-pressed={isSelected} onClick={() => { setSelected(request); setError(""); }} className={`group relative w-full overflow-hidden rounded-2xl border p-4 text-left shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35 ${isSelected ? "border-blue-300 bg-gradient-to-r from-blue-50 via-indigo-50/75 to-violet-50/70 shadow-md ring-1 ring-blue-200" : request.administrative_override_required ? "border-rose-200 bg-gradient-to-r from-white via-rose-50/55 to-orange-50/70 hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md" : "border-amber-100 bg-gradient-to-r from-white via-amber-50/55 to-orange-50/60 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-md"}`}>
-<span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${isSelected ? "from-blue-600 via-indigo-500 to-violet-500" : request.administrative_override_required ? "from-rose-500 to-orange-400" : "from-amber-500 to-orange-400"}`} />
+return <button key={request.id} type="button" aria-pressed={isSelected} onClick={() => { setSelected(request); setError(""); }} className={`group relative w-full overflow-hidden rounded-2xl border p-4 text-left shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35 ${isSelected ? "border-cyan-300 bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50 shadow-lg ring-2 ring-cyan-200/70" : request.administrative_override_required ? "border-rose-200 bg-gradient-to-r from-white via-rose-50/45 to-violet-50/55 hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md" : "border-indigo-100 bg-gradient-to-r from-white via-blue-50/55 to-indigo-50/70 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"}`}>
+<span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${isSelected ? "from-cyan-400 via-blue-600 to-violet-500" : request.administrative_override_required ? "from-rose-500 to-violet-500" : "from-blue-600 via-indigo-500 to-violet-500"}`} />
 <div className="flex items-start justify-between gap-4 pl-1">
 <div className="flex min-w-0 items-center gap-3">
-<span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ${isSelected ? "bg-[#153E90] text-white" : request.administrative_override_required ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}><TimeOffIcon name={request.administrative_override_required ? "alert" : "clock"} className="h-5 w-5" /></span>
+<span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ${isSelected ? "bg-gradient-to-br from-cyan-500 to-blue-700 text-white shadow-blue-900/20" : request.administrative_override_required ? "bg-rose-100 text-rose-700" : "bg-gradient-to-br from-indigo-100 to-blue-100 text-indigo-700 ring-1 ring-inset ring-indigo-200"}`}><TimeOffIcon name={request.administrative_override_required ? "alert" : "clock"} className="h-5 w-5" /></span>
 <div className="min-w-0"><p className="truncate font-bold text-slate-950">{request.employees?.title} {request.employees?.name}</p><p className="mt-1 truncate text-xs font-medium text-slate-500">{request.employees?.employee_code} · {request.employees?.department || "No department"}</p></div>
 </div>
 <TimeOffStatusBadge status={request.status} />
 </div>
-<div className={`mt-4 grid gap-3 rounded-xl border bg-white/70 px-4 py-3 text-sm shadow-inner shadow-slate-200/25 sm:grid-cols-[1fr_1.35fr_auto] sm:items-center ${isSelected ? "border-blue-100" : request.administrative_override_required ? "border-rose-100" : "border-amber-100/80"}`}>
-<span><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Leave type</span><span className={`mt-1 block font-bold ${isSelected ? "text-[#153E90]" : "text-amber-800"}`}>{request.leave_types?.name}</span></span>
+<div className={`mt-4 grid gap-3 rounded-xl border bg-white/75 px-4 py-3 text-sm shadow-inner shadow-indigo-200/20 backdrop-blur sm:grid-cols-[1fr_1.35fr_auto] sm:items-center ${isSelected ? "border-cyan-200" : request.administrative_override_required ? "border-rose-100" : "border-indigo-100"}`}>
+<span><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Leave type</span><span className={`mt-1 block font-bold ${isSelected ? "text-blue-800" : "text-indigo-800"}`}>{request.leave_types?.name}</span></span>
 <span><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Dates</span><span className="mt-1 block font-semibold text-slate-700">{formatLeaveDate(request.start_date)} – {formatLeaveDate(request.end_date)}</span></span>
 <span className="sm:text-right"><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Duration</span><span className="mt-1 block whitespace-nowrap font-bold text-slate-950">{leaveDayLabel(request.working_days)}</span></span>
 </div>
 {request.administrative_override_required ? <p className="mt-3 flex items-center gap-1.5 pl-1 text-xs font-bold text-rose-700"><TimeOffIcon name="alert" className="h-3.5 w-3.5" />Administrative override required</p> : null}
 {isSelected ? <p className="mt-3 pl-1 text-xs font-bold text-[#153E90]">Selected · Review the approval details</p> : null}
 </button>;
-}) : <div className="rounded-2xl border border-dashed border-amber-200 bg-white/70 px-6 py-16 text-center text-sm text-slate-400">No requests currently require your action.</div>}</div>
+}) : <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/70 px-6 py-16 text-center text-sm text-slate-400">No requests currently require your action.</div>}</div>
 </KairoCard>
     <KairoCard className="border-white/80 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-[0_20px_55px_-38px_rgba(5,150,105,.55)]">{selected ? <div>
 <div className="flex items-start justify-between gap-4">
