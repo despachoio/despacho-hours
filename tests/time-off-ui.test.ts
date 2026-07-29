@@ -42,6 +42,7 @@ describe("Time Off UI contract", () => {
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
     expect(approval).toContain("closeApprovalDetail");
     expect(approval).toContain('aria-label="Close approval detail"');
+    expect(approval).toContain('<span aria-hidden="true">×</span>');
     expect(approval).toContain('setSelected(null)');
     expect(approval).toContain('setComment("")');
     expect(approval).toContain('setOverrideReason("")');
