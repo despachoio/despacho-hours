@@ -55,4 +55,38 @@ describe("Time Off UI contract", () => {
     expect(source("src/components/time-off/LeaveCalendar.tsx")).toContain("Team Leave");
     expect(source("src/components/time-off/TimeOffAdmin.tsx")).toContain("Confirm Year Closure");
   });
+
+  it("limits Time Off administration to Super Admin and Finance Admin", () => {
+    const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
+    expect(workspace).toContain('const canAdminister = ["super admin", "finance admin"].includes(role)');
+    expect(workspace).toContain("canAdminister ? [[\"admin\", \"Administration\"");
+    expect(workspace).toContain('tab === "admin" && canAdminister');
+  });
+
+  it("filters gender-specific leave types in the request form", () => {
+    const request = source("src/components/time-off/RequestLeaveDialog.tsx");
+    expect(request).toContain("employeeGender");
+    expect(request).toContain("eligibleLeaveTypes");
+    expect(request).toContain("gender_eligibility");
+    expect(request).toContain('eligibility === "all" || eligibility === gender');
+  });
+
+  it("requires a balance search and exports the applied result set", () => {
+    const administration = source("src/components/time-off/TimeOffAdmin.tsx");
+    const exports = source("src/components/time-off/TimeOffBalanceExportButtons.tsx");
+    expect(administration).toContain("All active employees");
+    expect(administration).toContain("All leave types");
+    expect(administration).toContain("click Search to view employee leave balances");
+    expect(administration).toContain("TimeOffBalanceExportButtons rows={filteredBalances}");
+    expect(exports).toContain(">CSV<");
+    expect(exports).toContain(">Excel<");
+    expect(exports).toContain(">PDF<");
+  });
+
+  it("uses active employees and includes the current year in year-end review", () => {
+    const administration = source("src/components/time-off/TimeOffAdmin.tsx");
+    expect(administration).toContain('data.employees.filter((employee) => employee.status === "active")');
+    expect(administration).toContain("const [year, setYear] = useState(currentYear)");
+    expect(administration).toContain('id="review-year"');
+  });
 });

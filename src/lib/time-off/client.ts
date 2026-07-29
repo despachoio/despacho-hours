@@ -5,6 +5,7 @@ export type TimeOffProfile = {
   role: string;
   employee_id: string;
   full_name: string | null;
+  gender: string | null;
 };
 
 export type TimeOffDashboard = {
@@ -300,6 +301,7 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     .eq("id", profile.employee_id)
     .single();
   if (employeeResult.error) throw new Error(employeeResult.error.message);
+  profile.gender = employeeResult.data?.gender || null;
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
   const [dashboardResult, typeResult, requestResult, holidayResult, calendarResult, notificationResult] =

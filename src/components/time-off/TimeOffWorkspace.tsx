@@ -40,7 +40,7 @@ export default function TimeOffWorkspace() {
         if (cancelled) return;
         setData(next);
         const normalizedRole = String(next.profile.role || "").trim().toLowerCase();
-        if (["admin", "super admin", "finance admin"].includes(normalizedRole)) {
+        if (["super admin", "finance admin"].includes(normalizedRole)) {
           setAdminData(await loadTimeOffAdminData());
         } else setAdminData(null);
       } catch (cause) {
@@ -55,13 +55,14 @@ export default function TimeOffWorkspace() {
 
   const role = String(data?.profile.role || "").trim().toLowerCase();
   const isAdmin = ["admin", "super admin", "finance admin"].includes(role);
+  const canAdminister = ["super admin", "finance admin"].includes(role);
   const canApprove = isAdmin || role === "manager";
   const tabs: Array<[Tab, string, number | null]> = [
     ["overview", "Overview", null],
     ["requests", "My Requests", data?.requests.length || 0],
     ["calendar", "Calendar", null],
     ...(canApprove ? [["approvals", "Approvals", data?.approvalQueue.length || 0] as [Tab, string, number]] : []),
-    ...(isAdmin ? [["admin", "Administration", null] as [Tab, string, null]] : []),
+    ...(canAdminister ? [["admin", "Administration", null] as [Tab, string, null]] : []),
   ];
 
   return <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
@@ -74,7 +75,7 @@ export default function TimeOffWorkspace() {
       <div className="relative z-10 -mt-4 mx-3 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/50 sm:mx-6">{tabs.map(([value, label, count]) => <button key={value} type="button" onClick={() => setTab(value)} className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === value ? "bg-[#153E90] text-white" : "text-slate-500 hover:bg-slate-100"}`}>{label}{count !== null ? <span className={`rounded-full px-2 py-0.5 text-[10px] ${tab === value ? "bg-white/15" : "bg-slate-100"}`}>{count}</span> : null}</button>)}</div>
 
       <div className="mt-7">
-        {loading ? <LoadingState /> : error || !data ? <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800"><p className="font-bold">Unable to load Time Off</p><p className="mt-1 text-sm">{error}</p><KairoButton type="button" className="mt-4" onClick={refresh}>Try Again</KairoButton></div> : <>{tab === "overview" ? <TimeOffDashboard dashboard={data.dashboard} requests={data.requests} holidays={data.holidays} notifications={data.notifications} onChanged={refresh} onRequestLeave={() => setRequestOpen(true)} /> : null}{tab === "requests" ? <MyLeaveRequests requests={data.requests} leaveTypes={data.leaveTypes} onChanged={refresh} /> : null}{tab === "calendar" ? <LeaveCalendar leave={data.calendar} holidays={data.holidays} /> : null}{tab === "approvals" && canApprove ? <ApprovalCentre requests={data.approvalQueue} calendar={data.calendar} balances={data.managerBalances} recent={data.recentTeamRequests} isAdmin={isAdmin} onChanged={refresh} /> : null}{tab === "admin" && isAdmin && adminData ? <TimeOffAdmin data={adminData} leaveTypes={data.leaveTypes} holidays={data.holidays} onChanged={refresh} /> : null}<RequestLeaveDialog open={requestOpen} employeeId={data.profile.employee_id} leaveTypes={data.leaveTypes} isAdmin={isAdmin} onClose={() => setRequestOpen(false)} onSubmitted={refresh} /></>}
+        {loading ? <LoadingState /> : error || !data ? <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800"><p className="font-bold">Unable to load Time Off</p><p className="mt-1 text-sm">{error}</p><KairoButton type="button" className="mt-4" onClick={refresh}>Try Again</KairoButton></div> : <>{tab === "overview" ? <TimeOffDashboard dashboard={data.dashboard} requests={data.requests} holidays={data.holidays} notifications={data.notifications} onChanged={refresh} onRequestLeave={() => setRequestOpen(true)} /> : null}{tab === "requests" ? <MyLeaveRequests requests={data.requests} leaveTypes={data.leaveTypes} onChanged={refresh} /> : null}{tab === "calendar" ? <LeaveCalendar leave={data.calendar} holidays={data.holidays} /> : null}{tab === "approvals" && canApprove ? <ApprovalCentre requests={data.approvalQueue} calendar={data.calendar} balances={data.managerBalances} recent={data.recentTeamRequests} isAdmin={isAdmin} onChanged={refresh} /> : null}{tab === "admin" && canAdminister && adminData ? <TimeOffAdmin data={adminData} leaveTypes={data.leaveTypes} holidays={data.holidays} onChanged={refresh} /> : null}<RequestLeaveDialog open={requestOpen} employeeId={data.profile.employee_id} employeeGender={data.profile.gender} leaveTypes={data.leaveTypes} isAdmin={isAdmin} onClose={() => setRequestOpen(false)} onSubmitted={refresh} /></>}
       </div>
     </div>
   </main>;

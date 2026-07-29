@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migrations = fs.readdirSync(path.join(process.cwd(), "supabase/migrations"))
-  .filter((file) => file.startsWith("20260729000") && file.endsWith(".sql"))
+  .filter((file) => file.startsWith("20260729") && file.endsWith(".sql"))
   .map((file) =>
   fs.readFileSync(path.join(process.cwd(), "supabase/migrations", file), "utf8"),
 ).join("\n");
@@ -71,5 +71,12 @@ describe("Time Off database security contract", () => {
     expect(migrations).toContain("An administrative override reason is required");
     expect(migrations).toContain("A reversal reason is required");
     expect(migrations).toContain("An adjustment reason is required");
+  });
+
+  it("reserves Time Off administration for Super Admin and Finance Admin", () => {
+    expect(migrations).toContain("create or replace function public.time_off_can_administer()");
+    expect(migrations).toContain("in ('super admin', 'finance admin')");
+    expect(migrations).toContain("enforce_time_off_administration_access");
+    expect(migrations).toContain("Only a Super Admin or Finance Admin can perform Time Off administration");
   });
 });

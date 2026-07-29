@@ -16,6 +16,7 @@ import type { DayPart, PolicyEvaluation } from "@/lib/time-off/types";
 export default function RequestLeaveDialog({
   open,
   employeeId,
+  employeeGender,
   leaveTypes,
   isAdmin,
   onClose,
@@ -23,6 +24,7 @@ export default function RequestLeaveDialog({
 }: {
   open: boolean;
   employeeId: string;
+  employeeGender: string | null;
   leaveTypes: LeaveType[];
   isAdmin: boolean;
   onClose: () => void;
@@ -44,6 +46,14 @@ export default function RequestLeaveDialog({
   const [confirmImpact, setConfirmImpact] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const eligibleLeaveTypes = useMemo(() => {
+    const gender = String(employeeGender || "").trim().toLowerCase();
+    return leaveTypes.filter((type) => {
+      if (!type.is_active) return false;
+      const eligibility = String(type.gender_eligibility || "All").trim().toLowerCase();
+      return eligibility === "all" || eligibility === gender;
+    });
+  }, [employeeGender, leaveTypes]);
   const selectedType = useMemo(
     () => leaveTypes.find((type) => type.id === leaveTypeId) || null,
     [leaveTypeId, leaveTypes],
@@ -147,7 +157,7 @@ export default function RequestLeaveDialog({
           <div className="space-y-5">
             <KairoSelect autoFocus id="leave-type" label="Leave type" required value={leaveTypeId} onChange={(event) => { resetPolicyEvaluation(); setLeaveTypeId(event.target.value); }}>
               <option value="">Select leave type</option>
-              {leaveTypes.filter((type) => type.is_active).map((type) => <option key={type.id} value={type.id}>{type.name}{type.is_paid ? " · Paid" : " · Unpaid"}</option>)}
+              {eligibleLeaveTypes.map((type) => <option key={type.id} value={type.id}>{type.name}{type.is_paid ? " · Paid" : " · Unpaid"}</option>)}
             </KairoSelect>
             <div className="grid gap-4 sm:grid-cols-2"><KairoInput id="leave-start" type="date" label="Start date" required value={startDate} onChange={(event) => { resetPolicyEvaluation(); setStartDate(event.target.value); if (!endDate || event.target.value > endDate) setEndDate(event.target.value); }} /><KairoInput id="leave-end" type="date" label="End date" required min={startDate || undefined} value={endDate} onChange={(event) => { resetPolicyEvaluation(); setEndDate(event.target.value); }} /></div>
             {singleDay ? <KairoSelect id="single-duration" label="Duration" value={startPart} onChange={(event) => { resetPolicyEvaluation(); setStartPart(event.target.value as DayPart); }}><option value="full_day">Full Day</option><option value="first_half">First Half</option><option value="second_half">Second Half</option></KairoSelect> : <div className="grid gap-4 sm:grid-cols-2"><KairoSelect id="start-duration" label="Start date duration" value={startPart} onChange={(event) => { resetPolicyEvaluation(); setStartPart(event.target.value as DayPart); }}><option value="full_day">Full Day</option><option value="second_half">Second Half</option></KairoSelect><KairoSelect id="end-duration" label="End date duration" value={endPart} onChange={(event) => { resetPolicyEvaluation(); setEndPart(event.target.value as DayPart); }}><option value="full_day">Full Day</option><option value="first_half">First Half</option></KairoSelect></div>}
