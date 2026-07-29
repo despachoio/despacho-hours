@@ -88,13 +88,13 @@ export default function ApprovalCentre({ requests, managedEmployees, managedRequ
 
   const upcoming = calendar.filter((leave) => ["approved", "cancellation_rejected"].includes(leave.status) && leave.start_date >= today).slice(0, 8);
   return <div className="grid gap-6 xl:grid-cols-[1fr_.85fr]">
-    <KairoCard className="overflow-hidden border-indigo-100 bg-[#f2f3ff] shadow-[0_28px_75px_-42px_rgba(21,62,144,.85)] before:from-blue-600 before:via-indigo-500 before:to-violet-500">
-<div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-r from-slate-950 via-indigo-950 to-blue-950 px-6 py-5 text-white">
-<span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-blue-500/25 blur-3xl" /><span className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
-<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-blue-100 shadow-xl ring-1 ring-inset ring-white/10 backdrop-blur"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold">Requires My Action</h2>
-<p className="mt-1 text-sm text-slate-300">Pending direct-report requests and cancellation approvals.</p></div></div>
+    <KairoCard className="overflow-hidden border-blue-100 bg-gradient-to-br from-slate-50 via-blue-50/70 to-violet-50/65 shadow-[0_26px_68px_-42px_rgba(59,130,246,.55)] before:from-blue-600 before:via-cyan-400 before:to-violet-500">
+<div className="relative overflow-hidden border-b border-blue-100 bg-gradient-to-r from-blue-50 via-white to-violet-50 px-6 py-5">
+<span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-200/45 blur-3xl" /><span className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-violet-200/40 blur-3xl" />
+<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-200/80 bg-gradient-to-br from-white to-blue-100 text-blue-700 shadow-lg shadow-blue-900/10 ring-1 ring-inset ring-white"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">Requires My Action</h2>
+<p className="mt-1 text-sm text-slate-500">Pending direct-report requests and cancellation approvals.</p></div></div>
 </div>
-<div className="space-y-3 bg-[#f2f3ff] p-5">{requests.length ? requests.map((request) => {
+<div className="space-y-3 bg-gradient-to-br from-slate-50 via-blue-50/70 to-violet-50/65 p-5">{requests.length ? requests.map((request) => {
 const isSelected = selected?.id === request.id;
 return <button key={request.id} type="button" aria-pressed={isSelected} onClick={() => { setSelected(request); setError(""); }} className={`group relative w-full overflow-hidden rounded-2xl border p-4 text-left shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35 ${isSelected ? "border-cyan-300 bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50 shadow-lg ring-2 ring-cyan-200/70" : request.administrative_override_required ? "border-rose-200 bg-gradient-to-r from-white via-rose-50/45 to-violet-50/55 hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md" : "border-indigo-100 bg-gradient-to-r from-white via-blue-50/55 to-indigo-50/70 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"}`}>
 <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${isSelected ? "from-cyan-400 via-blue-600 to-violet-500" : request.administrative_override_required ? "from-rose-500 to-violet-500" : "from-blue-600 via-indigo-500 to-violet-500"}`} />

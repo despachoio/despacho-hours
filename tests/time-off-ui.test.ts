@@ -232,8 +232,9 @@ describe("Time Off UI contract", () => {
     expect(approval).toContain("Administrative override required");
     expect(approval).toContain("formatLeaveDate(request.start_date)");
     expect(approval).toContain("leaveDayLabel(request.working_days)");
-    expect(approval).toContain("from-slate-950 via-indigo-950 to-blue-950");
-    expect(approval).toContain('bg-[#f2f3ff]');
+    expect(approval).toContain("from-blue-50 via-white to-violet-50");
+    expect(approval).toContain("from-slate-50 via-blue-50/70 to-violet-50/65");
+    expect(approval).not.toContain("from-slate-950 via-indigo-950 to-blue-950");
     expect(approval).not.toContain("via-amber-50/55 to-orange-50/60");
   });
 
