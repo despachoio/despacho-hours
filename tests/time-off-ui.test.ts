@@ -213,6 +213,17 @@ describe("Time Off UI contract", () => {
     expect(premiumCard).toContain("[&_tbody_tr:hover]:bg-blue-50/55");
   });
 
+  it("presents upcoming and processed team leave in premium three-part cards", () => {
+    const approval = source("src/components/time-off/ApprovalCentre.tsx");
+    expect(approval).toContain("Approved leave scheduled for your reporting team.");
+    expect(approval).toContain("The latest completed decisions across your reporting team.");
+    expect(approval).toContain("md:grid-cols-[minmax(0,1.25fr)_minmax(150px,.8fr)_auto]");
+    expect(approval).toContain("formatLeaveDate(leave.start_date)");
+    expect(approval).toContain("leaveDayLabel(leave.working_days)");
+    expect(approval).toContain("<TimeOffStatusBadge status={leave.status}");
+    expect(approval).toContain("<TimeOffStatusBadge status={request.status}");
+  });
+
   it("provides an applied-filter reporting employee request search before balances", () => {
     const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
     const approval = source("src/components/time-off/ApprovalCentre.tsx");

@@ -12,6 +12,19 @@ import TimeOffIcon from "./TimeOffIcon";
 
 type ManagerBalance = { id: string; employee_id: string; leave_year: number; entitled_days: number; used_days: number; pending_days: number; available_days: number; employee_name: string; employee_title: string | null; employee_code: string | null; leave_type_name: string; leave_type_code: string };
 
+function formatLeaveDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
+}
+
+function leaveDayLabel(value: number) {
+  return `${value} ${value === 1 ? "day" : "days"}`;
+}
+
 export default function ApprovalCentre({ requests, managedEmployees, managedRequests, calendar, balances, recent, isAdmin, onChanged }: { requests: LeaveRequest[]; managedEmployees: TimeOffManagedEmployee[]; managedRequests: LeaveRequest[]; calendar: CalendarLeave[]; balances: ManagerBalance[]; recent: LeaveRequest[]; isAdmin: boolean; onChanged: () => void }) {
   const [selected, setSelected] = useState<LeaveRequest | null>(null);
   const [comment, setComment] = useState("");
@@ -183,22 +196,37 @@ export default function ApprovalCentre({ requests, managedEmployees, managedRequ
 </table>
 </div>
 </KairoCard>
-    <KairoCard className="p-6">
-<h2 className="text-xl font-bold">Upcoming Team Leave</h2>
-<div className="mt-4 space-y-3">{upcoming.map((leave) => <div key={leave.id} className="rounded-xl bg-slate-50 p-4">
-<p className="font-bold">{leave.employee_name} · {leave.leave_type_name}</p>
-<p className="mt-1 text-xs text-slate-500">{leave.start_date} – {leave.end_date}</p>
-</div>)}{!upcoming.length ? <p className="text-sm text-slate-400">No upcoming direct-report leave.</p> : null}</div>
-</KairoCard>
-    <KairoCard className="p-6">
-<h2 className="text-xl font-bold">Recently Processed</h2>
-<div className="mt-4 space-y-3">{recent.slice(0, 8).map((request) => <div key={request.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-4">
-<div>
-<p className="font-bold">{request.employees?.name} · {request.leave_types?.name}</p>
-<p className="mt-1 text-xs text-slate-500">{request.start_date} – {request.end_date}</p>
+    <KairoCard className="overflow-hidden border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/35 to-cyan-50/55 shadow-[0_24px_60px_-40px_rgba(5,150,105,.65)] before:from-emerald-600 before:via-teal-400 before:to-cyan-400">
+<div className="border-b border-emerald-100/80 bg-gradient-to-r from-emerald-50/90 via-white to-cyan-50/70 px-6 py-5">
+<div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-900/15"><TimeOffIcon name="calendar" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">Upcoming Team Leave</h2><p className="mt-1 text-sm text-slate-500">Approved leave scheduled for your reporting team.</p></div></div>
 </div>
-<TimeOffStatusBadge status={request.status} />
-</div>)}</div>
+<div className="space-y-3 p-5">{upcoming.map((leave) => <article key={leave.id} className="grid gap-4 rounded-2xl border border-emerald-100/90 bg-gradient-to-r from-white via-emerald-50/55 to-cyan-50/65 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md md:grid-cols-[minmax(0,1.25fr)_minmax(150px,.8fr)_auto] md:items-center">
+<div className="min-w-0">
+<p className="truncate font-bold text-slate-950">{leave.employee_name}</p>
+<p className="mt-1 text-xs font-medium text-slate-500">{formatLeaveDate(leave.start_date)} – {formatLeaveDate(leave.end_date)}</p>
+</div>
+<div className="md:border-l md:border-emerald-100 md:pl-5">
+<p className="text-sm font-bold text-emerald-800">{leave.leave_type_name}</p>
+<p className="mt-1 text-xs font-semibold text-slate-500">{leaveDayLabel(leave.working_days)}</p>
+</div>
+<div className="md:justify-self-end"><TimeOffStatusBadge status={leave.status} /></div>
+</article>)}{!upcoming.length ? <div className="rounded-2xl border border-dashed border-emerald-200 bg-white/70 px-5 py-12 text-center text-sm text-slate-400">No upcoming direct-report leave.</div> : null}</div>
+</KairoCard>
+    <KairoCard className="overflow-hidden border-indigo-100/80 bg-gradient-to-br from-white via-blue-50/35 to-violet-50/55 shadow-[0_24px_60px_-40px_rgba(79,70,229,.65)] before:from-blue-700 before:via-indigo-500 before:to-violet-500">
+<div className="border-b border-indigo-100/80 bg-gradient-to-r from-blue-50/85 via-white to-violet-50/75 px-6 py-5">
+<div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 to-violet-600 text-white shadow-lg shadow-indigo-900/15"><TimeOffIcon name="check" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">Recently Processed</h2><p className="mt-1 text-sm text-slate-500">The latest completed decisions across your reporting team.</p></div></div>
+</div>
+<div className="space-y-3 p-5">{recent.slice(0, 8).map((request) => <article key={request.id} className="grid gap-4 rounded-2xl border border-indigo-100/80 bg-gradient-to-r from-white via-blue-50/45 to-violet-50/55 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md md:grid-cols-[minmax(0,1.25fr)_minmax(150px,.8fr)_auto] md:items-center">
+<div className="min-w-0">
+<p className="truncate font-bold text-slate-950">{request.employees?.title} {request.employees?.name}</p>
+<p className="mt-1 text-xs font-medium text-slate-500">{formatLeaveDate(request.start_date)} – {formatLeaveDate(request.end_date)}</p>
+</div>
+<div className="md:border-l md:border-indigo-100 md:pl-5">
+<p className="text-sm font-bold text-indigo-800">{request.leave_types?.name}</p>
+<p className="mt-1 text-xs font-semibold text-slate-500">{leaveDayLabel(request.working_days)}</p>
+</div>
+<div className="md:justify-self-end"><TimeOffStatusBadge status={request.status} /></div>
+</article>)}{!recent.length ? <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/70 px-5 py-12 text-center text-sm text-slate-400">No recently processed leave requests.</div> : null}</div>
 </KairoCard>
   </div>;
 }
