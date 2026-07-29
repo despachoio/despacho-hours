@@ -25,6 +25,8 @@ export type TimeOffDashboard = {
   policy_tier: "first_year" | "post_first_year";
   service_completed_months: number;
   first_anniversary: string;
+  parental_leave_label: string;
+  parental_leave_eligible: boolean;
   monthly_application_allowance: number;
   monthly_day_allowance: number;
   extended_exception_status: string;
@@ -292,6 +294,12 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     throw new Error(profileResult.error?.message || "Employee profile is not configured.");
   }
   const profile = profileResult.data as TimeOffProfile;
+  const employeeResult = await supabase
+    .from("employees")
+    .select("gender")
+    .eq("id", profile.employee_id)
+    .single();
+  if (employeeResult.error) throw new Error(employeeResult.error.message);
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
   const [dashboardResult, typeResult, requestResult, holidayResult, calendarResult, notificationResult] =
@@ -356,9 +364,19 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     recentTeamRequests = (recentResult.data || []) as unknown as LeaveRequest[];
   }
 
+  const dashboard = dashboardResult.data as TimeOffDashboard;
+  const gender = String(employeeResult.data?.gender || "").trim().toLowerCase();
+  dashboard.parental_leave_label = gender === "female"
+    ? "Maternity eligibility"
+    : gender === "male"
+      ? "Paternity eligibility"
+      : "Maternity / Paternity eligibility";
+  dashboard.parental_leave_eligible = ["female", "male"].includes(gender)
+    && Number(dashboard.service_completed_months || 0) >= 24;
+
   return {
     profile,
-    dashboard: dashboardResult.data as TimeOffDashboard,
+    dashboard,
     leaveTypes: (typeResult.data || []) as LeaveType[],
     requests: (requestResult.data || []) as unknown as LeaveRequest[],
     holidays: (holidayResult.data || []) as unknown as Holiday[],

@@ -20,6 +20,15 @@ function formatDate(value: string) {
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function formatService(completedMonths: number) {
+  const months = Math.max(0, Math.floor(Number(completedMonths || 0)));
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  const yearLabel = `${years} ${years === 1 ? "Year" : "Years"}`;
+  const monthLabel = `${remainingMonths} ${remainingMonths === 1 ? "Month" : "Months"}`;
+  return years > 0 ? `${yearLabel} ${monthLabel}` : monthLabel;
+}
+
 export default function TimeOffDashboard({
   dashboard,
   requests,
@@ -134,8 +143,8 @@ export default function TimeOffDashboard({
             {dashboard.policy_tier === "first_year" ? "First-year accrual" : "Annual entitlement"}
           </h2>
           <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
-            <div><dt className="text-slate-400">Service</dt><dd className="mt-1 font-bold">{dashboard.service_completed_months} months</dd></div>
-            <div><dt className="text-slate-400">First anniversary</dt><dd className="mt-1 font-bold">{formatDate(dashboard.first_anniversary)}</dd></div>
+            <div><dt className="text-slate-400">Service</dt><dd className="mt-1 font-bold">{formatService(dashboard.service_completed_months)}</dd></div>
+            <div><dt className="text-slate-400">{dashboard.parental_leave_label}</dt><dd className={`mt-1 font-bold ${dashboard.parental_leave_eligible ? "text-emerald-700" : "text-slate-700"}`}>{dashboard.parental_leave_eligible ? "Yes" : "No"}</dd></div>
             <div><dt className="text-slate-400">Monthly applications</dt><dd className="mt-1 font-bold">{dashboard.monthly_application_allowance}</dd></div>
             <div><dt className="text-slate-400">Monthly paid days</dt><dd className="mt-1 font-bold">{dashboard.monthly_day_allowance}</dd></div>
             <div><dt className="text-slate-400">Unplanned remaining</dt><dd className="mt-1 font-bold">{dayValue(dashboard.unplanned_remaining_days)}</dd></div>
@@ -165,12 +174,13 @@ export default function TimeOffDashboard({
         <KairoCard className="p-6">
           <h2 className="text-lg font-bold text-slate-950">Company holidays</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {holidays.slice(0, 6).map((holiday) => (
+            {holidays.map((holiday) => (
               <article key={holiday.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
                 <p className="font-bold text-slate-900">{holiday.name}</p>
                 <p className="mt-1 text-xs text-slate-500">{formatDate(holiday.holiday_date)}</p>
               </article>
             ))}
+            {!holidays.length ? <p className="col-span-2 rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">No company holidays configured for {dashboard.leave_year}.</p> : null}
           </div>
         </KairoCard>
         <KairoCard className="p-6">

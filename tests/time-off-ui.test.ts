@@ -28,10 +28,20 @@ describe("Time Off UI contract", () => {
 
   it("provides searchable direct-report balance filters", () => {
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
-    expect(approval).toContain("balance-search");
+    expect(approval).not.toContain("balance-search\"");
     expect(approval).toContain("All reporting employees");
     expect(approval).toContain("All leave types");
+    expect(approval).toContain("searchBalances");
+    expect(approval).toContain("then click Search to view balances");
     expect(approval).toContain("filteredBalances");
+  });
+
+  it("shows service as years and months, parental eligibility, and the full holiday year", () => {
+    const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
+    expect(dashboard).toContain("formatService");
+    expect(dashboard).toContain("parental_leave_eligible");
+    expect(dashboard).toContain("holidays.map");
+    expect(dashboard).not.toContain("holidays.slice(0, 6)");
   });
 
   it("provides request filters, pagination, cancellation, and export", () => {

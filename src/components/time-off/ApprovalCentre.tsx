@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
 import KairoCard from "@/components/ui/KairoCard";
-import KairoInput from "@/components/ui/KairoInput";
 import KairoSelect from "@/components/ui/KairoSelect";
 import TimeOffStatusBadge from "./TimeOffStatusBadge";
 import { addLeaveComment, openLeaveAttachment, processLeave, type CalendarLeave, type LeaveRequest } from "@/lib/time-off/client";
@@ -17,22 +16,37 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
   const [overrideReason, setOverrideReason] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
-  const [balanceSearch, setBalanceSearch] = useState("");
   const [balanceEmployee, setBalanceEmployee] = useState("");
   const [balanceType, setBalanceType] = useState("");
+  const [appliedBalanceEmployee, setAppliedBalanceEmployee] = useState("");
+  const [appliedBalanceType, setAppliedBalanceType] = useState("");
+  const [balanceSearchApplied, setBalanceSearchApplied] = useState(false);
   const [today] = useState(() => businessDateKey());
   const conflicts = selected ? calendar.filter((leave) => leave.id !== selected.id && leave.status !== "rejected" && leave.start_date <= selected.end_date && leave.end_date >= selected.start_date) : [];
   const balanceEmployees = useMemo(() => Array.from(new Map(balances.map((balance) => [balance.employee_id, { id: balance.employee_id, name: balance.employee_name, code: balance.employee_code }])).values()).sort((a, b) => a.name.localeCompare(b.name)), [balances]);
   const balanceTypes = useMemo(() => Array.from(new Map(balances.map((balance) => [balance.leave_type_code, { code: balance.leave_type_code, name: balance.leave_type_name }])).values()).sort((a, b) => a.name.localeCompare(b.name)), [balances]);
   const filteredBalances = useMemo(() => {
-    const query = balanceSearch.trim().toLowerCase();
+    if (!balanceSearchApplied) return [];
     return balances.filter((balance) => {
-      if (balanceEmployee && balance.employee_id !== balanceEmployee) return false;
-      if (balanceType && balance.leave_type_code !== balanceType) return false;
-      if (!query) return true;
-      return `${balance.employee_title || ""} ${balance.employee_name} ${balance.employee_code || ""} ${balance.leave_type_name} ${balance.leave_type_code}`.toLowerCase().includes(query);
+      if (appliedBalanceEmployee && balance.employee_id !== appliedBalanceEmployee) return false;
+      if (appliedBalanceType && balance.leave_type_code !== appliedBalanceType) return false;
+      return true;
     });
-  }, [balanceEmployee, balanceSearch, balanceType, balances]);
+  }, [appliedBalanceEmployee, appliedBalanceType, balanceSearchApplied, balances]);
+
+  function searchBalances() {
+    setAppliedBalanceEmployee(balanceEmployee);
+    setAppliedBalanceType(balanceType);
+    setBalanceSearchApplied(true);
+  }
+
+  function resetBalanceSearch() {
+    setBalanceEmployee("");
+    setBalanceType("");
+    setAppliedBalanceEmployee("");
+    setAppliedBalanceType("");
+    setBalanceSearchApplied(false);
+  }
 
   async function decide(action: string) {
     if ((action === "reject" || action === "reject_cancellation") && !comment.trim()) { setError("A rejection comment is required."); return; }
@@ -127,8 +141,8 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
     <KairoCard className="overflow-hidden xl:col-span-2">
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Direct-Report Balances</h2>
-<p className="mt-1 text-sm text-slate-500">Search and filter employees visible through your reporting hierarchy.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{filteredBalances.length} records</span></div>
-<div className="mt-5 grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_auto]"><KairoInput id="balance-search" label="Search employee or leave type" placeholder="Name, employee code, or leave type" value={balanceSearch} onChange={(event) => setBalanceSearch(event.target.value)} /><KairoSelect id="balance-employee" label="Employee" value={balanceEmployee} onChange={(event) => setBalanceEmployee(event.target.value)}><option value="">All reporting employees</option>{balanceEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.code ? ` · ${employee.code}` : ""}</option>)}</KairoSelect><KairoSelect id="balance-type" label="Leave type" value={balanceType} onChange={(event) => setBalanceType(event.target.value)}><option value="">All leave types</option>{balanceTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={() => { setBalanceSearch(""); setBalanceEmployee(""); setBalanceType(""); }}>Reset</KairoButton></div></div>
+<p className="mt-1 text-sm text-slate-500">Search and filter employees visible through your reporting hierarchy.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{balanceSearchApplied ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
+<div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto]"><KairoSelect id="balance-employee" label="Employee" value={balanceEmployee} onChange={(event) => setBalanceEmployee(event.target.value)}><option value="">All reporting employees</option>{balanceEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.code ? ` · ${employee.code}` : ""}</option>)}</KairoSelect><KairoSelect id="balance-type" label="Leave type" value={balanceType} onChange={(event) => setBalanceType(event.target.value)}><option value="">All leave types</option>{balanceTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={searchBalances}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={resetBalanceSearch}>Reset</KairoButton></div></div>
 </div>
 <div className="overflow-x-auto">
 <table className="min-w-full text-left text-sm">
@@ -150,7 +164,7 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 <td className="px-5 py-4">{balance.used_days}</td>
 <td className="px-5 py-4">{balance.pending_days}</td>
 <td className="px-5 py-4 font-bold text-[#153E90]">{balance.available_days}</td>
-</tr>)}{!filteredBalances.length ? <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
+</tr>)}{!balanceSearchApplied ? <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">Select an employee and leave type, then click Search to view balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
 </table>
 </div>
 </KairoCard>
