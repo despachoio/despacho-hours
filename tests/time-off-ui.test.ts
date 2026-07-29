@@ -152,9 +152,14 @@ describe("Time Off UI contract", () => {
     expect(dashboard).toContain("from-[#153E90] via-blue-500 to-cyan-400");
     expect(dashboard).toContain("from-emerald-50 via-white to-teal-50/70");
     expect(dashboard).toContain("from-sky-50 via-white to-blue-50/70");
+    expect(dashboard).toContain('tone: "text-amber-700"');
+    expect(dashboard).toContain('tone: "text-emerald-700"');
+    expect(dashboard).toContain('tone: "text-rose-700"');
     expect(calendar).toContain("from-slate-950 via-indigo-950 to-blue-950");
-    expect(calendar).toContain("calendarCellTones[index % 7]");
-    expect(calendar).toContain("weekdayTones[index]");
+    expect(calendar).toContain('bg-[#f2f3ff]');
+    expect(calendar).toContain("grid grid-cols-7 gap-2.5");
+    expect(calendar).toContain("rounded-2xl border p-3");
+    expect(calendar).toContain("tileColour(highlightColour)");
     expect(calendar).toContain("Today");
     expect(calendar).toContain("Company holiday");
     expect(calendar).toContain("Colours reflect each leave type.");

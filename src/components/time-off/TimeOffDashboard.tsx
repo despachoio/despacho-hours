@@ -56,17 +56,18 @@ export default function TimeOffDashboard({
     .filter((request) => ["approved", "cancellation_rejected"].includes(request.status))
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
     .slice(0, 4);
-  const stats: Array<{ label: string; value: ReactNode }> = [
-    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days) },
-    { label: "Pending Requests", value: String(dashboard.pending_requests) },
-    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests) },
-    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days) },
-    { label: "LOP Used", value: dayValue(dashboard.lop_used_days) },
+  const stats: Array<{ label: string; value: ReactNode; tone: string }> = [
+    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-800" },
+    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-700" },
+    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-700" },
+    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-700" },
+    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-700" },
     {
       label: "Next Company Holiday",
       value: dashboard.next_holiday
-        ? <><span className="block">{dashboard.next_holiday.name}</span><span className="mt-1 block text-sm font-semibold text-blue-600">{formatDate(dashboard.next_holiday.date)}</span></>
+        ? <><span className="block">{dashboard.next_holiday.name}</span><span className="mt-1 block text-sm font-semibold text-violet-600">{formatDate(dashboard.next_holiday.date)}</span></>
         : "No upcoming holiday",
+      tone: "text-violet-700",
     },
   ];
   const entitlement = Number(dashboard.entitlement_days || 0);
@@ -95,7 +96,7 @@ export default function TimeOffDashboard({
             <span className="absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] via-blue-500 to-cyan-400 shadow-sm" />
             <span className="pointer-events-none absolute bottom-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent" />
             <p className="relative text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{stat.label}</p>
-            <div className="relative mt-4 text-[1.35rem] font-bold tracking-tight text-[#102656]">{stat.value}</div>
+            <div className={`relative mt-4 text-[1.35rem] font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
           </KairoCard>
         ))}
       </section>
