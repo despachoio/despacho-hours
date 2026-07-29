@@ -89,10 +89,10 @@ export default function ApprovalCentre({ requests, managedEmployees, managedRequ
   const upcoming = calendar.filter((leave) => ["approved", "cancellation_rejected"].includes(leave.status) && leave.start_date >= today).slice(0, 8);
   return <div className="grid gap-6 xl:grid-cols-[1fr_.85fr]">
     <KairoCard className="overflow-hidden border-blue-100 bg-gradient-to-br from-slate-50 via-blue-50/70 to-violet-50/65 shadow-[0_26px_68px_-42px_rgba(59,130,246,.55)] before:from-blue-600 before:via-cyan-400 before:to-violet-500">
-<div className="relative overflow-hidden border-b border-blue-100 bg-gradient-to-r from-blue-50 via-white to-violet-50 px-6 py-5">
-<span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-200/45 blur-3xl" /><span className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-violet-200/40 blur-3xl" />
-<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-200/80 bg-gradient-to-br from-white to-blue-100 text-blue-700 shadow-lg shadow-blue-900/10 ring-1 ring-inset ring-white"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">Requires My Action</h2>
-<p className="mt-1 text-sm text-slate-500">Pending direct-report requests and cancellation approvals.</p></div></div>
+<div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-r from-[#153E90]/5 via-white to-slate-50 px-6 py-5">
+
+<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#153E90]/10 bg-white text-[#153E90] shadow-sm"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold tracking-tight text-slate-900">Requires My Action</h2>
+<p className="mt-1 text-sm leading-6 text-slate-500">Pending direct-report requests and cancellation approvals.</p></div></div>
 </div>
 <div className="space-y-4 rounded-b-3xl bg-[#F8FAFC] p-6">{requests.length ? requests.map((request) => {
 const isSelected = selected?.id === request.id;
