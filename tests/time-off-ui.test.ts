@@ -193,13 +193,24 @@ describe("Time Off UI contract", () => {
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
     const client = source("src/lib/time-off/client.ts");
     expect(client).toContain("managedRequests");
+    expect(client).toContain("managedEmployees");
+    expect(client).toContain("attachEmployeeDisplay");
     expect(workspace).toContain("managedRequests={data.managedRequests}");
+    expect(workspace).toContain("managedEmployees={data.managedEmployees}");
     expect(approval).toContain("Reporting Employee Requests");
     expect(approval).toContain("ManagedRequestSearch");
-    expect(approval).toContain("requests={managedRequests} balances={balances}");
-    expect(approval).toContain("...balances.map");
+    expect(approval).toContain("requests={managedRequests} employees={managedEmployees}");
+    expect(approval).toContain("managedEmployees.map");
     expect(approval).toContain("Awaiting search");
     expect(approval.indexOf("<ManagedRequestSearch")).toBeLessThan(approval.indexOf("Direct-Report Balances"));
+  });
+
+  it("shows safe employee display details for approval requests", () => {
+    const approval = source("src/components/time-off/ApprovalCentre.tsx");
+    expect(approval).toContain("request.employees?.employee_code");
+    expect(approval).toContain("request.employees?.title");
+    expect(approval).toContain("request.employees?.name");
+    expect(approval).toContain("request.employees?.department");
   });
 
   it("uses the premium icon system across role-specific Time Off surfaces", () => {

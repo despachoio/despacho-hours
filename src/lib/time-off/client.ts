@@ -186,6 +186,7 @@ export type TimeOffData = {
     leave_type_name: string;
     leave_type_code: string;
   }>;
+  managedEmployees: TimeOffManagedEmployee[];
   managedRequests: LeaveRequest[];
   recentTeamRequests: LeaveRequest[];
 };
@@ -207,6 +208,15 @@ export type TimeOffEmployee = {
   name: string;
   department: string | null;
   status: string | null;
+};
+
+export type TimeOffManagedEmployee = {
+  id: string;
+  employee_code: string | null;
+  title: string | null;
+  name: string;
+  department: string | null;
+  reporting_manager_id: string | null;
 };
 
 export type LeavePolicy = {
@@ -367,21 +377,29 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
   );
   let approvalQueue: LeaveRequest[] = [];
   let managerBalances: TimeOffData["managerBalances"] = [];
+  let managedEmployees: TimeOffManagedEmployee[] = [];
   let managedRequests: LeaveRequest[] = [];
   let recentTeamRequests: LeaveRequest[] = [];
   if (canApprove) {
-    const [queueResult, balancesResult, managedResult, recentResult] = await Promise.all([
+    const [queueResult, balancesResult, directoryResult, managedResult, recentResult] = await Promise.all([
       supabase.from("leave_requests").select(requestSelect).in("status", ["pending", "cancellation_requested"]).neq("employee_id", profile.employee_id).order("submitted_at"),
       supabase.rpc("get_time_off_managed_balances", { p_leave_year: year }),
+      supabase.rpc("get_time_off_managed_employee_directory"),
       supabase.from("leave_requests").select(requestSelect).neq("employee_id", profile.employee_id).lte("start_date", to).gte("end_date", from).order("start_date", { ascending: false }).limit(1000),
       supabase.from("leave_requests").select(requestSelect).in("status", ["approved", "rejected", "cancelled", "cancellation_rejected", "cancelled_by_admin"]).neq("employee_id", profile.employee_id).order("updated_at", { ascending: false }).limit(20),
     ]);
-    const managerError = queueResult.error || balancesResult.error || managedResult.error || recentResult.error;
+    const managerError = queueResult.error || balancesResult.error || directoryResult.error || managedResult.error || recentResult.error;
     if (managerError) throw new Error(managerError.message);
-    approvalQueue = (queueResult.data || []) as unknown as LeaveRequest[];
+    managedEmployees = (directoryResult.data || []) as TimeOffManagedEmployee[];
+    const employeeDirectory = new Map(managedEmployees.map((employee) => [employee.id, employee]));
+    const attachEmployeeDisplay = (rows: unknown[] | null) => ((rows || []) as LeaveRequest[]).map((request) => ({
+      ...request,
+      employees: employeeDirectory.get(request.employee_id) || request.employees || null,
+    }));
+    approvalQueue = attachEmployeeDisplay(queueResult.data);
     managerBalances = (balancesResult.data || []) as unknown as TimeOffData["managerBalances"];
-    managedRequests = (managedResult.data || []) as unknown as LeaveRequest[];
-    recentTeamRequests = (recentResult.data || []) as unknown as LeaveRequest[];
+    managedRequests = attachEmployeeDisplay(managedResult.data);
+    recentTeamRequests = attachEmployeeDisplay(recentResult.data);
   }
 
   const dashboard = dashboardResult.data as TimeOffDashboard;
@@ -405,6 +423,7 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     approvalQueue,
     notifications: (notificationResult.data || []) as TimeOffNotification[],
     managerBalances,
+    managedEmployees,
     managedRequests,
     recentTeamRequests,
   };

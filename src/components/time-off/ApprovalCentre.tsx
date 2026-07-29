@@ -5,14 +5,14 @@ import KairoButton from "@/components/ui/KairoButton";
 import KairoCard from "./TimeOffPremiumCard";
 import KairoSelect from "@/components/ui/KairoSelect";
 import TimeOffStatusBadge from "./TimeOffStatusBadge";
-import { addLeaveComment, openLeaveAttachment, processLeave, type CalendarLeave, type LeaveRequest } from "@/lib/time-off/client";
+import { addLeaveComment, openLeaveAttachment, processLeave, type CalendarLeave, type LeaveRequest, type TimeOffManagedEmployee } from "@/lib/time-off/client";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
 import { compareEmployeeCodes, employeeOptionLabel } from "@/lib/time-off/employee-order";
 import TimeOffIcon from "./TimeOffIcon";
 
 type ManagerBalance = { id: string; employee_id: string; leave_year: number; entitled_days: number; used_days: number; pending_days: number; available_days: number; employee_name: string; employee_title: string | null; employee_code: string | null; leave_type_name: string; leave_type_code: string };
 
-export default function ApprovalCentre({ requests, managedRequests, calendar, balances, recent, isAdmin, onChanged }: { requests: LeaveRequest[]; managedRequests: LeaveRequest[]; calendar: CalendarLeave[]; balances: ManagerBalance[]; recent: LeaveRequest[]; isAdmin: boolean; onChanged: () => void }) {
+export default function ApprovalCentre({ requests, managedEmployees, managedRequests, calendar, balances, recent, isAdmin, onChanged }: { requests: LeaveRequest[]; managedEmployees: TimeOffManagedEmployee[]; managedRequests: LeaveRequest[]; calendar: CalendarLeave[]; balances: ManagerBalance[]; recent: LeaveRequest[]; isAdmin: boolean; onChanged: () => void }) {
   const [selected, setSelected] = useState<LeaveRequest | null>(null);
   const [comment, setComment] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
@@ -140,7 +140,7 @@ export default function ApprovalCentre({ requests, managedRequests, calendar, ba
 <p className="mt-1 text-sm text-slate-400">Policy checks and approval actions will appear here.</p>
 </div>
 </div>}</KairoCard>
-    <ManagedRequestSearch requests={managedRequests} balances={balances} />
+    <ManagedRequestSearch requests={managedRequests} employees={managedEmployees} />
     <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(21,62,144,.7)] xl:col-span-2">
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Direct-Report Balances</h2>
@@ -192,7 +192,7 @@ export default function ApprovalCentre({ requests, managedRequests, calendar, ba
   </div>;
 }
 
-function ManagedRequestSearch({ requests, balances }: { requests: LeaveRequest[]; balances: ManagerBalance[] }) {
+function ManagedRequestSearch({ requests, employees: managedEmployees }: { requests: LeaveRequest[]; employees: TimeOffManagedEmployee[] }) {
   const [employeeId, setEmployeeId] = useState("");
   const [leaveTypeId, setLeaveTypeId] = useState("");
   const [status, setStatus] = useState("");
@@ -201,18 +201,11 @@ function ManagedRequestSearch({ requests, balances }: { requests: LeaveRequest[]
   const [applied, setApplied] = useState({ employeeId: "", leaveTypeId: "", status: "", fromDate: "", toDate: "" });
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
-  const employees = useMemo(() => Array.from(new Map([
-    ...balances.map((balance) => [balance.employee_id, {
-      id: balance.employee_id,
-      code: balance.employee_code,
-      name: [balance.employee_title, balance.employee_name].filter(Boolean).join(" "),
-    }] as const),
-    ...requests.map((request) => [request.employee_id, {
-      id: request.employee_id,
-      code: request.employees?.employee_code || null,
-      name: [request.employees?.title, request.employees?.name].filter(Boolean).join(" "),
-    }] as const),
-  ]).values()).sort((left, right) => compareEmployeeCodes(left.code, right.code, left.name, right.name)), [balances, requests]);
+  const employees = useMemo(() => managedEmployees.map((employee) => ({
+    id: employee.id,
+    code: employee.employee_code,
+    name: [employee.title, employee.name].filter(Boolean).join(" "),
+  })).sort((left, right) => compareEmployeeCodes(left.code, right.code, left.name, right.name)), [managedEmployees]);
   const leaveTypes = useMemo(() => Array.from(new Map(requests.filter((request) => request.leave_types).map((request) => [request.leave_type_id, { id: request.leave_type_id, name: request.leave_types?.name || "Leave" }])).values()).sort((left, right) => left.name.localeCompare(right.name)), [requests]);
   const filtered = useMemo(() => searched ? requests.filter((request) => {
     if (applied.employeeId && request.employee_id !== applied.employeeId) return false;

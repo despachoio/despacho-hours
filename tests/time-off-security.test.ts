@@ -91,4 +91,17 @@ describe("Time Off database security contract", () => {
     expect(migrations).toContain("employee.gender");
     expect(migrations).toContain("v_gender <> v_eligibility");
   });
+
+  it("provides a manager-scoped employee display directory without private HR fields", () => {
+    expect(migrations).toContain("get_time_off_managed_employee_directory");
+    expect(migrations).toContain("employee.reporting_manager_id = v_current_employee_id");
+    expect(migrations).toContain("only safe display fields");
+    const directoryMigration = fs.readFileSync(
+      path.join(process.cwd(), "supabase/migrations/202607290014_time_off_managed_employee_directory.sql"),
+      "utf8",
+    );
+    expect(directoryMigration).not.toContain("pan_number");
+    expect(directoryMigration).not.toContain("aadhaar_number");
+    expect(directoryMigration).not.toContain("bank_account_number");
+  });
 });
