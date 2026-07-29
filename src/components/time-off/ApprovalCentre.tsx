@@ -8,10 +8,11 @@ import TimeOffStatusBadge from "./TimeOffStatusBadge";
 import { addLeaveComment, openLeaveAttachment, processLeave, type CalendarLeave, type LeaveRequest } from "@/lib/time-off/client";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
 import { compareEmployeeCodes, employeeOptionLabel } from "@/lib/time-off/employee-order";
+import TimeOffIcon from "./TimeOffIcon";
 
 type ManagerBalance = { id: string; employee_id: string; leave_year: number; entitled_days: number; used_days: number; pending_days: number; available_days: number; employee_name: string; employee_title: string | null; employee_code: string | null; leave_type_name: string; leave_type_code: string };
 
-export default function ApprovalCentre({ requests, calendar, balances, recent, isAdmin, onChanged }: { requests: LeaveRequest[]; calendar: CalendarLeave[]; balances: ManagerBalance[]; recent: LeaveRequest[]; isAdmin: boolean; onChanged: () => void }) {
+export default function ApprovalCentre({ requests, managedRequests, calendar, balances, recent, isAdmin, onChanged }: { requests: LeaveRequest[]; managedRequests: LeaveRequest[]; calendar: CalendarLeave[]; balances: ManagerBalance[]; recent: LeaveRequest[]; isAdmin: boolean; onChanged: () => void }) {
   const [selected, setSelected] = useState<LeaveRequest | null>(null);
   const [comment, setComment] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
@@ -66,10 +67,10 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 
   const upcoming = calendar.filter((leave) => ["approved", "cancellation_rejected"].includes(leave.status) && leave.start_date >= today).slice(0, 8);
   return <div className="grid gap-6 xl:grid-cols-[1fr_.85fr]">
-    <KairoCard className="overflow-hidden">
-<div className="border-b border-slate-100 px-6 py-5">
-<h2 className="text-xl font-bold">Requires My Action</h2>
-<p className="mt-1 text-sm text-slate-500">Pending direct-report requests and cancellation approvals.</p>
+    <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(217,119,6,.55)]">
+<div className="border-b border-amber-100 bg-gradient-to-r from-amber-50/90 via-white to-white px-6 py-5">
+<div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold">Requires My Action</h2>
+<p className="mt-1 text-sm text-slate-500">Pending direct-report requests and cancellation approvals.</p></div></div>
 </div>
 <div className="divide-y divide-slate-100">{requests.length ? requests.map((request) => <button key={request.id} type="button" onClick={() => { setSelected(request); setError(""); }} className={`w-full px-6 py-4 text-left transition hover:bg-slate-50 ${selected?.id === request.id ? "bg-blue-50" : ""}`}>
 <div className="flex items-start justify-between gap-4">
@@ -85,7 +86,7 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 <span className="font-bold">{request.working_days} days</span>
 </div>{request.administrative_override_required ? <p className="mt-3 text-xs font-bold text-red-600">Administrative override required</p> : null}</button>) : <div className="px-6 py-16 text-center text-sm text-slate-400">No requests currently require your action.</div>}</div>
 </KairoCard>
-    <KairoCard className="p-6">{selected ? <div>
+    <KairoCard className="border-white/80 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-[0_20px_55px_-38px_rgba(5,150,105,.55)]">{selected ? <div>
 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Approval detail</p>
 <h2 className="mt-2 text-xl font-bold text-slate-950">{selected.employees?.title} {selected.employees?.name}</h2>
 <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
@@ -139,7 +140,8 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 <p className="mt-1 text-sm text-slate-400">Policy checks and approval actions will appear here.</p>
 </div>
 </div>}</KairoCard>
-    <KairoCard className="overflow-hidden xl:col-span-2">
+    <ManagedRequestSearch requests={managedRequests} />
+    <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(21,62,144,.7)] xl:col-span-2">
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Direct-Report Balances</h2>
 <p className="mt-1 text-sm text-slate-500">Search and filter employees visible through your reporting hierarchy.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{balanceSearchApplied ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
@@ -188,4 +190,58 @@ export default function ApprovalCentre({ requests, calendar, balances, recent, i
 </div>)}</div>
 </KairoCard>
   </div>;
+}
+
+function ManagedRequestSearch({ requests }: { requests: LeaveRequest[] }) {
+  const [employeeId, setEmployeeId] = useState("");
+  const [leaveTypeId, setLeaveTypeId] = useState("");
+  const [status, setStatus] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [applied, setApplied] = useState({ employeeId: "", leaveTypeId: "", status: "", fromDate: "", toDate: "" });
+  const [searched, setSearched] = useState(false);
+  const [error, setError] = useState("");
+  const employees = useMemo(() => Array.from(new Map(requests.map((request) => [request.employee_id, {
+    id: request.employee_id,
+    code: request.employees?.employee_code || null,
+    name: [request.employees?.title, request.employees?.name].filter(Boolean).join(" "),
+  }])).values()).sort((left, right) => compareEmployeeCodes(left.code, right.code, left.name, right.name)), [requests]);
+  const leaveTypes = useMemo(() => Array.from(new Map(requests.filter((request) => request.leave_types).map((request) => [request.leave_type_id, { id: request.leave_type_id, name: request.leave_types?.name || "Leave" }])).values()).sort((left, right) => left.name.localeCompare(right.name)), [requests]);
+  const filtered = useMemo(() => searched ? requests.filter((request) => {
+    if (applied.employeeId && request.employee_id !== applied.employeeId) return false;
+    if (applied.leaveTypeId && request.leave_type_id !== applied.leaveTypeId) return false;
+    if (applied.status && request.status !== applied.status) return false;
+    if (applied.fromDate && request.end_date < applied.fromDate) return false;
+    if (applied.toDate && request.start_date > applied.toDate) return false;
+    return true;
+  }).sort((left, right) => compareEmployeeCodes(left.employees?.employee_code, right.employees?.employee_code, left.employees?.name, right.employees?.name) || right.start_date.localeCompare(left.start_date)) : [], [applied, requests, searched]);
+
+  function search() {
+    if (fromDate && toDate && fromDate > toDate) {
+      setError("The From date cannot be after the To date.");
+      return;
+    }
+    setApplied({ employeeId, leaveTypeId, status, fromDate, toDate });
+    setSearched(true);
+    setError("");
+  }
+
+  function reset() {
+    setEmployeeId(""); setLeaveTypeId(""); setStatus(""); setFromDate(""); setToDate("");
+    setApplied({ employeeId: "", leaveTypeId: "", status: "", fromDate: "", toDate: "" });
+    setSearched(false); setError("");
+  }
+
+  return <KairoCard className="overflow-hidden border-white/80 bg-gradient-to-br from-cyan-50/70 via-white to-blue-50/70 shadow-[0_20px_55px_-38px_rgba(14,116,144,.65)] xl:col-span-2">
+    <div className="border-b border-white/80 px-6 py-5"><div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-700 text-white shadow-lg shadow-cyan-900/20"><TimeOffIcon name="people" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold">Reporting Employee Requests</h2><p className="mt-1 text-sm text-slate-500">Search leave requests visible through your reporting access.</p></div></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-cyan-800 shadow-sm">{searched ? `${filtered.length} records` : "Awaiting search"}</span></div>
+    <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.25fr_1fr_1fr_170px_170px_auto_auto]">
+      <select aria-label="Filter reporting requests by employee" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 shadow-sm"><option value="">All reporting employees</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.code, employee.name)}</option>)}</select>
+      <select aria-label="Filter reporting requests by leave type" value={leaveTypeId} onChange={(event) => setLeaveTypeId(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 shadow-sm"><option value="">All leave types</option>{leaveTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+      <select aria-label="Filter reporting requests by status" value={status} onChange={(event) => setStatus(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 shadow-sm"><option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="cancellation_requested">Cancellation Requested</option><option value="cancellation_rejected">Cancellation Rejected</option><option value="cancelled_by_admin">Cancelled by Admin</option></select>
+      <input aria-label="Reporting requests from date" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 shadow-sm" />
+      <input aria-label="Reporting requests to date" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 shadow-sm" />
+      <KairoButton type="button" onClick={search}>Search</KairoButton><KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
+    </div>{error ? <p role="alert" className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}</div>
+    <div className="max-h-[520px] overflow-auto"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-[#0F172A] text-xs uppercase tracking-wide text-slate-300"><tr><th className="px-5 py-4">Employee Code</th><th className="px-5 py-4">Employee Name</th><th className="px-5 py-4">Leave Type</th><th className="px-5 py-4">Dates</th><th className="px-5 py-4">Days</th><th className="px-5 py-4">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{filtered.map((request) => <tr key={request.id} className="bg-white/80 transition hover:bg-blue-50/60"><td className="px-5 py-4 font-bold text-[#153E90]">{request.employees?.employee_code || "—"}</td><td className="px-5 py-4 font-bold text-slate-900">{request.employees?.title} {request.employees?.name}</td><td className="px-5 py-4">{request.leave_types?.name}</td><td className="whitespace-nowrap px-5 py-4">{request.start_date} – {request.end_date}</td><td className="px-5 py-4 font-bold">{request.working_days}</td><td className="px-5 py-4"><TimeOffStatusBadge status={request.status} /></td></tr>)}{!searched ? <tr><td colSpan={6} className="bg-white px-6 py-14 text-center text-sm text-slate-400">Choose filters and click Search to view reporting employee requests.</td></tr> : !filtered.length ? <tr><td colSpan={6} className="bg-white px-6 py-14 text-center text-sm text-slate-400">No requests match the selected filters.</td></tr> : null}</tbody></table></div>
+  </KairoCard>;
 }

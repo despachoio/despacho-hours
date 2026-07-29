@@ -27,6 +27,7 @@ import {
 import { businessDateKey } from "@/lib/metrics/date-ranges";
 import { compareEmployeeCodes, employeeOptionLabel } from "@/lib/time-off/employee-order";
 import TimeOffBalanceExportButtons from "./TimeOffBalanceExportButtons";
+import TimeOffIcon, { type TimeOffIconName } from "./TimeOffIcon";
 
 type AdminTab = "types" | "policies" | "holidays" | "balances" | "exceptions" | "year_end" | "reports" | "audit";
 
@@ -45,9 +46,9 @@ function employeeName(employee: TimeOffAdminData["employees"][number]) {
 
 export default function TimeOffAdmin({ data, leaveTypes, holidays, onChanged }: { data: TimeOffAdminData; leaveTypes: LeaveType[]; holidays: Holiday[]; onChanged: () => void }) {
   const [tab, setTab] = useState<AdminTab>("types");
-  const tabs: Array<[AdminTab, string]> = [["types", "Leave Types"], ["policies", "Policies"], ["holidays", "Holiday Calendars"], ["balances", "Balances & Adjustments"], ["exceptions", "Extended Exceptions"], ["year_end", "Year-End & Encashment"], ["reports", "Reports"], ["audit", "Audit Log"]];
+  const tabs: Array<[AdminTab, string, TimeOffIconName]> = [["types", "Leave Types", "document"], ["policies", "Policies", "shield"], ["holidays", "Holiday Calendars", "calendar"], ["balances", "Balances & Adjustments", "wallet"], ["exceptions", "Extended Exceptions", "alert"], ["year_end", "Year-End & Encashment", "clock"], ["reports", "Reports", "chart"], ["audit", "Audit Log", "inbox"]];
   return <div className="space-y-5">
-<div className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabs.map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === value ? "bg-[#0F172A] text-white" : "text-slate-500 hover:bg-slate-100"}`}>{label}</button>)}</div>{tab === "types" ? <LeaveTypesAdmin leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "policies" ? <PolicyAdmin data={data} onChanged={onChanged} /> : null}{tab === "holidays" ? <HolidayAdmin data={data} holidays={holidays} onChanged={onChanged} /> : null}{tab === "balances" ? <AdjustmentAdmin data={data} leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "exceptions" ? <ExtendedExceptionsAdmin data={data} /> : null}{tab === "year_end" ? <YearEndAdmin data={data} onChanged={onChanged} /> : null}{tab === "reports" ? <TimeOffReports data={data} holidays={holidays} /> : null}{tab === "audit" ? <AuditLog data={data} /> : null}</div>;
+<div className="flex gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-gradient-to-r from-slate-50 via-white to-blue-50/60 p-2 shadow-[0_18px_45px_-32px_rgba(15,23,42,.75)]">{tabs.map(([value, label, icon]) => <button key={value} type="button" onClick={() => setTab(value)} className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === value ? "bg-gradient-to-r from-[#0F172A] to-[#153E90] text-white shadow-lg" : "text-slate-500 hover:bg-white hover:text-[#153E90] hover:shadow-sm"}`}><TimeOffIcon name={icon} className="h-4 w-4" />{label}</button>)}</div>{tab === "types" ? <LeaveTypesAdmin leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "policies" ? <PolicyAdmin data={data} onChanged={onChanged} /> : null}{tab === "holidays" ? <HolidayAdmin data={data} holidays={holidays} onChanged={onChanged} /> : null}{tab === "balances" ? <AdjustmentAdmin data={data} leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "exceptions" ? <ExtendedExceptionsAdmin data={data} /> : null}{tab === "year_end" ? <YearEndAdmin data={data} onChanged={onChanged} /> : null}{tab === "reports" ? <TimeOffReports data={data} holidays={holidays} /> : null}{tab === "audit" ? <AuditLog data={data} /> : null}</div>;
 }
 
 function LeaveTypesAdmin({ leaveTypes, onChanged }: { leaveTypes: LeaveType[]; onChanged: () => void }) {

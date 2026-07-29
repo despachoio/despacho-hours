@@ -184,6 +184,7 @@ export type TimeOffData = {
     leave_type_name: string;
     leave_type_code: string;
   }>;
+  managedRequests: LeaveRequest[];
   recentTeamRequests: LeaveRequest[];
 };
 
@@ -354,17 +355,20 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
   );
   let approvalQueue: LeaveRequest[] = [];
   let managerBalances: TimeOffData["managerBalances"] = [];
+  let managedRequests: LeaveRequest[] = [];
   let recentTeamRequests: LeaveRequest[] = [];
   if (canApprove) {
-    const [queueResult, balancesResult, recentResult] = await Promise.all([
+    const [queueResult, balancesResult, managedResult, recentResult] = await Promise.all([
       supabase.from("leave_requests").select(requestSelect).in("status", ["pending", "cancellation_requested"]).neq("employee_id", profile.employee_id).order("submitted_at"),
       supabase.rpc("get_time_off_managed_balances", { p_leave_year: year }),
+      supabase.from("leave_requests").select(requestSelect).neq("employee_id", profile.employee_id).lte("start_date", to).gte("end_date", from).order("start_date", { ascending: false }).limit(1000),
       supabase.from("leave_requests").select(requestSelect).in("status", ["approved", "rejected", "cancelled", "cancellation_rejected", "cancelled_by_admin"]).neq("employee_id", profile.employee_id).order("updated_at", { ascending: false }).limit(20),
     ]);
-    const managerError = queueResult.error || balancesResult.error || recentResult.error;
+    const managerError = queueResult.error || balancesResult.error || managedResult.error || recentResult.error;
     if (managerError) throw new Error(managerError.message);
     approvalQueue = (queueResult.data || []) as unknown as LeaveRequest[];
     managerBalances = (balancesResult.data || []) as unknown as TimeOffData["managerBalances"];
+    managedRequests = (managedResult.data || []) as unknown as LeaveRequest[];
     recentTeamRequests = (recentResult.data || []) as unknown as LeaveRequest[];
   }
 
@@ -388,6 +392,7 @@ export async function loadTimeOffData(year: number): Promise<TimeOffData> {
     approvalQueue,
     notifications: (notificationResult.data || []) as TimeOffNotification[],
     managerBalances,
+    managedRequests,
     recentTeamRequests,
   };
 }

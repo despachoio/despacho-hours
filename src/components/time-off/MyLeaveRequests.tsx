@@ -5,6 +5,7 @@ import KairoButton from "@/components/ui/KairoButton";
 import KairoCard from "@/components/ui/KairoCard";
 import TimeOffStatusBadge from "./TimeOffStatusBadge";
 import { cancelLeave, openLeaveAttachment, type LeaveRequest, type LeaveType } from "@/lib/time-off/client";
+import TimeOffIcon from "./TimeOffIcon";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -14,22 +15,23 @@ function formatDate(value: string | null) {
 export default function MyLeaveRequests({ requests, leaveTypes, onChanged }: { requests: LeaveRequest[]; leaveTypes: LeaveType[]; onChanged: () => void }) {
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
-  const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [appliedStatus, setAppliedStatus] = useState("all");
+  const [appliedType, setAppliedType] = useState("all");
+  const [appliedFromDate, setAppliedFromDate] = useState("");
+  const [appliedToDate, setAppliedToDate] = useState("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [error, setError] = useState("");
   const pageSize = 10;
   const filtered = useMemo(() => requests.filter((request) => {
-    const query = search.trim().toLowerCase();
-    return (status === "all" || request.status === status)
-      && (type === "all" || request.leave_type_id === type)
-      && (!fromDate || request.end_date >= fromDate)
-      && (!toDate || request.start_date <= toDate)
-      && (!query || request.reason.toLowerCase().includes(query) || request.leave_types?.name.toLowerCase().includes(query));
-  }), [fromDate, requests, search, status, toDate, type]);
+    return (appliedStatus === "all" || request.status === appliedStatus)
+      && (appliedType === "all" || request.leave_type_id === appliedType)
+      && (!appliedFromDate || request.end_date >= appliedFromDate)
+      && (!appliedToDate || request.start_date <= appliedToDate);
+  }), [appliedFromDate, appliedStatus, appliedToDate, appliedType, requests]);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const rows = filtered.slice((Math.min(page, pages) - 1) * pageSize, Math.min(page, pages) * pageSize);
 
@@ -38,6 +40,32 @@ export default function MyLeaveRequests({ requests, leaveTypes, onChanged }: { r
     if (!window.confirm(message)) return;
     setProcessing(request.id); setError("");
     try { await cancelLeave(request.id); onChanged(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to cancel request."); } finally { setProcessing(null); }
+  }
+
+  function searchRequests() {
+    if (fromDate && toDate && fromDate > toDate) {
+      setError("The From date cannot be after the To date.");
+      return;
+    }
+    setAppliedType(type);
+    setAppliedStatus(status);
+    setAppliedFromDate(fromDate);
+    setAppliedToDate(toDate);
+    setPage(1);
+    setError("");
+  }
+
+  function resetFilters() {
+    setType("all");
+    setStatus("all");
+    setFromDate("");
+    setToDate("");
+    setAppliedType("all");
+    setAppliedStatus("all");
+    setAppliedFromDate("");
+    setAppliedToDate("");
+    setPage(1);
+    setError("");
   }
 
   function exportCsv() {
@@ -54,18 +82,21 @@ export default function MyLeaveRequests({ requests, leaveTypes, onChanged }: { r
   }
 
   return <div className="space-y-5">
-    <KairoCard className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[1fr_190px_190px_160px_160px_auto_auto]">
-      <input aria-label="Search leave requests" placeholder="Search requests" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-slate-300 px-4 outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100" />
-      <select aria-label="Filter by leave type" value={type} onChange={(event) => { setType(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-slate-300 bg-white px-4"><option value="all">All leave types</option>{leaveTypes.map((leaveType) => <option key={leaveType.id} value={leaveType.id}>{leaveType.name}</option>)}</select>
-      <select aria-label="Filter by request status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-slate-300 bg-white px-4"><option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="cancellation_requested">Cancellation Requested</option></select>
-      <input aria-label="From date" type="date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-slate-300 px-3" />
-      <input aria-label="To date" type="date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-slate-300 px-3" />
-      <KairoButton type="button" variant="secondary" onClick={() => { setSearch(""); setType("all"); setStatus("all"); setFromDate(""); setToDate(""); setPage(1); }}>Reset</KairoButton>
+    <KairoCard className="overflow-hidden border-white/80 bg-gradient-to-br from-blue-50/80 via-white to-violet-50/60 shadow-[0_20px_55px_-35px_rgba(21,62,144,.65)]">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/80 px-5 py-4 sm:px-6"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#153E90] text-white shadow-lg shadow-blue-900/20"><TimeOffIcon name="search" className="h-5 w-5" /></span><div><h2 className="font-bold text-slate-950">Find my leave requests</h2><p className="text-xs text-slate-500">Choose the filters, then click Search to apply them.</p></div></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#153E90] shadow-sm">{filtered.length} results</span></div>
+      <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_170px_170px_auto_auto_auto]">
+      <select aria-label="Filter by leave type" value={type} onChange={(event) => setType(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 shadow-sm outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100"><option value="all">All leave types</option>{leaveTypes.map((leaveType) => <option key={leaveType.id} value={leaveType.id}>{leaveType.name}</option>)}</select>
+      <select aria-label="Filter by request status" value={status} onChange={(event) => setStatus(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 shadow-sm outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100"><option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="cancellation_requested">Cancellation Requested</option><option value="cancellation_rejected">Cancellation Rejected</option><option value="cancelled_by_admin">Cancelled by Admin</option></select>
+      <input aria-label="From date" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 shadow-sm outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100" />
+      <input aria-label="To date" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 shadow-sm outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100" />
+      <KairoButton type="button" onClick={searchRequests}>Search</KairoButton>
+      <KairoButton type="button" variant="secondary" onClick={resetFilters}>Reset</KairoButton>
       <KairoButton type="button" variant="secondary" onClick={exportCsv}>Export CSV</KairoButton>
+      </div>
     </KairoCard>
     {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</p> : null}
-    <KairoCard className="overflow-hidden">
-      <div className="border-b border-slate-100 px-6 py-5"><h2 className="text-xl font-bold text-slate-950">My Requests</h2><p className="mt-1 text-sm text-slate-500">Complete leave history with policy and approval details.</p></div>
+    <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(21,62,144,.65)]">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-white to-slate-50 px-6 py-5"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><TimeOffIcon name="document" className="h-5 w-5" /></span><div><h2 className="text-xl font-bold text-slate-950">My Requests</h2><p className="mt-1 text-sm text-slate-500">Complete leave history with policy and approval details.</p></div></div></div>
       <div className="divide-y divide-slate-100">
         {rows.length ? rows.map((request) => <article key={request.id}>
           <button type="button" onClick={() => setExpanded(expanded === request.id ? null : request.id)} aria-expanded={expanded === request.id} className="grid w-full gap-3 px-5 py-4 text-left transition hover:bg-slate-50 sm:grid-cols-[1.2fr_1fr_.65fr_.85fr_auto] sm:items-center">

@@ -46,6 +46,11 @@ describe("Time Off UI contract", () => {
 
   it("provides request filters, pagination, cancellation, and export", () => {
     const requests = source("src/components/time-off/MyLeaveRequests.tsx");
+    expect(requests).not.toContain("Search leave requests");
+    expect(requests).not.toContain("Search requests\"");
+    expect(requests).toContain("searchRequests");
+    expect(requests).toContain("appliedType");
+    expect(requests.indexOf(">Search<")).toBeLessThan(requests.indexOf(">Reset<"));
     expect(requests).toContain("Export CSV");
     expect(requests).toContain("Previous");
     expect(requests).toContain("Request Cancellation");
@@ -103,5 +108,35 @@ describe("Time Off UI contract", () => {
       expect(content).toContain("Employee Code");
       expect(content).toContain("Employee Name");
     }
+  });
+
+  it("shows the next holiday name and date on separate lines", () => {
+    const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
+    expect(dashboard).toContain('dashboard.next_holiday.name}</span>');
+    expect(dashboard).toContain('formatDate(dashboard.next_holiday.date)}</span>');
+  });
+
+  it("provides an applied-filter reporting employee request search before balances", () => {
+    const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
+    const approval = source("src/components/time-off/ApprovalCentre.tsx");
+    const client = source("src/lib/time-off/client.ts");
+    expect(client).toContain("managedRequests");
+    expect(workspace).toContain("managedRequests={data.managedRequests}");
+    expect(approval).toContain("Reporting Employee Requests");
+    expect(approval).toContain("ManagedRequestSearch");
+    expect(approval).toContain("Awaiting search");
+    expect(approval.indexOf("<ManagedRequestSearch")).toBeLessThan(approval.indexOf("Direct-Report Balances"));
+  });
+
+  it("uses the premium icon system across role-specific Time Off surfaces", () => {
+    for (const file of [
+      "src/components/time-off/TimeOffWorkspace.tsx",
+      "src/components/time-off/TimeOffDashboard.tsx",
+      "src/components/time-off/MyLeaveRequests.tsx",
+      "src/components/time-off/ApprovalCentre.tsx",
+      "src/components/time-off/LeaveCalendar.tsx",
+      "src/components/time-off/TimeOffAdmin.tsx",
+      "src/components/time-off/RequestLeaveDialog.tsx",
+    ]) expect(source(file)).toContain("TimeOffIcon");
   });
 });

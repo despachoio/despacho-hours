@@ -12,6 +12,7 @@ import {
   type LeaveType,
 } from "@/lib/time-off/client";
 import type { DayPart, PolicyEvaluation } from "@/lib/time-off/types";
+import TimeOffIcon from "./TimeOffIcon";
 
 export default function RequestLeaveDialog({
   open,
@@ -150,7 +151,7 @@ export default function RequestLeaveDialog({
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && !submitting && onClose()}>
       <section role="dialog" aria-modal="true" aria-labelledby="request-leave-title" className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white/95 px-6 py-5 backdrop-blur sm:px-8">
-          <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Employee self-service</p><h2 id="request-leave-title" className="mt-1 text-2xl font-bold text-slate-950">Request Leave</h2></div>
+          <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#153E90]"><TimeOffIcon name="calendar" className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Employee self-service</p><h2 id="request-leave-title" className="mt-1 text-2xl font-bold text-slate-950">Request Leave</h2></div></div>
           <button type="button" onClick={onClose} disabled={submitting} aria-label="Close request leave dialog" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-500 hover:bg-slate-200">×</button>
         </div>
         <form onSubmit={submit} className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[1.15fr_.85fr]">

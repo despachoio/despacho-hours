@@ -1,4 +1,5 @@
 import KairoCard from "@/components/ui/KairoCard";
+import type { ReactNode } from "react";
 import type {
   Holiday,
   LeaveRequest,
@@ -6,6 +7,7 @@ import type {
   TimeOffNotification,
 } from "@/lib/time-off/client";
 import { markNotificationRead } from "@/lib/time-off/client";
+import TimeOffIcon, { type TimeOffIconName } from "./TimeOffIcon";
 
 function dayValue(value: number) {
   return `${Number(value || 0).toFixed(value % 1 ? 1 : 0)} Days`;
@@ -48,19 +50,22 @@ export default function TimeOffDashboard({
     .filter((request) => ["approved", "cancellation_rejected"].includes(request.status))
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
     .slice(0, 4);
-  const stats = [
-    ["Available Paid Leave", dayValue(dashboard.available_paid_days), "text-[#153E90]"],
-    ["Pending Requests", String(dashboard.pending_requests), "text-amber-600"],
-    ["Approved Upcoming", String(dashboard.approved_upcoming_requests), "text-emerald-600"],
-    ["Unplanned Used", dayValue(dashboard.unplanned_used_days), "text-orange-600"],
-    ["LOP Used", dayValue(dashboard.lop_used_days), "text-red-600"],
-    [
-  "Next Company Holiday",
-  dashboard.next_holiday
-    ? `${dashboard.next_holiday.name} ${formatDate(dashboard.next_holiday.date)}`
-    : "No upcoming holiday",
-  "text-violet-700",
-]
+  const stats: Array<{ label: string; value: ReactNode; tone: string; icon: TimeOffIconName; iconClass: string; wash: string }> = [
+    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-900", icon: "wallet", iconClass: "bg-blue-100 text-blue-700", wash: "from-blue-50/90" },
+    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-700", icon: "clock", iconClass: "bg-amber-100 text-amber-700", wash: "from-amber-50/90" },
+    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-700", icon: "check", iconClass: "bg-emerald-100 text-emerald-700", wash: "from-emerald-50/90" },
+    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-700", icon: "alert", iconClass: "bg-orange-100 text-orange-700", wash: "from-orange-50/90" },
+    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-700", icon: "document", iconClass: "bg-rose-100 text-rose-700", wash: "from-rose-50/90" },
+    {
+      label: "Next Company Holiday",
+      value: dashboard.next_holiday
+        ? <><span className="block">{dashboard.next_holiday.name}</span><span className="mt-1 block text-sm font-semibold text-violet-500">{formatDate(dashboard.next_holiday.date)}</span></>
+        : "No upcoming holiday",
+      tone: "text-violet-800",
+      icon: "calendar",
+      iconClass: "bg-violet-100 text-violet-700",
+      wash: "from-violet-50/90",
+    },
   ];
   const entitlement = Number(dashboard.entitlement_days || 0);
   const used = Number(dashboard.used_paid_days || 0);
@@ -82,13 +87,14 @@ export default function TimeOffDashboard({
         </section>
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        {stats.map(([label, value, tone]) => (
-          <KairoCard key={label} className="relative overflow-hidden p-5">
-            <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-[#153E90]" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              {label}
-            </p>
-            <p className={`mt-4 text-xl font-bold tracking-tight ${tone}`}>{value}</p>
+        {stats.map((stat) => (
+          <KairoCard key={stat.label} className={`group relative overflow-hidden border-white/80 bg-gradient-to-br ${stat.wash} to-white p-5 shadow-[0_14px_35px_-24px_rgba(15,23,42,.55)] transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+            <span className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/70 blur-xl" />
+            <div className="relative flex items-start justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{stat.label}</p>
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ${stat.iconClass}`}><TimeOffIcon name={stat.icon} className="h-5 w-5" /></span>
+            </div>
+            <div className={`relative mt-4 text-xl font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
           </KairoCard>
         ))}
       </section>
