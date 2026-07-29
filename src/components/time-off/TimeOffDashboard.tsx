@@ -8,7 +8,7 @@ import type {
 import { markNotificationRead } from "@/lib/time-off/client";
 
 function dayValue(value: number) {
-  return `${Number(value || 0).toFixed(value % 1 ? 1 : 0)} days`;
+  return `${Number(value || 0).toFixed(value % 1 ? 1 : 0)} Days`;
 }
 
 function formatDate(value: string) {
