@@ -140,7 +140,7 @@ export default function ApprovalCentre({ requests, managedRequests, calendar, ba
 <p className="mt-1 text-sm text-slate-400">Policy checks and approval actions will appear here.</p>
 </div>
 </div>}</KairoCard>
-    <ManagedRequestSearch requests={managedRequests} />
+    <ManagedRequestSearch requests={managedRequests} balances={balances} />
     <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(21,62,144,.7)] xl:col-span-2">
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Direct-Report Balances</h2>
@@ -192,7 +192,7 @@ export default function ApprovalCentre({ requests, managedRequests, calendar, ba
   </div>;
 }
 
-function ManagedRequestSearch({ requests }: { requests: LeaveRequest[] }) {
+function ManagedRequestSearch({ requests, balances }: { requests: LeaveRequest[]; balances: ManagerBalance[] }) {
   const [employeeId, setEmployeeId] = useState("");
   const [leaveTypeId, setLeaveTypeId] = useState("");
   const [status, setStatus] = useState("");
@@ -201,11 +201,18 @@ function ManagedRequestSearch({ requests }: { requests: LeaveRequest[] }) {
   const [applied, setApplied] = useState({ employeeId: "", leaveTypeId: "", status: "", fromDate: "", toDate: "" });
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
-  const employees = useMemo(() => Array.from(new Map(requests.map((request) => [request.employee_id, {
-    id: request.employee_id,
-    code: request.employees?.employee_code || null,
-    name: [request.employees?.title, request.employees?.name].filter(Boolean).join(" "),
-  }])).values()).sort((left, right) => compareEmployeeCodes(left.code, right.code, left.name, right.name)), [requests]);
+  const employees = useMemo(() => Array.from(new Map([
+    ...balances.map((balance) => [balance.employee_id, {
+      id: balance.employee_id,
+      code: balance.employee_code,
+      name: [balance.employee_title, balance.employee_name].filter(Boolean).join(" "),
+    }] as const),
+    ...requests.map((request) => [request.employee_id, {
+      id: request.employee_id,
+      code: request.employees?.employee_code || null,
+      name: [request.employees?.title, request.employees?.name].filter(Boolean).join(" "),
+    }] as const),
+  ]).values()).sort((left, right) => compareEmployeeCodes(left.code, right.code, left.name, right.name)), [balances, requests]);
   const leaveTypes = useMemo(() => Array.from(new Map(requests.filter((request) => request.leave_types).map((request) => [request.leave_type_id, { id: request.leave_type_id, name: request.leave_types?.name || "Leave" }])).values()).sort((left, right) => left.name.localeCompare(right.name)), [requests]);
   const filtered = useMemo(() => searched ? requests.filter((request) => {
     if (applied.employeeId && request.employee_id !== applied.employeeId) return false;

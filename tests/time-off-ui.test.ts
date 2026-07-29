@@ -40,7 +40,7 @@ describe("Time Off UI contract", () => {
     const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
     expect(dashboard).toContain("formatService");
     expect(dashboard).toContain("parental_leave_eligible");
-    expect(dashboard).toContain("holidays.map");
+    expect(dashboard).toContain("[...holidays]");
     expect(dashboard).not.toContain("holidays.slice(0, 6)");
   });
 
@@ -98,9 +98,8 @@ describe("Time Off UI contract", () => {
   it("orders employee dropdowns by code and separates result columns", () => {
     const approvals = source("src/components/time-off/ApprovalCentre.tsx");
     const administration = source("src/components/time-off/TimeOffAdmin.tsx");
-    const calendar = source("src/components/time-off/LeaveCalendar.tsx");
     const exports = source("src/components/time-off/TimeOffBalanceExportButtons.tsx");
-    for (const content of [approvals, administration, calendar]) {
+    for (const content of [approvals, administration]) {
       expect(content).toContain("compareEmployeeCodes");
       expect(content).toContain("employeeOptionLabel");
     }
@@ -116,6 +115,24 @@ describe("Time Off UI contract", () => {
     expect(dashboard).toContain('formatDate(dashboard.next_holiday.date)}</span>');
   });
 
+  it("shows holidays as a chronological premium list and highlights the next holiday", () => {
+    const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
+    expect(dashboard).toContain("formatWeekday");
+    expect(dashboard).toContain("Next holiday");
+    expect(dashboard).toContain("left.holiday_date.localeCompare(right.holiday_date)");
+    expect(dashboard).not.toContain("TimeOffIcon");
+  });
+
+  it("uses only checkboxes to filter the leave calendar", () => {
+    const calendar = source("src/components/time-off/LeaveCalendar.tsx");
+    expect(calendar).toContain("My Leave");
+    expect(calendar).toContain("Team Leave");
+    expect(calendar).not.toContain("Filter calendar by leave type");
+    expect(calendar).not.toContain("Filter calendar by department");
+    expect(calendar).not.toContain("Filter calendar by manager");
+    expect(calendar).not.toContain("Filter calendar by employee");
+  });
+
   it("provides an applied-filter reporting employee request search before balances", () => {
     const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
@@ -124,6 +141,8 @@ describe("Time Off UI contract", () => {
     expect(workspace).toContain("managedRequests={data.managedRequests}");
     expect(approval).toContain("Reporting Employee Requests");
     expect(approval).toContain("ManagedRequestSearch");
+    expect(approval).toContain("requests={managedRequests} balances={balances}");
+    expect(approval).toContain("...balances.map");
     expect(approval).toContain("Awaiting search");
     expect(approval.indexOf("<ManagedRequestSearch")).toBeLessThan(approval.indexOf("Direct-Report Balances"));
   });
@@ -131,7 +150,6 @@ describe("Time Off UI contract", () => {
   it("uses the premium icon system across role-specific Time Off surfaces", () => {
     for (const file of [
       "src/components/time-off/TimeOffWorkspace.tsx",
-      "src/components/time-off/TimeOffDashboard.tsx",
       "src/components/time-off/MyLeaveRequests.tsx",
       "src/components/time-off/ApprovalCentre.tsx",
       "src/components/time-off/LeaveCalendar.tsx",

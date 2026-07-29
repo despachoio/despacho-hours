@@ -7,7 +7,6 @@ import type {
   TimeOffNotification,
 } from "@/lib/time-off/client";
 import { markNotificationRead } from "@/lib/time-off/client";
-import TimeOffIcon, { type TimeOffIconName } from "./TimeOffIcon";
 
 function dayValue(value: number) {
   return `${Number(value || 0).toFixed(value % 1 ? 1 : 0)} Days`;
@@ -18,6 +17,13 @@ function formatDate(value: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function formatWeekday(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
     timeZone: "UTC",
   }).format(new Date(`${value}T00:00:00Z`));
 }
@@ -50,20 +56,18 @@ export default function TimeOffDashboard({
     .filter((request) => ["approved", "cancellation_rejected"].includes(request.status))
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
     .slice(0, 4);
-  const stats: Array<{ label: string; value: ReactNode; tone: string; icon: TimeOffIconName; iconClass: string; wash: string }> = [
-    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-900", icon: "wallet", iconClass: "bg-blue-100 text-blue-700", wash: "from-blue-50/90" },
-    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-700", icon: "clock", iconClass: "bg-amber-100 text-amber-700", wash: "from-amber-50/90" },
-    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-700", icon: "check", iconClass: "bg-emerald-100 text-emerald-700", wash: "from-emerald-50/90" },
-    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-700", icon: "alert", iconClass: "bg-orange-100 text-orange-700", wash: "from-orange-50/90" },
-    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-700", icon: "document", iconClass: "bg-rose-100 text-rose-700", wash: "from-rose-50/90" },
+  const stats: Array<{ label: string; value: ReactNode; tone: string; wash: string }> = [
+    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-900", wash: "from-blue-50/90" },
+    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-700", wash: "from-amber-50/90" },
+    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-700", wash: "from-emerald-50/90" },
+    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-700", wash: "from-orange-50/90" },
+    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-700", wash: "from-rose-50/90" },
     {
       label: "Next Company Holiday",
       value: dashboard.next_holiday
         ? <><span className="block">{dashboard.next_holiday.name}</span><span className="mt-1 block text-sm font-semibold text-violet-500">{formatDate(dashboard.next_holiday.date)}</span></>
         : "No upcoming holiday",
       tone: "text-violet-800",
-      icon: "calendar",
-      iconClass: "bg-violet-100 text-violet-700",
       wash: "from-violet-50/90",
     },
   ];
@@ -90,10 +94,7 @@ export default function TimeOffDashboard({
         {stats.map((stat) => (
           <KairoCard key={stat.label} className={`group relative overflow-hidden border-white/80 bg-gradient-to-br ${stat.wash} to-white p-5 shadow-[0_14px_35px_-24px_rgba(15,23,42,.55)] transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
             <span className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/70 blur-xl" />
-            <div className="relative flex items-start justify-between gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{stat.label}</p>
-              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ${stat.iconClass}`}><TimeOffIcon name={stat.icon} className="h-5 w-5" /></span>
-            </div>
+            <p className="relative text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{stat.label}</p>
             <div className={`relative mt-4 text-xl font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
           </KairoCard>
         ))}
@@ -177,16 +178,19 @@ export default function TimeOffDashboard({
             )) : <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">No upcoming approved leave.</p>}
           </div>
         </KairoCard>
-        <KairoCard className="p-6">
-          <h2 className="text-lg font-bold text-slate-950">Company holidays</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {holidays.map((holiday) => (
-              <article key={holiday.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                <p className="font-bold text-slate-900">{holiday.name}</p>
-                <p className="mt-1 text-xs text-slate-500">{formatDate(holiday.holiday_date)}</p>
-              </article>
-            ))}
-            {!holidays.length ? <p className="col-span-2 rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">No company holidays configured for {dashboard.leave_year}.</p> : null}
+        <KairoCard className="overflow-hidden p-0">
+          <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 via-white to-fuchsia-50/60 px-6 py-5"><h2 className="text-lg font-bold text-slate-950">Company holidays</h2><p className="mt-1 text-xs text-slate-500">Official holidays for {dashboard.leave_year}, listed chronologically.</p></div>
+          <div className="divide-y divide-violet-100/70">
+            {[...holidays].sort((left, right) => left.holiday_date.localeCompare(right.holiday_date)).map((holiday) => {
+              const isNext = holiday.holiday_date === dashboard.next_holiday?.date;
+              return <article key={holiday.id} className={`relative grid gap-1 px-5 py-3.5 text-sm transition sm:grid-cols-[112px_105px_1fr] sm:items-center sm:gap-3 ${isNext ? "bg-gradient-to-r from-violet-100 via-fuchsia-50 to-amber-50 text-violet-950" : "bg-white hover:bg-violet-50/50"}`}>
+                {isNext ? <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-violet-600 to-fuchsia-500" /> : null}
+                <time dateTime={holiday.holiday_date} className={`font-bold ${isNext ? "text-violet-800" : "text-slate-600"}`}>{formatDate(holiday.holiday_date)}</time>
+                <span className={isNext ? "font-semibold text-fuchsia-700" : "text-slate-500"}>{formatWeekday(holiday.holiday_date)}</span>
+                <span className="flex min-w-0 items-center justify-between gap-3 font-bold text-slate-950"><span>{holiday.name}</span>{isNext ? <span className="shrink-0 rounded-full bg-violet-700 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">Next holiday</span> : null}</span>
+              </article>;
+            })}
+            {!holidays.length ? <p className="px-6 py-10 text-center text-sm text-slate-400">No company holidays configured for {dashboard.leave_year}.</p> : null}
           </div>
         </KairoCard>
         <KairoCard className="p-6">
