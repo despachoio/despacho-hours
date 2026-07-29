@@ -148,10 +148,13 @@ describe("Time Off UI contract", () => {
   it("uses premium colour treatments across the overview and leave calendar", () => {
     const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
     const calendar = source("src/components/time-off/LeaveCalendar.tsx");
-    expect(dashboard).toContain("from-white via-blue-50/70 to-cyan-100/70");
+    expect(dashboard).toContain("from-white via-slate-50/90 to-blue-50/90");
+    expect(dashboard).toContain("from-[#153E90] via-blue-500 to-cyan-400");
     expect(dashboard).toContain("from-emerald-50 via-white to-teal-50/70");
     expect(dashboard).toContain("from-sky-50 via-white to-blue-50/70");
-    expect(calendar).toContain("from-indigo-950 via-blue-900 to-cyan-800");
+    expect(calendar).toContain("from-slate-950 via-indigo-950 to-blue-950");
+    expect(calendar).toContain("calendarCellTones[index % 7]");
+    expect(calendar).toContain("weekdayTones[index]");
     expect(calendar).toContain("Today");
     expect(calendar).toContain("Company holiday");
     expect(calendar).toContain("Colours reflect each leave type.");
