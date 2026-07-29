@@ -123,6 +123,11 @@ describe("Time Off UI contract", () => {
     expect(dashboard).not.toContain("TimeOffIcon");
   });
 
+  it("keeps the Time Off hero header free of a decorative icon", () => {
+    const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
+    expect(workspace).not.toContain('name="calendar" className="h-7 w-7 text-cyan-200"');
+  });
+
   it("uses only checkboxes to filter the leave calendar", () => {
     const calendar = source("src/components/time-off/LeaveCalendar.tsx");
     expect(calendar).toContain("My Leave");
