@@ -128,6 +128,13 @@ describe("Time Off UI contract", () => {
     expect(workspace).not.toContain('name="calendar" className="h-7 w-7 text-cyan-200"');
   });
 
+  it("keeps hero actions out of the header and loads the current leave year", () => {
+    const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
+    expect(workspace).toContain("const year = currentYear");
+    expect(workspace).not.toContain('aria-label="Leave year"');
+    expect(workspace).not.toContain("+ Request Leave");
+  });
+
   it("uses only checkboxes to filter the leave calendar", () => {
     const calendar = source("src/components/time-off/LeaveCalendar.tsx");
     expect(calendar).toContain("My Leave");
@@ -141,13 +148,24 @@ describe("Time Off UI contract", () => {
   it("uses premium colour treatments across the overview and leave calendar", () => {
     const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
     const calendar = source("src/components/time-off/LeaveCalendar.tsx");
-    expect(dashboard).toContain("from-blue-100/90 via-blue-50/60");
+    expect(dashboard).toContain("from-white via-blue-50/70 to-cyan-100/70");
     expect(dashboard).toContain("from-emerald-50 via-white to-teal-50/70");
     expect(dashboard).toContain("from-sky-50 via-white to-blue-50/70");
-    expect(calendar).toContain("from-[#0F172A] via-[#153E90] to-violet-700");
+    expect(calendar).toContain("from-indigo-950 via-blue-900 to-cyan-800");
     expect(calendar).toContain("Today");
     expect(calendar).toContain("Company holiday");
     expect(calendar).toContain("Colours reflect each leave type.");
+  });
+
+  it("shares the premium card treatment across requests, approvals, and administration", () => {
+    for (const file of [
+      "src/components/time-off/MyLeaveRequests.tsx",
+      "src/components/time-off/ApprovalCentre.tsx",
+      "src/components/time-off/TimeOffAdmin.tsx",
+    ]) expect(source(file)).toContain('KairoCard from "./TimeOffPremiumCard"');
+    const premiumCard = source("src/components/time-off/TimeOffPremiumCard.tsx");
+    expect(premiumCard).toContain("from-blue-700");
+    expect(premiumCard).toContain("[&_tbody_tr:hover]:bg-blue-50/55");
   });
 
   it("provides an applied-filter reporting employee request search before balances", () => {

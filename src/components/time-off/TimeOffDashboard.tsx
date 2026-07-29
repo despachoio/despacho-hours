@@ -57,21 +57,21 @@ export default function TimeOffDashboard({
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
     .slice(0, 4);
   const stats: Array<{ label: string; value: ReactNode; tone: string; wash: string; border: string; accent: string; glow: string }> = [
-    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-900", wash: "from-blue-100/90 via-blue-50/60", border: "border-blue-100", accent: "bg-blue-600", glow: "bg-blue-300/40" },
-    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-800", wash: "from-amber-100/90 via-amber-50/60", border: "border-amber-100", accent: "bg-amber-500", glow: "bg-amber-300/40" },
-    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-800", wash: "from-emerald-100/90 via-emerald-50/60", border: "border-emerald-100", accent: "bg-emerald-500", glow: "bg-emerald-300/40" },
-    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-800", wash: "from-orange-100/90 via-orange-50/60", border: "border-orange-100", accent: "bg-orange-500", glow: "bg-orange-300/40" },
-    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-800", wash: "from-rose-100/90 via-rose-50/60", border: "border-rose-100", accent: "bg-rose-500", glow: "bg-rose-300/40" },
+    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-950", wash: "from-white via-blue-50/70 to-cyan-100/70", border: "border-blue-200/80", accent: "from-blue-700 to-cyan-400", glow: "bg-cyan-400/20" },
+    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-900", wash: "from-white via-amber-50/70 to-yellow-100/75", border: "border-amber-200/80", accent: "from-amber-600 to-yellow-400", glow: "bg-amber-400/20" },
+    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-900", wash: "from-white via-emerald-50/70 to-teal-100/75", border: "border-emerald-200/80", accent: "from-emerald-700 to-teal-400", glow: "bg-emerald-400/20" },
+    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-900", wash: "from-white via-orange-50/70 to-amber-100/75", border: "border-orange-200/80", accent: "from-orange-600 to-amber-400", glow: "bg-orange-400/20" },
+    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-900", wash: "from-white via-rose-50/70 to-pink-100/75", border: "border-rose-200/80", accent: "from-rose-700 to-pink-400", glow: "bg-rose-400/20" },
     {
       label: "Next Company Holiday",
       value: dashboard.next_holiday
         ? <><span className="block">{dashboard.next_holiday.name}</span><span className="mt-1 block text-sm font-semibold text-violet-500">{formatDate(dashboard.next_holiday.date)}</span></>
         : "No upcoming holiday",
       tone: "text-violet-800",
-      wash: "from-violet-100/90 via-fuchsia-50/60",
-      border: "border-violet-100",
-      accent: "bg-violet-600",
-      glow: "bg-fuchsia-300/40",
+      wash: "from-white via-violet-50/70 to-fuchsia-100/75",
+      border: "border-violet-200/80",
+      accent: "from-violet-700 to-fuchsia-400",
+      glow: "bg-fuchsia-400/20",
     },
   ];
   const entitlement = Number(dashboard.entitlement_days || 0);
@@ -95,11 +95,11 @@ export default function TimeOffDashboard({
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {stats.map((stat) => (
-          <KairoCard key={stat.label} className={`group relative overflow-hidden ${stat.border} bg-gradient-to-br ${stat.wash} to-white p-5 shadow-[0_18px_42px_-28px_rgba(15,23,42,.65)] transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+          <KairoCard key={stat.label} className={`group relative overflow-hidden ${stat.border} bg-gradient-to-br ${stat.wash} p-5 shadow-[0_20px_48px_-32px_rgba(15,23,42,.7)] ring-1 ring-inset ring-white/80 transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
             <span className={`pointer-events-none absolute -right-9 -top-10 h-28 w-28 rounded-full ${stat.glow} blur-2xl transition duration-300 group-hover:scale-125`} />
-            <span className={`absolute inset-x-5 top-0 h-1 rounded-b-full ${stat.accent}`} />
+            <span className={`absolute inset-x-5 top-0 h-1.5 rounded-b-full bg-gradient-to-r ${stat.accent} shadow-sm`} />
             <p className="relative text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{stat.label}</p>
-            <div className={`relative mt-4 text-xl font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
+            <div className={`relative mt-4 text-[1.35rem] font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
           </KairoCard>
         ))}
       </section>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
-import KairoCard from "@/components/ui/KairoCard";
+import KairoCard from "./TimeOffPremiumCard";
 import TimeOffStatusBadge from "./TimeOffStatusBadge";
 import { cancelLeave, openLeaveAttachment, type LeaveRequest, type LeaveType } from "@/lib/time-off/client";
 import TimeOffIcon from "./TimeOffIcon";
