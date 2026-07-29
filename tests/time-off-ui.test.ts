@@ -224,6 +224,16 @@ describe("Time Off UI contract", () => {
     expect(approval).toContain("<TimeOffStatusBadge status={request.status}");
   });
 
+  it("presents every actionable leave request as a premium selectable card", () => {
+    const approval = source("src/components/time-off/ApprovalCentre.tsx");
+    expect(approval).toContain("aria-pressed={isSelected}");
+    expect(approval).toContain("group relative w-full overflow-hidden rounded-2xl border");
+    expect(approval).toContain("Selected · Review the approval details");
+    expect(approval).toContain("Administrative override required");
+    expect(approval).toContain("formatLeaveDate(request.start_date)");
+    expect(approval).toContain("leaveDayLabel(request.working_days)");
+  });
+
   it("provides an applied-filter reporting employee request search before balances", () => {
     const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
