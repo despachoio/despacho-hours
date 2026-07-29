@@ -118,7 +118,7 @@ export default function TimeOffPolicy() {
               <li>LOP is unpaid leave. Under the standard rule, one LOP day produces a payroll deduction equivalent to 1.5 salary days.</li>
               <li>The standard per-request maximum is two working days.</li>
               <li>Three LOP days is the annual reference. A request exceeding that reference requires an authorised administrative override and a recorded reason.</li>
-              <li>The contractor waiting-period exception—unlimited LOP at a one-day salary deduction per LOP day—applies only before six completed service months.</li>
+              <li>Before completing six months of service, any contractor leaves will be treated as loss of pay (LOP), with a one-day salary deduction for each LOP day.</li>
             </PolicyList>
           </PolicySection>
 
@@ -126,7 +126,6 @@ export default function TimeOffPolicy() {
             <PolicyList>
               <li><strong className="text-slate-900">Maternity Leave:</strong> available to female employees after 24 completed service months, for up to six calendar months.</li>
               <li><strong className="text-slate-900">Paternity Leave:</strong> available to male employees after 24 completed service months, for up to five working days.</li>
-              <li>Female employees are not assigned Paternity Leave balances, and male employees are not assigned Maternity Leave balances.</li>
               <li>Kairo hides ineligible parental leave types and blocks an ineligible request at the policy boundary.</li>
             </PolicyList>
           </PolicySection>
@@ -156,6 +155,7 @@ export default function TimeOffPolicy() {
               <li>Past and current holidays are protected from deletion so historical calculations remain reliable.</li>
               <li>Unused leave does not carry forward automatically to the next year.</li>
               <li>At year-end, the encashable estimate is the remaining paid leave after deducting actual LOP days, with a minimum of zero. Final processing is completed by authorised administrators.</li>
+              <li>Employees who do not avail of any leave during a calendar year are eligible for a No Leave Bonus of Rs. 10,000/-.</li>
             </PolicyList>
           </PolicySection>
         </div>
