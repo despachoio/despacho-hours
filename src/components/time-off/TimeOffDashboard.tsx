@@ -56,9 +56,14 @@ export default function TimeOffDashboard({
     ["LOP Used", dayValue(dashboard.lop_used_days), "text-red-600"],
     [
   "Next Company Holiday",
-  dashboard.next_holiday
-    ? `${dashboard.next_holiday.name} <span class="block">${formatDate(dashboard.next_holiday.date)}</span>`
-    : "No upcoming holiday",
+  dashboard.next_holiday ? (
+    <div className="flex flex-col">
+      <span>{dashboard.next_holiday.name}</span>
+      <span>{formatDate(dashboard.next_holiday.date)}</span>
+    </div>
+  ) : (
+    "No upcoming holiday"
+  ),
   "text-violet-700",
 ]
   ];
