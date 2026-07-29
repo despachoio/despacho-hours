@@ -157,6 +157,21 @@ describe("Time Off UI contract", () => {
     expect(workspace).not.toContain("+ Request Leave");
   });
 
+  it("publishes a universally visible Policy tab at the end of Time Off navigation", () => {
+    const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
+    const policy = source("src/components/time-off/TimeOffPolicy.tsx");
+    expect(workspace).toContain('| "policy"');
+    expect(workspace).toContain('["policy", "Policy", null, "shield"]');
+    expect(workspace.indexOf('["policy", "Policy"')).toBeGreaterThan(workspace.indexOf('canAdminister ? [["admin"'));
+    expect(workspace).toContain('tab === "policy" ? <TimeOffPolicy />');
+    expect(policy).toContain("Leave &amp; Time Off Policy");
+    expect(policy).toContain("Contractor policy");
+    expect(policy).toContain("Maternity and Paternity Leave");
+    expect(policy).toContain("Request, approval, and cancellation");
+    expect(policy).toContain("Holidays, balances, and year-end");
+    expect(policy).toContain("<details");
+  });
+
   it("uses only checkboxes to filter the leave calendar", () => {
     const calendar = source("src/components/time-off/LeaveCalendar.tsx");
     expect(calendar).toContain("My Leave");
