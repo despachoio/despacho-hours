@@ -138,6 +138,18 @@ describe("Time Off UI contract", () => {
     expect(calendar).not.toContain("Filter calendar by employee");
   });
 
+  it("uses premium colour treatments across the overview and leave calendar", () => {
+    const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
+    const calendar = source("src/components/time-off/LeaveCalendar.tsx");
+    expect(dashboard).toContain("from-blue-100/90 via-blue-50/60");
+    expect(dashboard).toContain("from-emerald-50 via-white to-teal-50/70");
+    expect(dashboard).toContain("from-sky-50 via-white to-blue-50/70");
+    expect(calendar).toContain("from-[#0F172A] via-[#153E90] to-violet-700");
+    expect(calendar).toContain("Today");
+    expect(calendar).toContain("Company holiday");
+    expect(calendar).toContain("Colours reflect each leave type.");
+  });
+
   it("provides an applied-filter reporting employee request search before balances", () => {
     const workspace = source("src/components/time-off/TimeOffWorkspace.tsx");
     const approval = source("src/components/time-off/ApprovalCentre.tsx");

@@ -56,19 +56,22 @@ export default function TimeOffDashboard({
     .filter((request) => ["approved", "cancellation_rejected"].includes(request.status))
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
     .slice(0, 4);
-  const stats: Array<{ label: string; value: ReactNode; tone: string; wash: string }> = [
-    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-900", wash: "from-blue-50/90" },
-    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-700", wash: "from-amber-50/90" },
-    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-700", wash: "from-emerald-50/90" },
-    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-700", wash: "from-orange-50/90" },
-    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-700", wash: "from-rose-50/90" },
+  const stats: Array<{ label: string; value: ReactNode; tone: string; wash: string; border: string; accent: string; glow: string }> = [
+    { label: "Available Paid Leave", value: dayValue(dashboard.available_paid_days), tone: "text-blue-900", wash: "from-blue-100/90 via-blue-50/60", border: "border-blue-100", accent: "bg-blue-600", glow: "bg-blue-300/40" },
+    { label: "Pending Requests", value: String(dashboard.pending_requests), tone: "text-amber-800", wash: "from-amber-100/90 via-amber-50/60", border: "border-amber-100", accent: "bg-amber-500", glow: "bg-amber-300/40" },
+    { label: "Approved Upcoming", value: String(dashboard.approved_upcoming_requests), tone: "text-emerald-800", wash: "from-emerald-100/90 via-emerald-50/60", border: "border-emerald-100", accent: "bg-emerald-500", glow: "bg-emerald-300/40" },
+    { label: "Unplanned Used", value: dayValue(dashboard.unplanned_used_days), tone: "text-orange-800", wash: "from-orange-100/90 via-orange-50/60", border: "border-orange-100", accent: "bg-orange-500", glow: "bg-orange-300/40" },
+    { label: "LOP Used", value: dayValue(dashboard.lop_used_days), tone: "text-rose-800", wash: "from-rose-100/90 via-rose-50/60", border: "border-rose-100", accent: "bg-rose-500", glow: "bg-rose-300/40" },
     {
       label: "Next Company Holiday",
       value: dashboard.next_holiday
         ? <><span className="block">{dashboard.next_holiday.name}</span><span className="mt-1 block text-sm font-semibold text-violet-500">{formatDate(dashboard.next_holiday.date)}</span></>
         : "No upcoming holiday",
       tone: "text-violet-800",
-      wash: "from-violet-50/90",
+      wash: "from-violet-100/90 via-fuchsia-50/60",
+      border: "border-violet-100",
+      accent: "bg-violet-600",
+      glow: "bg-fuchsia-300/40",
     },
   ];
   const entitlement = Number(dashboard.entitlement_days || 0);
@@ -92,8 +95,9 @@ export default function TimeOffDashboard({
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {stats.map((stat) => (
-          <KairoCard key={stat.label} className={`group relative overflow-hidden border-white/80 bg-gradient-to-br ${stat.wash} to-white p-5 shadow-[0_14px_35px_-24px_rgba(15,23,42,.55)] transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
-            <span className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/70 blur-xl" />
+          <KairoCard key={stat.label} className={`group relative overflow-hidden ${stat.border} bg-gradient-to-br ${stat.wash} to-white p-5 shadow-[0_18px_42px_-28px_rgba(15,23,42,.65)] transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+            <span className={`pointer-events-none absolute -right-9 -top-10 h-28 w-28 rounded-full ${stat.glow} blur-2xl transition duration-300 group-hover:scale-125`} />
+            <span className={`absolute inset-x-5 top-0 h-1 rounded-b-full ${stat.accent}`} />
             <p className="relative text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">{stat.label}</p>
             <div className={`relative mt-4 text-xl font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
           </KairoCard>
@@ -101,9 +105,10 @@ export default function TimeOffDashboard({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
-        <KairoCard className="overflow-hidden p-6">
+        <KairoCard className="relative overflow-hidden border-blue-100 bg-gradient-to-br from-blue-50/90 via-white to-cyan-50/70 p-6 shadow-[0_22px_55px_-36px_rgba(21,62,144,.75)]">
+          <span className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-blue-200/35 blur-3xl" />
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="relative">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
                 Paid leave balance
               </p>
@@ -122,7 +127,7 @@ export default function TimeOffDashboard({
               Request Leave
             </button>
           </div>
-          <div className="mt-7 flex h-3 overflow-hidden rounded-full bg-slate-100" aria-label="Leave balance utilisation">
+          <div className="relative mt-7 flex h-3 overflow-hidden rounded-full bg-white shadow-inner ring-1 ring-blue-100" aria-label="Leave balance utilisation">
             <span className="bg-emerald-500" style={{ width: `${(used / denominator) * 100}%` }} />
             <span className="bg-amber-400" style={{ width: `${(pending / denominator) * 100}%` }} />
             <span className="bg-[#153E90]" style={{ width: `${(available / denominator) * 100}%` }} />
@@ -136,7 +141,7 @@ export default function TimeOffDashboard({
               ["LOP", dayValue(dashboard.lop_used_days)],
               ["Encashable", dayValue(dashboard.encashable_estimate_days)],
             ].map(([label, value]) => (
-              <div key={label}>
+              <div key={label} className="rounded-xl border border-white/90 bg-white/75 px-3 py-3 shadow-sm backdrop-blur">
                 <dt className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</dt>
                 <dd className="mt-1 text-sm font-bold text-slate-900">{value}</dd>
               </div>
@@ -144,18 +149,19 @@ export default function TimeOffDashboard({
           </dl>
         </KairoCard>
 
-        <KairoCard className="p-6">
+        <KairoCard className="relative overflow-hidden border-indigo-100 bg-gradient-to-br from-indigo-50/90 via-white to-violet-50/70 p-6 shadow-[0_22px_55px_-36px_rgba(79,70,229,.55)]">
+          <span className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-violet-200/40 blur-3xl" />
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Policy status</p>
           <h2 className="mt-2 text-xl font-bold text-slate-950">
             {dashboard.policy_tier === "first_year" ? "First-year accrual" : "Annual entitlement"}
           </h2>
-          <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
-            <div><dt className="text-slate-400">Service</dt><dd className="mt-1 font-bold">{formatService(dashboard.service_completed_months)}</dd></div>
-            <div><dt className="text-slate-400">{dashboard.parental_leave_label}</dt><dd className={`mt-1 font-bold ${dashboard.parental_leave_eligible ? "text-emerald-700" : "text-slate-700"}`}>{dashboard.parental_leave_eligible ? "Yes" : "No"}</dd></div>
-            <div><dt className="text-slate-400">Monthly applications</dt><dd className="mt-1 font-bold">{dashboard.monthly_application_allowance}</dd></div>
-            <div><dt className="text-slate-400">Monthly paid days</dt><dd className="mt-1 font-bold">{dashboard.monthly_day_allowance}</dd></div>
-            <div><dt className="text-slate-400">Unplanned remaining</dt><dd className="mt-1 font-bold">{dayValue(dashboard.unplanned_remaining_days)}</dd></div>
-            <div><dt className="text-slate-400">Extended exception</dt><dd className="mt-1 font-bold capitalize">{dashboard.extended_exception_status.replaceAll("_", " ")}</dd></div>
+          <dl className="relative mt-5 grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl border border-white/90 bg-white/75 p-3 shadow-sm"><dt className="text-slate-400">Service</dt><dd className="mt-1 font-bold">{formatService(dashboard.service_completed_months)}</dd></div>
+            <div className="rounded-xl border border-white/90 bg-white/75 p-3 shadow-sm"><dt className="text-slate-400">{dashboard.parental_leave_label}</dt><dd className={`mt-1 font-bold ${dashboard.parental_leave_eligible ? "text-emerald-700" : "text-slate-700"}`}>{dashboard.parental_leave_eligible ? "Yes" : "No"}</dd></div>
+            <div className="rounded-xl border border-white/90 bg-white/75 p-3 shadow-sm"><dt className="text-slate-400">Monthly applications</dt><dd className="mt-1 font-bold">{dashboard.monthly_application_allowance}</dd></div>
+            <div className="rounded-xl border border-white/90 bg-white/75 p-3 shadow-sm"><dt className="text-slate-400">Monthly paid days</dt><dd className="mt-1 font-bold">{dashboard.monthly_day_allowance}</dd></div>
+            <div className="rounded-xl border border-white/90 bg-white/75 p-3 shadow-sm"><dt className="text-slate-400">Unplanned remaining</dt><dd className="mt-1 font-bold">{dayValue(dashboard.unplanned_remaining_days)}</dd></div>
+            <div className="rounded-xl border border-white/90 bg-white/75 p-3 shadow-sm"><dt className="text-slate-400">Extended exception</dt><dd className="mt-1 font-bold capitalize">{dashboard.extended_exception_status.replaceAll("_", " ")}</dd></div>
           </dl>
           {dashboard.extended_exception_reason ? (
             <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
@@ -166,11 +172,11 @@ export default function TimeOffDashboard({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-3">
-        <KairoCard className="p-6">
-          <h2 className="text-lg font-bold text-slate-950">Upcoming leave</h2>
-          <div className="mt-4 space-y-3">
+        <KairoCard className="overflow-hidden border-emerald-100 p-0 shadow-[0_20px_50px_-38px_rgba(5,150,105,.7)]">
+          <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-teal-50/70 px-6 py-5"><h2 className="text-lg font-bold text-slate-950">Upcoming leave</h2><p className="mt-1 text-xs text-slate-500">Your approved time away at a glance.</p></div>
+          <div className="space-y-3 p-5">
             {upcoming.length ? upcoming.map((request) => (
-              <article key={request.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <article key={request.id} className="flex items-center gap-3 rounded-xl border border-emerald-100/80 bg-gradient-to-r from-emerald-50/70 to-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <span className="h-10 w-1 rounded-full" style={{ backgroundColor: request.leave_types?.colour || "#153E90" }} />
                 <div className="min-w-0 flex-1"><p className="font-bold text-slate-900">{request.leave_types?.name}</p><p className="text-xs text-slate-500">{formatDate(request.start_date)} – {formatDate(request.end_date)}</p></div>
                 <span className="text-sm font-bold text-[#153E90]">{dayValue(request.working_days)}</span>
@@ -193,10 +199,15 @@ export default function TimeOffDashboard({
             {!holidays.length ? <p className="px-6 py-10 text-center text-sm text-slate-400">No company holidays configured for {dashboard.leave_year}.</p> : null}
           </div>
         </KairoCard>
-        <KairoCard className="p-6">
-          <h2 className="text-lg font-bold text-slate-950">Recent requests</h2>
-          <div className="mt-4 space-y-3">
-            {requests.slice(0, 6).map((request) => <article key={request.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"><div className="flex items-center justify-between gap-3"><p className="font-bold text-slate-900">{request.leave_types?.name}</p><span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold uppercase text-slate-500">{request.status.replaceAll("_", " ")}</span></div><p className="mt-1 text-xs text-slate-500">{formatDate(request.start_date)} · {dayValue(request.working_days)}</p></article>)}
+        <KairoCard className="overflow-hidden border-sky-100 p-0 shadow-[0_20px_50px_-38px_rgba(2,132,199,.7)]">
+          <div className="border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50/70 px-6 py-5"><h2 className="text-lg font-bold text-slate-950">Recent requests</h2><p className="mt-1 text-xs text-slate-500">Latest leave activity and approval status.</p></div>
+          <div className="space-y-3 p-5">
+            {requests.slice(0, 6).map((request) => {
+              const pendingRequest = request.status === "pending";
+              const approvedRequest = ["approved", "cancellation_rejected"].includes(request.status);
+              return <article key={request.id} className="rounded-xl border border-sky-100/80 bg-gradient-to-r from-sky-50/65 to-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><p className="font-bold text-slate-900">{request.leave_types?.name}</p><span className={`rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide ${pendingRequest ? "bg-amber-100 text-amber-800" : approvedRequest ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{request.status.replaceAll("_", " ")}</span></div><p className="mt-1 text-xs text-slate-500">{formatDate(request.start_date)} · {dayValue(request.working_days)}</p></article>;
+            })}
+            {!requests.length ? <p className="rounded-xl border border-dashed border-sky-200 py-8 text-center text-sm text-slate-400">No leave requests yet.</p> : null}
           </div>
         </KairoCard>
       </section>
