@@ -26,7 +26,8 @@ import {
   getInvoiceMetrics,
 } from "@/lib/metrics/invoice-metrics";
 import type { InvoiceMetrics } from "@/lib/metrics/types";
-import { RecurringInvoicesWorkspace } from "./recurring/page";
+import RecurringInvoicesPage from "./recurring/page";
+import { RecurringInvoicesEmbeddedProvider } from "@/components/invoices/RecurringInvoicesEmbeddedContext";
 
 type InvoiceTab = "overview" | "all" | "recurring";
 type Invoice = {
@@ -1158,7 +1159,9 @@ function InvoicesPageContent() {
 
         {tab === "recurring" ? (
           <div className="mt-6 animate-[fadeIn_.2s_ease-out]">
-            <RecurringInvoicesWorkspace embedded />
+            <RecurringInvoicesEmbeddedProvider value>
+              <RecurringInvoicesPage />
+            </RecurringInvoicesEmbeddedProvider>
           </div>
         ) : null}
       </div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useRecurringInvoicesEmbedded } from "@/components/invoices/RecurringInvoicesEmbeddedContext";
 
 type Tab = "upcoming" | "active" | "paused";
 type Schedule = {
@@ -66,7 +67,7 @@ function isInteractiveTarget(target: EventTarget | null) {
   );
 }
 
-export function RecurringInvoicesWorkspace({
+function RecurringInvoicesWorkspace({
   embedded = false,
 }: {
   embedded?: boolean;
@@ -784,5 +785,6 @@ export function RecurringInvoicesWorkspace({
 }
 
 export default function RecurringInvoicesPage() {
-  return <RecurringInvoicesWorkspace />;
+  const embedded = useRecurringInvoicesEmbedded();
+  return <RecurringInvoicesWorkspace embedded={embedded} />;
 }

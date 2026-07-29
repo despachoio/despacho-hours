@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:time-off": "vitest run tests/time-off*.test.ts",
     "desktop:dev": "electron desktop/main.cjs",
     "desktop:pack:win": "electron-builder --projectDir desktop --config electron-builder.yml --win dir --x64",
     "desktop:build:win": "electron-builder --projectDir desktop --config electron-builder.yml --win nsis --x64",
@@ -47,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

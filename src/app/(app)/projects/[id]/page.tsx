@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { formatDecimalHours } from "@/lib/format-hours";
+import { businessDateKey } from "@/lib/metrics/date-ranges";
 import {
   useParams,
   useRouter,
@@ -126,6 +127,7 @@ useState<TeamMember[]>([]);
 
 const [notes,setNotes] =
 useState<ProjectNote[]>([]);
+const [upcomingLeave, setUpcomingLeave] = useState<Record<string, { start_date: string; end_date: string }>>({});
 
 const [notesText, setNotesText] = useState("");
 const [role, setRole] = useState("");
@@ -258,6 +260,22 @@ if(data){
 setProject(
 data as Project
 );
+
+const employeeIds = (data.project_resources || []).map((item: Resource) => item.employee_id);
+if (employeeIds.length) {
+  const leaveResult = await supabase
+    .from("leave_requests")
+    .select("employee_id,start_date,end_date")
+    .in("employee_id", employeeIds)
+    .in("status", ["approved", "cancellation_rejected"])
+    .gte("end_date", businessDateKey())
+    .order("start_date");
+  const nextByEmployee: Record<string, { start_date: string; end_date: string }> = {};
+  for (const leave of leaveResult.data || []) {
+    if (!nextByEmployee[leave.employee_id]) nextByEmployee[leave.employee_id] = leave;
+  }
+  setUpcomingLeave(nextByEmployee);
+} else setUpcomingLeave({});
 
 
 setProjectCode(
@@ -816,6 +834,12 @@ className="rounded-full bg-white px-4 py-2 text-sm font-semibold"
 
 {r.employees?.name}
 
+{upcomingLeave[r.employee_id] ? (
+  <span className="ml-2 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700">
+    Leave {formatDate(upcomingLeave[r.employee_id].start_date)}
+  </span>
+) : null}
+
 </span>
 
 
@@ -1113,6 +1137,12 @@ No activity yet.
           >
 
             {r.employees?.name}
+
+            {upcomingLeave[r.employee_id] ? (
+              <span className="ml-2 text-[10px] font-bold text-amber-700">
+                Leave {formatDate(upcomingLeave[r.employee_id].start_date)}
+              </span>
+            ) : null}
 
 
             <button

@@ -6,6 +6,7 @@ import type {
   TeamTimer,
 } from "@/components/team/types";
 import { weekdays } from "./date-ranges";
+import { expectedCapacityHours } from "@/lib/time-off/policy";
 import type { TeamMetricFilters, TeamMetrics } from "./types";
 
 const PAGE_SIZE = 1000;
@@ -29,13 +30,14 @@ export function employeeAnalytics(
   timer: TeamTimer | null,
   from: string,
   to: string,
+  expectedHoursOverride?: number,
 ): EmployeeAnalytics {
   const hours = entries.reduce(
     (sum, entry) => sum + Number(entry.hours || 0),
     0,
   );
   const workdays = weekdays(from, to);
-  const expectedHours = workdays * 8;
+  const expectedHours = expectedHoursOverride ?? workdays * 8;
   const isOperationsEmployee =
     String(employee.department || "").trim().toLowerCase() === "operations";
   const billableHours = entries.reduce(
@@ -248,11 +250,43 @@ export async function getTeamMetrics(
     .in("status", ["running", "paused"])
     .in("employee_id", visibleEmployeeIds);
 
-  const [timerResult, entries] = await Promise.all([
+  const [timerResult, entries, holidayResult, leaveResult] = await Promise.all([
     timerQuery,
     fetchTimeEntries(filters, visibleEmployeeIds),
+    supabase
+      .from("holidays")
+      .select("holiday_date,day_part")
+      .eq("is_active", true)
+      .gte("holiday_date", filters.startDate)
+      .lte("holiday_date", filters.endDate),
+    supabase
+      .from("leave_request_days")
+      .select("employee_id,leave_date,day_part,duration,status,is_working_day")
+      .in("employee_id", visibleEmployeeIds)
+      .in("status", ["approved", "cancellation_requested"])
+      .eq("is_working_day", true)
+      .gte("leave_date", filters.startDate)
+      .lte("leave_date", filters.endDate),
   ]);
   if (timerResult.error) throw timerResult.error;
+  if (holidayResult.error) throw holidayResult.error;
+  if (leaveResult.error) throw leaveResult.error;
+
+  const holidayParts = new Map<string, Set<string>>();
+  for (const holiday of holidayResult.data || []) {
+    const parts = holidayParts.get(holiday.holiday_date) || new Set<string>();
+    if (holiday.day_part === "full_day") { parts.add("first_half"); parts.add("second_half"); }
+    else parts.add(holiday.day_part);
+    holidayParts.set(holiday.holiday_date, parts);
+  }
+  const leavePartsByEmployee = new Map<string, Map<string, Set<string>>>();
+  for (const day of leaveResult.data || []) {
+    const employeeDays = leavePartsByEmployee.get(day.employee_id) || new Map<string, Set<string>>();
+    const parts = employeeDays.get(day.leave_date) || new Set<string>();
+    parts.add(day.day_part);
+    employeeDays.set(day.leave_date, parts);
+    leavePartsByEmployee.set(day.employee_id, employeeDays);
+  }
 
   const timers = (timerResult.data || []) as unknown as TeamTimer[];
   const analytics = teamEmployees.map((employee) =>
@@ -262,6 +296,12 @@ export async function getTeamMetrics(
       timers.find((timer) => timer.employee_id === employee.id) || null,
       filters.startDate,
       filters.endDate,
+      expectedCapacityHours({
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        holidayParts,
+        approvedLeaveParts: leavePartsByEmployee.get(employee.id),
+      }),
     ),
   );
   return calculateTeamMetrics(analytics);

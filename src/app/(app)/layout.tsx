@@ -18,6 +18,7 @@ type IconName =
   | "projects"
   | "team"
   | "time"
+  | "timeOff"
   | "reports"
   | "invoices"
   | "settings";
@@ -52,6 +53,13 @@ const allMenu: MenuItem[] = [
     path: "/team",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "team",
+    shortcutNumber: 4,
+  },
+  {
+    name: "Time Off",
+    path: "/time-off",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+    icon: "timeOff",
     shortcutNumber: 3,
   },
   {
@@ -59,35 +67,35 @@ const allMenu: MenuItem[] = [
     path: "/invoices",
     roles: ["Finance Admin", "Super Admin"],
     icon: "invoices",
-    shortcutNumber: 4,
+    shortcutNumber: 5,
   },
   {
     name: "Clients",
     path: "/clients",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager"],
     icon: "clients",
-    shortcutNumber: 5,
+    shortcutNumber: 6,
   },
   {
     name: "Projects",
     path: "/projects",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "projects",
-    shortcutNumber: 6,
+    shortcutNumber: 7,
   },
   {
     name: "Reports",
     path: "/reports",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "reports",
-    shortcutNumber: 7,
+    shortcutNumber: 8,
   },
   {
     name: "Settings",
     path: "/settings",
     roles: ["Finance Admin", "Super Admin", "Admin"],
     icon: "settings",
-    shortcutNumber: 8,
+    shortcutNumber: 9,
   },
 ];
 
@@ -121,6 +129,13 @@ const iconPaths: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
+    </>
+  ),
+  timeOff: (
+    <>
+      <path d="M7 3v3M17 3v3M4 9h16" />
+      <rect x="3" y="5" width="18" height="16" rx="3" />
+      <path d="m9 15 2 2 4-5" />
     </>
   ),
   reports: (
@@ -201,14 +216,16 @@ export default function DashboardLayout({
       setUserName(profile?.full_name || data.user.email?.split("@")[0] || "");
       setUserRole(resolvedRole);
       setAccessState(
-        requiresAdminMobileAccess() && !isAdminLevelRole(resolvedRole)
+        requiresAdminMobileAccess() &&
+          !pathname.startsWith("/time-off") &&
+          !isAdminLevelRole(resolvedRole)
           ? "mobile-blocked"
           : "allowed",
       );
     }
 
     void checkUser();
-  }, [router]);
+  }, [pathname, router]);
 
   const menu = allMenu.filter((item) => item.roles.includes(userRole));
 

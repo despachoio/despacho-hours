@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/payment-notifications",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/time-off-notifications",
+      "schedule": "0 2 * * *"
     }
   ]
 }
