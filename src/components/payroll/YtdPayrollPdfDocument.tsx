@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   brand: { width: 190 },
   logo: { width: 174, height: 45, objectFit: "contain", objectPosition: "left center" },
   titleBlock: { flex: 1, alignItems: "center", paddingTop: 2 },
-  company: { fontSize: 17, fontWeight: "bold", color: PRIMARY, letterSpacing: 0.35 },
+  company: { fontSize: 17, fontWeight: "bold", color: PRIMARY_DARK, letterSpacing: 0.35 },
   title: { marginTop: 7, fontSize: 11.5, fontWeight: "bold", color: "#64748B" },
   headerSpacer: { width: 190 },
   headerDivider: { height: 1.4, marginTop: 5, backgroundColor: PRIMARY_DARK },
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   monthCell: { width: 51, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 4, borderRightWidth: 0.5, borderRightColor: BORDER },
   monthHeaderCell: { width: 51, justifyContent: "center", alignItems: "center", borderRightWidth: 0.5, borderRightColor: "#4D6079" },
   grandCell: { width: 73, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 6, borderLeftWidth: 1, borderLeftColor: "#7692B5" },
-  grandHeaderCell: { width: 73, justifyContent: "center", alignItems: "center", backgroundColor: "#062657", borderLeftWidth: 1, borderLeftColor: "#7692B5" },
+  grandHeaderCell: { width: 73, justifyContent: "center", alignItems: "center", backgroundColor: "#0F172A", borderLeftWidth: 1, borderLeftColor: "#4D6079" },
   headerText: { fontSize: 6.4, fontWeight: "bold", color: "#FFFFFF", textAlign: "center" },
   label: { fontSize: 6.8, color: SLATE },
   value: { fontSize: 6.5, color: SLATE, textAlign: "right" },
@@ -90,8 +90,9 @@ const styles = StyleSheet.create({
   deductionSectionText: { fontSize: 7.4, fontWeight: "bold", color: "#8B2635" },
   whiteText: { fontWeight: "bold", color: "#FFFFFF" },
   netText: { fontSize: 8.1, fontWeight: "bold", color: "#FFFFFF" },
-  currencyRow: { position: "absolute", left: 20, right: 20, bottom: 43, minHeight: 33, flexDirection: "row", alignItems: "center", justifyContent: "center" },
-  footer: { position: "absolute", left: 20, right: 20, bottom: 14, minHeight: 32, flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 7 },
+  footer: { position: "absolute", left: 20, right: 20, bottom: 14, minHeight: 35, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 7 },
+  footerLeft: { flexDirection: "row", alignItems: "center" },
+  footerCurrency: { alignItems: "flex-end", justifyContent: "center" },
   footerBadge: { width: 25, height: 25, borderRadius: 12.5, alignItems: "center", justifyContent: "center", backgroundColor: "#E8F3FF", marginRight: 9 },
   footerText: { fontSize: 7.8, color: "#303846" },
 });
@@ -191,13 +192,12 @@ export function YtdPayrollPdfDocument({ entries, financialYear: financialYearVal
           })}
         </View>
 
-        <View style={styles.currencyRow}>
-          <RupeeNotice text="All amounts are in Indian Rupees (INR)" />
-        </View>
-
         <View style={styles.footer}>
-          <View style={styles.footerBadge}><PdfIcon name="file" size={15} /></View>
-          <Text style={styles.footerText}>System-generated YTD payroll statement. No signature is required.</Text>
+          <View style={styles.footerLeft}>
+            <View style={styles.footerBadge}><PdfIcon name="file" size={15} /></View>
+            <Text style={styles.footerText}>System-generated YTD payroll statement. No signature is required.</Text>
+          </View>
+          <View style={styles.footerCurrency}><RupeeNotice text="All amounts are in Indian Rupees (INR)" /></View>
         </View>
       </Page>
     </Document>
