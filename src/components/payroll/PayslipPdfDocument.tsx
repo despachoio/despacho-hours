@@ -14,7 +14,7 @@ export type PayslipEmployeeDetails = {
 };
 
 type AmountRow = { label: string; value: number };
-type IconName = "user" | "id" | "briefcase" | "calendar" | "clock" | "bank" | "card" | "shield" | "wallet" | "file";
+export type PayrollPdfIconName = "user" | "id" | "briefcase" | "calendar" | "clock" | "bank" | "card" | "shield" | "wallet" | "file";
 
 const PRIMARY = "#153E90";
 const PRIMARY_DARK = "#07316F";
@@ -23,7 +23,7 @@ const BORDER = "#D7DEE8";
 const LIGHT_BLUE = "#F4F8FD";
 const ICON_BLUE = "#E8F3FF";
 
-const iconPaths: Record<IconName, string> = {
+const iconPaths: Record<PayrollPdfIconName, string> = {
   user: "M4 21c0-4 3.2-7 8-7s8 3 8 7M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9",
   id: "M3 5h18v15H3zM8 5V3h8v2M7 10a2 2 0 1 0 0-4M5 15c.4-2 1.5-3 3-3s2.6 1 3 3M14 10h4M14 14h4",
   briefcase: "M3 8h18v12H3zM8 8V5h8v3M3 12h18M10 12v2h4v-2",
@@ -116,7 +116,7 @@ function formatMonth(value: string) {
   return new Date(`${value.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-function formatDate(value: string | null) {
+export function formatDate(value: string | null) {
   if (!value) return "—";
   return new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 }
@@ -125,7 +125,7 @@ function formatDays(value: number) {
   return Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
 
-function PdfIcon({ name, size = 15, colour = PRIMARY }: { name: IconName; size?: number; colour?: string }) {
+export function PdfIcon({ name, size = 15, colour = PRIMARY }: { name: PayrollPdfIconName; size?: number; colour?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path d={iconPaths[name]} fill="none" stroke={colour} strokeWidth={1.65} strokeLinecap="round" strokeLinejoin="round" />
@@ -133,7 +133,7 @@ function PdfIcon({ name, size = 15, colour = PRIMARY }: { name: IconName; size?:
   );
 }
 
-function EmployeeInfoRow({ icon, label, value }: { icon: IconName; label: string; value: string | number | null }) {
+export function EmployeeInfoRow({ icon, label, value }: { icon: PayrollPdfIconName; label: string; value: string | number | null }) {
   return (
     <View style={styles.infoRow}>
       <View style={styles.infoIcon}><PdfIcon name={icon} size={17} /></View>
@@ -177,7 +177,7 @@ function SummaryItem({ label, value, divider = false }: { label: string; value: 
   );
 }
 
-function RupeeNotice() {
+export function RupeeNotice() {
   return (
     <View style={styles.currencyNotice}>
       <Svg width={22} height={22} viewBox="0 0 22 22" style={styles.currencyIcon}>

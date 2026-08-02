@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculatePayroll, payrollPeriod } from "../src/lib/payroll/calculation";
+import { currentFinancialYear, financialYearForPayrollMonth, financialYearFromValue, isInFinancialYear } from "../src/lib/payroll/financialYear";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -31,6 +32,21 @@ describe("Payroll calculation engine", () => {
   });
 });
 
+describe("Payroll financial year", () => {
+  it("uses April through March without changing monthly payroll values", () => {
+    const financialYear = currentFinancialYear(new Date(2026, 7, 2));
+    expect(financialYear.value).toBe("2026-27");
+    expect(financialYear.label).toBe("2026\u201327");
+    expect(financialYear.months[0]).toBe("2026-04");
+    expect(financialYear.months[11]).toBe("2027-03");
+    expect(financialYearForPayrollMonth("2027-03-01").value).toBe("2026-27");
+    expect(financialYearForPayrollMonth("2027-04-01").value).toBe("2027-28");
+    expect(isInFinancialYear("2026-07-01", financialYear.value)).toBe(true);
+    expect(isInFinancialYear("2027-04-01", financialYear.value)).toBe(false);
+    expect(financialYearFromValue("2026-28")).toBeNull();
+  });
+});
+
 describe("Payroll security and snapshot contracts", () => {
   const migration = source("supabase/migrations/202608020001_payroll_module.sql");
   it("limits administration to Finance Admin and employees to their published snapshots", () => {
@@ -47,11 +63,13 @@ describe("Payroll security and snapshot contracts", () => {
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("entry.employee_id !== actor.employeeId");
   });
 
-  it("requires a year search before showing payroll history", () => {
+  it("requires a financial year search before showing payroll history", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
     const history = workspace.slice(workspace.indexOf("function PayrollHistory"), workspace.indexOf("function Reimbursements"));
     expect(history).toContain('const [searched, setSearched] = useState(false)');
-    expect(history).toContain("Select a year and click Search");
+    expect(history).toContain("Select a financial year and click Search");
+    expect(history).toContain("Financial Year");
+    expect(history).toContain("isInFinancialYear");
     expect(history).toContain("Month &amp; Year");
     expect(history).toContain("Gross Salary");
     expect(history).toContain("entry.gross_salary");
@@ -105,8 +123,14 @@ describe("Payroll security and snapshot contracts", () => {
     expect(route).toContain("payrollActor(request)");
     expect(route).toContain('Content-Type": "application/pdf"');
     expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
-    expect(document).toContain('orientation="landscape"');
-    expect(document).toContain("YEAR-TO-DATE PAYROLL DETAILS");
+    expect(document).toContain('orientation="portrait"');
+    expect(document).toContain("DESPACHO INDIA PRIVATE LIMITED");
+    expect(document).toContain("YTD Summary for the Year");
+    expect(document).toContain("financialYear.months.map");
+    expect(document).toContain("EmployeeInfoRow");
+    expect(document).toContain("RupeeNotice");
     expect(document).toContain("GRAND TOTAL");
+    expect(route).toContain("financialYear.startDate");
+    expect(route).toContain("financialYear.endDate");
   });
 });

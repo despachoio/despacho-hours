@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
 import { downloadPayrollYtd, downloadPayslip, payrollRequest } from "@/lib/payroll/client";
+import { currentFinancialYear, financialYearFromValue, financialYearOptions, isInFinancialYear } from "@/lib/payroll/financialYear";
 import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
@@ -39,20 +40,18 @@ export default function PayrollWorkspace() {
   </div>;
 }
 
-function EmployeeOverview({ entry, entries }: { entry?: PayrollEntry; entries: PayrollEntry[] }) { const ytd = entries.filter((item) => item.payroll_month.slice(0,4) === new Date().getFullYear().toString()).reduce((sum,item) => ({ earnings: sum.earnings + Number(item.total_earnings), deductions: sum.deductions + Number(item.total_deductions), net: sum.net + Number(item.net_salary) }), { earnings:0,deductions:0,net:0 }); return <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><Metric label="YTD Earnings" value={money(ytd.earnings)} colour="text-emerald-700" /><Metric label="YTD Deductions" value={money(ytd.deductions)} colour="text-rose-700" /><Metric label="YTD Net Pay" value={money(ytd.net)} colour="text-[#153E90]" /></div><Card className="p-7">{entry ? <div className="flex flex-wrap items-center justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-wider text-slate-400">Latest published salary slip</p><h2 className="mt-2 text-2xl font-bold">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month:"long",year:"numeric",timeZone:"UTC" })}</h2><p className="mt-2 text-sm text-slate-500">Net salary <strong className="text-[#153E90]">{money(entry.net_salary)}</strong></p></div><KairoButton type="button" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0,7)}.pdf`)}>Download Salary Slip</KairoButton></div> : <p className="py-14 text-center text-slate-400">No published salary slip is available yet.</p>}</Card><Card className="p-7"><h2 className="text-xl font-bold">Form 16</h2><p className="mt-2 text-slate-500">Annual Form 16 download will be available here.</p><span className="mt-4 inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">Coming Soon</span></Card></div>; }
+function EmployeeOverview({ entry, entries }: { entry?: PayrollEntry; entries: PayrollEntry[] }) { const financialYear = currentFinancialYear(); const ytd = entries.filter((item) => isInFinancialYear(item.payroll_month, financialYear.value)).reduce((sum,item) => ({ earnings: sum.earnings + Number(item.total_earnings), deductions: sum.deductions + Number(item.total_deductions), net: sum.net + Number(item.net_salary) }), { earnings:0,deductions:0,net:0 }); return <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><Metric label={`${financialYear.label} Earnings`} value={money(ytd.earnings)} colour="text-emerald-700" /><Metric label={`${financialYear.label} Deductions`} value={money(ytd.deductions)} colour="text-rose-700" /><Metric label={`${financialYear.label} Net Pay`} value={money(ytd.net)} colour="text-[#153E90]" /></div><Card className="p-7">{entry ? <div className="flex flex-wrap items-center justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-wider text-slate-400">Latest published salary slip</p><h2 className="mt-2 text-2xl font-bold">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month:"long",year:"numeric",timeZone:"UTC" })}</h2><p className="mt-2 text-sm text-slate-500">Net salary <strong className="text-[#153E90]">{money(entry.net_salary)}</strong></p></div><KairoButton type="button" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0,7)}.pdf`)}>Download Salary Slip</KairoButton></div> : <p className="py-14 text-center text-slate-400">No published salary slip is available yet.</p>}</Card><Card className="p-7"><h2 className="text-xl font-bold">Form 16</h2><p className="mt-2 text-slate-500">Annual Form 16 download will be available here.</p><span className="mt-4 inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">Coming Soon</span></Card></div>; }
 function Metric({ label,value,colour }: { label:string;value:string;colour:string }) { return <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{label}</p><p className={`mt-4 text-2xl font-bold ${colour}`}>{value}</p></Card>; }
 function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
-  const [selectedYear, setSelectedYear] = useState("");
+  const defaultFinancialYear = useMemo(() => currentFinancialYear(), []);
+  const [selectedYear, setSelectedYear] = useState(defaultFinancialYear.value);
   const [appliedYear, setAppliedYear] = useState("");
   const [searched, setSearched] = useState(false);
   const [downloadingYtd, setDownloadingYtd] = useState(false);
   const [downloadError, setDownloadError] = useState("");
-  const years = useMemo(
-    () => Array.from(new Set(entries.map((entry) => entry.payroll_month.slice(0, 4)))).sort((left, right) => Number(right) - Number(left)),
-    [entries],
-  );
+  const years = useMemo(() => financialYearOptions(entries.map((entry) => entry.payroll_month), defaultFinancialYear), [defaultFinancialYear, entries]);
   const results = useMemo(
-    () => searched ? entries.filter((entry) => entry.payroll_month.startsWith(`${appliedYear}-`)) : [],
+    () => searched ? entries.filter((entry) => isInFinancialYear(entry.payroll_month, appliedYear)).sort((left, right) => left.payroll_month.localeCompare(right.payroll_month)) : [],
     [appliedYear, entries, searched],
   );
 
@@ -65,7 +64,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
 
   function reset() {
     setDownloadError("");
-    setSelectedYear("");
+    setSelectedYear(defaultFinancialYear.value);
     setAppliedYear("");
     setSearched(false);
   }
@@ -86,16 +85,15 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Payroll archive</p>
             <h2 className="mt-1 text-xl font-bold text-slate-950">Find salary slips</h2>
-            <p className="mt-1 text-sm text-slate-500">Choose a year, then search to view or export published payroll.</p>
+            <p className="mt-1 text-sm text-slate-500">Choose a financial year, then search to view or export published payroll.</p>
           </div>
           <span className="rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-bold text-[#153E90] shadow-sm">{searched ? `${results.length} slips` : "Awaiting search"}</span>
         </div>
         <div className="flex flex-wrap items-end gap-3 px-6 py-5">
           <label className="w-44 text-sm font-bold text-slate-700">
-            Year
+            Financial Year
             <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">
-              <option value="">Select year</option>
-              {years.map((year) => <option key={year} value={year}>{year}</option>)}
+              {years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}
             </select>
           </label>
           <KairoButton type="button" disabled={!selectedYear} onClick={search}>Search</KairoButton>
@@ -109,10 +107,10 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5">
-          <div><h2 className="text-xl font-bold">Published Salary Slips</h2><p className="mt-1 text-sm text-slate-500">Search by year to view published salary slips.</p></div>
-          {searched ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{appliedYear} · {results.length} records</span> : null}
+          <div><h2 className="text-xl font-bold">Published Salary Slips</h2><p className="mt-1 text-sm text-slate-500">Search by financial year to view published salary slips.</p></div>
+          {searched ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{financialYearFromValue(appliedYear)?.label || appliedYear} · {results.length} records</span> : null}
         </div>
-        {!searched ? <Empty text="Select a year and click Search to view published salary slips." /> : results.length ? (
+        {!searched ? <Empty text="Select a financial year and click Search to view published salary slips." /> : results.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] table-fixed text-sm">
               <colgroup><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[22%]" /></colgroup>
@@ -138,7 +136,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
               </tbody>
             </table>
           </div>
-        ) : <Empty text={`No published salary slips are available for ${appliedYear}.`} />}
+        ) : <Empty text={`No published salary slips are available for ${financialYearFromValue(appliedYear)?.label || appliedYear}.`} />}
       </Card>
     </div>
   );
