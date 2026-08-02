@@ -2,7 +2,13 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createElement, type ReactElement } from "react";
 import { InvoicePdfDocument } from "@/components/invoices/InvoicePdfDocument";
-import { getGmailClient, GOOGLE_WORKSPACE_SENDER } from "@/lib/google/gmail";
+import {
+  createDespachoLogoAttachment,
+  GOOGLE_WORKSPACE_SENDER,
+  INVOICE_SENDER_NAME,
+  sendEmail,
+} from "@/lib/email";
+import { buildInvoiceEmail } from "@/lib/email/templates/invoice";
 import {
   loadCompanyLogo,
   loadCompanySettings,
@@ -57,15 +63,6 @@ function normalizeEmails(value: unknown) {
   );
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
@@ -80,26 +77,6 @@ function formatMoney(currency: string, value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
-}
-
-function encodeMimeHeader(value: string) {
-  return `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=`;
-}
-
-function wrapBase64(value: Buffer | string) {
-  const encoded = Buffer.isBuffer(value)
-    ? value.toString("base64")
-    : Buffer.from(value, "utf8").toString("base64");
-
-  return encoded.match(/.{1,76}/g)?.join("\r\n") || "";
-}
-
-function encodeBase64Url(value: string) {
-  return Buffer.from(value)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
 }
 
 function firstReminderAt(
@@ -257,145 +234,6 @@ async function recordInvoiceActivity({
   }
 
   return description;
-}
-
-function buildEmailHtml({
-  invoiceNumber,
-  clientName,
-  amount,
-  dueDate,
-  message,
-  companyName,
-  businessEmail,
-  website,
-  paymentUrl,
-}: {
-  invoiceNumber: number;
-  clientName: string;
-  amount: string;
-  dueDate: string;
-  message: string;
-  companyName: string;
-  businessEmail: string;
-  website: string;
-  paymentUrl: string | null;
-}) {
-  const formattedMessage = escapeHtml(message).replaceAll("\n", "<br />");
-
-  return `<!doctype html>
-<html>
-  <body style="margin:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:32px 16px;">
-      <tr><td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
-          <tr><td style="padding:28px 34px 22px;border-bottom:1px solid #e5e7eb;">
-            <img src="cid:despacho-logo" alt="${escapeHtml(companyName)}" width="180" style="display:block;width:180px;height:auto;" />
-          </td></tr>
-          <tr><td style="padding:30px 34px;">
-            <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#153e90;text-transform:uppercase;">Invoice #${invoiceNumber}</div>
-            <h1 style="margin:8px 0 6px;font-size:25px;line-height:1.2;color:#0f172a;">Invoice for ${escapeHtml(clientName)}</h1>
-            <p style="margin:0 0 22px;font-size:13px;color:#6b7280;">The PDF invoice is attached to this email.</p>
-            <div style="font-size:15px;line-height:1.65;color:#475569;">${formattedMessage}</div>
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:26px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;">
-              <tr>
-                <td style="padding:16px 18px;color:#6b7280;font-size:12px;">Total amount</td>
-                <td align="right" style="padding:16px 18px;color:#153e90;font-size:15px;font-weight:700;">${escapeHtml(amount)}</td>
-              </tr>
-              <tr>
-                <td style="padding:0 18px 16px;color:#6b7280;font-size:12px;">Due date</td>
-                <td align="right" style="padding:0 18px 16px;color:#0f172a;font-size:13px;font-weight:700;">${escapeHtml(dueDate)}</td>
-              </tr>
-            </table>
-            ${paymentUrl ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:26px auto 0"><tr><td style="border-radius:12px;background:#153e90"><a href="${escapeHtml(paymentUrl)}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700">Pay Invoice</a></td></tr></table><p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#94a3b8;word-break:break-all">${escapeHtml(paymentUrl)}</p>` : ""}
-          </td></tr>
-          <tr><td style="padding:22px 34px;background:#0f172a;color:#ffffff;">
-            <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Questions?</div>
-            <div style="font-size:12px;line-height:1.6;color:#cbd5e1;">
-              <a href="mailto:${escapeHtml(businessEmail)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(businessEmail)}</a><br />
-              <a href="${escapeHtml(website)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(website)}</a>
-            </div>
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>
-  </body>
-</html>`;
-}
-
-function buildRawMimeMessage({
-  to,
-  cc,
-  subject,
-  html,
-  message,
-  pdf,
-  pdfFilename,
-  logo,
-  companyName,
-}: {
-  to: string[];
-  cc: string[];
-  subject: string;
-  html: string;
-  message: string;
-  pdf: Buffer;
-  pdfFilename: string;
-  logo: Buffer;
-  companyName: string;
-}) {
-  const mixedBoundary = `mixed_${crypto.randomUUID()}`;
-  const relatedBoundary = `related_${crypto.randomUUID()}`;
-  const alternativeBoundary = `alternative_${crypto.randomUUID()}`;
-  const lines = [
-    `From: ${encodeMimeHeader(companyName)} <${GOOGLE_WORKSPACE_SENDER}>`,
-    `To: ${to.join(", ")}`,
-    ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []),
-    `Subject: ${encodeMimeHeader(subject)}`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
-    "",
-    `--${mixedBoundary}`,
-    `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
-    "",
-    `--${relatedBoundary}`,
-    `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
-    "",
-    `--${alternativeBoundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrapBase64(message),
-    "",
-    `--${alternativeBoundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrapBase64(html),
-    "",
-    `--${alternativeBoundary}--`,
-    "",
-    `--${relatedBoundary}`,
-    'Content-Type: image/png; name="despacho-logo.png"',
-    "Content-Transfer-Encoding: base64",
-    'Content-Disposition: inline; filename="despacho-logo.png"',
-    "Content-ID: <despacho-logo>",
-    "",
-    wrapBase64(logo),
-    "",
-    `--${relatedBoundary}--`,
-    "",
-    `--${mixedBoundary}`,
-    `Content-Type: application/pdf; name="${pdfFilename}"`,
-    "Content-Transfer-Encoding: base64",
-    `Content-Disposition: attachment; filename="${pdfFilename}"`,
-    "",
-    wrapBase64(pdf),
-    "",
-    `--${mixedBoundary}--`,
-    "",
-  ];
-
-  return lines.join("\r\n");
 }
 
 export async function POST(
@@ -678,7 +516,7 @@ export async function POST(
     const messageWithPaymentLink = paymentUrl
       ? `${numberedMessage}\n\nPay Invoice: ${paymentUrl}`
       : numberedMessage;
-    const html = buildEmailHtml({
+    const html = buildInvoiceEmail({
       invoiceNumber,
       clientName: invoice.clients?.name || "Client",
       amount: formatMoney(invoice.currency, invoice.total_amount),
@@ -689,30 +527,24 @@ export async function POST(
       website: companySettings.website || "https://www.despacho.io",
       paymentUrl,
     });
-    const rawMessage = buildRawMimeMessage({
-      to,
-      cc,
-      subject: numberedSubject,
-      html,
-      message: messageWithPaymentLink,
-      pdf: pdfBuffer,
-      pdfFilename,
-      logo: logoBuffer,
-      companyName: companySettings.company_name,
-    });
-
     let gmailMessageId: string;
     try {
-      const gmail = getGmailClient();
-      const gmailResponse = await gmail.users.messages.send({
-        userId: "me",
-        requestBody: { raw: encodeBase64Url(rawMessage) },
+      gmailMessageId = await sendEmail({
+        senderName: INVOICE_SENDER_NAME,
+        to,
+        cc,
+        subject: numberedSubject,
+        text: messageWithPaymentLink,
+        html,
+        attachments: [
+          createDespachoLogoAttachment(logoBuffer),
+          {
+            filename: pdfFilename,
+            contentType: "application/pdf",
+            content: pdfBuffer,
+          },
+        ],
       });
-
-      if (!gmailResponse.data.id) {
-        throw new Error("Gmail did not return a message ID.");
-      }
-      gmailMessageId = gmailResponse.data.id;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("Gmail invoice send failed:", message);

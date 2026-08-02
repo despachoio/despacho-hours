@@ -1,8 +1,26 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getGmailClient, GOOGLE_WORKSPACE_SENDER } from "@/lib/google/gmail";
+import {
+  buildEmailHtml,
+  createDespachoLogoAttachment,
+  escapeHtml,
+  GOOGLE_WORKSPACE_SENDER,
+  KAIRO_SENDER_NAME,
+  sendEmail,
+} from "@/lib/email";
+import {
+  buildLeaveApprovedEmail,
+  buildLeaveCancellationApprovedEmail,
+  buildLeaveCancellationRejectedEmail,
+  buildLeaveCancellationRequestedEmail,
+  buildLeaveRejectedEmail,
+  buildLeaveRequestEmail,
+  type LeaveEmailContent,
+  type LeaveEmailDetails,
+} from "@/lib/email/templates/leave";
 import { addDateKeyDays, businessDateKey } from "@/lib/metrics/date-ranges";
+import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 
 type NotificationRow = {
   id: string;
@@ -11,31 +29,40 @@ type NotificationRow = {
   body: string;
   status: string;
   attempt_count: number;
+  notification_type: string;
+  leave_request_id: string | null;
 };
 
-function encodeHeader(value: string) {
-  return `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=`;
+type LeaveNotificationRequest = {
+  id: string;
+  start_date: string;
+  end_date: string;
+  working_days: number;
+  reason: string;
+  manager_comment: string | null;
+  leave_types: { name: string } | null;
+  employees: { name: string; title: string | null } | null;
+};
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
-function base64Url(value: string) {
-  return Buffer.from(value)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function rawMessage(to: string, subject: string, body: string) {
-  return base64Url([
-    `From: Kairo Time Off <${GOOGLE_WORKSPACE_SENDER}>`,
-    `To: ${to}`,
-    `Subject: ${encodeHeader(subject)}`,
-    "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    Buffer.from(body, "utf8").toString("base64"),
-  ].join("\r\n"));
+function leaveContent(type: string, details: LeaveEmailDetails): LeaveEmailContent | null {
+  const builders: Record<string, (input: LeaveEmailDetails) => LeaveEmailContent> = {
+    request_submitted: buildLeaveRequestEmail,
+    cancellation_requested: buildLeaveCancellationRequestedEmail,
+    approve: buildLeaveApprovedEmail,
+    reject: buildLeaveRejectedEmail,
+    approve_cancellation: buildLeaveCancellationApprovedEmail,
+    reject_cancellation: buildLeaveCancellationRejectedEmail,
+  };
+  return builders[type]?.(details) || null;
 }
 
 async function queueReminders(admin: SupabaseClient) {
@@ -152,14 +179,34 @@ export async function dispatchTimeOffNotifications(admin: SupabaseClient) {
     .lte("claimed_at", staleBefore);
   const pending = await admin
     .from("leave_notifications")
-    .select("id,recipient_user_id,subject,body,status,attempt_count")
+    .select("id,recipient_user_id,subject,body,status,attempt_count,notification_type,leave_request_id")
     .in("status", ["pending", "failed"])
     .lt("attempt_count", 5)
     .order("created_at")
     .limit(50);
   if (pending.error) throw new Error(pending.error.message);
   const summary = { queued: pending.data?.length || 0, sent: 0, failed: 0 };
-  for (const candidate of (pending.data || []) as NotificationRow[]) {
+  const candidates = (pending.data || []) as NotificationRow[];
+  if (!candidates.length) return summary;
+  const requestIds = Array.from(
+    new Set(candidates.flatMap((candidate) => candidate.leave_request_id ? [candidate.leave_request_id] : [])),
+  );
+  const requests = requestIds.length
+    ? await admin
+        .from("leave_requests")
+        .select("id,start_date,end_date,working_days,reason,manager_comment,leave_types(name),employees(name,title)")
+        .in("id", requestIds)
+    : { data: [], error: null };
+  if (requests.error) throw new Error(requests.error.message);
+  const requestById = new Map(
+    ((requests.data || []) as unknown as LeaveNotificationRequest[]).map((request) => [request.id, request]),
+  );
+  const settings = await loadCompanySettings(admin);
+  const { buffer: logo } = await loadCompanyLogo(settings);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL is not configured");
+  const ctaUrl = `${appUrl}/time-off`;
+  for (const candidate of candidates) {
     const claim = await admin
       .from("leave_notifications")
       .update({ status: "processing", claimed_at: new Date().toISOString(), error: null })
@@ -172,15 +219,50 @@ export async function dispatchTimeOffNotifications(admin: SupabaseClient) {
       const user = await admin.auth.admin.getUserById(candidate.recipient_user_id);
       const email = user.data.user?.email;
       if (!email) throw new Error("Recipient email is unavailable");
-      const sent = await getGmailClient().users.messages.send({
-        userId: "me",
-        requestBody: { raw: rawMessage(email, candidate.subject, candidate.body) },
+      const request = candidate.leave_request_id
+        ? requestById.get(candidate.leave_request_id)
+        : null;
+      const employeeName = request
+        ? [request.employees?.title, request.employees?.name].filter(Boolean).join(" ") || "Employee"
+        : "Employee";
+      const details: LeaveEmailDetails | null = request
+        ? {
+            employeeName,
+            leaveType: request.leave_types?.name || "Leave",
+            startDate: formatDate(request.start_date),
+            endDate: formatDate(request.end_date),
+            duration: `${request.working_days} ${request.working_days === 1 ? "day" : "days"}`,
+            reason: request.reason || "Not provided",
+            managerComments: request.manager_comment,
+            companyName: settings.company_name,
+            businessEmail: settings.business_email || GOOGLE_WORKSPACE_SENDER,
+            website: settings.website || "https://www.despacho.io",
+            ctaUrl,
+          }
+        : null;
+      const templated = details ? leaveContent(candidate.notification_type, details) : null;
+      const html = templated?.html || buildEmailHtml({
+        companyName: settings.company_name,
+        businessEmail: settings.business_email || GOOGLE_WORKSPACE_SENDER,
+        website: settings.website || "https://www.despacho.io",
+        eyebrow: "Kairo · Time Off",
+        title: candidate.subject,
+        introHtml: `<p style="margin:0;color:#475569;font-size:15px;line-height:1.7;">${escapeHtml(candidate.body)}</p>`,
+        status: { label: "Notification", tone: "blue" },
+        cta: { label: "View Time Off", url: ctaUrl },
       });
-      if (!sent.data.id) throw new Error("Gmail did not return a message ID");
+      const gmailMessageId = await sendEmail({
+        senderName: KAIRO_SENDER_NAME,
+        to: email,
+        subject: templated?.subject || candidate.subject,
+        text: templated?.text || `${candidate.body}\n\nView Time Off: ${ctaUrl}`,
+        html,
+        attachments: [createDespachoLogoAttachment(logo)],
+      });
       await admin.from("leave_notifications").update({
         status: "sent",
         sent_at: new Date().toISOString(),
-        gmail_message_id: sent.data.id,
+        gmail_message_id: gmailMessageId,
         attempt_count: candidate.attempt_count + 1,
       }).eq("id", candidate.id);
       summary.sent++;

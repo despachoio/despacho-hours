@@ -4,7 +4,13 @@ import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { InvoicePdfDocument } from "@/components/invoices/InvoicePdfDocument";
-import { getGmailClient, GOOGLE_WORKSPACE_SENDER } from "@/lib/google/gmail";
+import {
+  createDespachoLogoAttachment,
+  GOOGLE_WORKSPACE_SENDER,
+  INVOICE_SENDER_NAME,
+  sendEmail,
+} from "@/lib/email";
+import { buildInvoiceEmail } from "@/lib/email/templates/invoice";
 import {
   loadCompanyLogo,
   loadCompanySettings,
@@ -15,28 +21,6 @@ function emails(value: string | null) {
     .split(",")
     .map((email) => email.trim())
     .filter(Boolean);
-}
-function header(value: string) {
-  return `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=`;
-}
-function base64Url(value: string) {
-  return Buffer.from(value)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-function wrap(value: Buffer | string) {
-  const encoded = Buffer.isBuffer(value)
-    ? value.toString("base64")
-    : Buffer.from(value).toString("base64");
-  return encoded.match(/.{1,76}/g)?.join("\r\n") || "";
-}
-function escape(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
 }
 function applyInvoiceNumber(value: string, invoiceNumber: number) {
   return value
@@ -135,52 +119,40 @@ export async function sendRecurringInvoice(
       companySettings,
     }) as ReactElement<DocumentProps>,
   );
-  const boundary = `mixed_${crypto.randomUUID()}`;
-  const alternative = `alt_${crypto.randomUUID()}`;
-  const html = `<html><body style="font-family:Arial;color:#0f172a;background:#f8fafc;padding:24px"><div style="max-width:620px;margin:auto;background:#fff;padding:32px;border-radius:16px"><img src="cid:despacho-logo" width="180" alt="${escape(companySettings.company_name)}"><h2>Invoice #${invoiceNumber}</h2><p style="line-height:1.7;color:#475569">${escape(message).replaceAll("\n", "<br>")}</p><p style="margin:26px 0;text-align:center"><a href="${escape(paymentUrl)}" style="display:inline-block;border-radius:12px;background:#153e90;padding:14px 28px;color:#fff;text-decoration:none;font-weight:700">Pay Invoice</a></p><p style="font-size:11px;color:#94a3b8;word-break:break-all">${escape(paymentUrl)}</p><p style="margin-top:24px;color:#64748b;font-size:12px">Questions? ${escape(companySettings.business_email || GOOGLE_WORKSPACE_SENDER)}<br>${escape(companySettings.website || "https://www.despacho.io")}</p></div></body></html>`;
-  const raw = [
-    `From: ${header(companySettings.company_name)} <${GOOGLE_WORKSPACE_SENDER}>`,
-    `To: ${to.join(", ")}`,
-    ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []),
-    `Subject: ${header(subject)}`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    `Content-Type: multipart/alternative; boundary="${alternative}"`,
-    "",
-    `--${alternative}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrap(textMessage),
-    `--${alternative}`,
-    "Content-Type: text/html; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrap(html),
-    `--${alternative}--`,
-    `--${boundary}`,
-    "Content-Type: image/png; name=despacho-logo.png",
-    "Content-Transfer-Encoding: base64",
-    "Content-Disposition: inline; filename=despacho-logo.png",
-    "Content-ID: <despacho-logo>",
-    "",
-    wrap(logo),
-    `--${boundary}`,
-    `Content-Type: application/pdf; name="Invoice-${invoiceNumber}.pdf"`,
-    "Content-Transfer-Encoding: base64",
-    `Content-Disposition: attachment; filename="Invoice-${invoiceNumber}.pdf"`,
-    "",
-    wrap(pdf),
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
-  const sent = await getGmailClient().users.messages.send({
-    userId: "me",
-    requestBody: { raw: base64Url(raw) },
+  const amount = `${invoice.currency} ${Number(invoice.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const dueDate = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${invoice.due_date}T00:00:00Z`));
+  const html = buildInvoiceEmail({
+    invoiceNumber,
+    clientName: invoice.clients?.name || "Client",
+    amount,
+    dueDate,
+    message,
+    companyName: companySettings.company_name,
+    businessEmail: companySettings.business_email || GOOGLE_WORKSPACE_SENDER,
+    website: companySettings.website || "https://www.despacho.io",
+    paymentUrl,
   });
-  if (!sent.data.id) throw new Error("Gmail did not return a message ID");
+  const gmailMessageId = await sendEmail({
+    senderName: INVOICE_SENDER_NAME,
+    to,
+    cc,
+    subject,
+    text: textMessage,
+    html,
+    attachments: [
+      createDespachoLogoAttachment(logo),
+      {
+        filename: `Invoice-${invoiceNumber}.pdf`,
+        contentType: "application/pdf",
+        content: pdf,
+      },
+    ],
+  });
   const sentAt = new Date().toISOString();
   const nextReminderAt = firstReminderAt(
     invoice.due_date,
@@ -197,7 +169,7 @@ export async function sendRecurringInvoice(
       sent_cc: cc.length ? cc.join(", ") : null,
       email_subject: subject,
       email_body: message,
-      gmail_message_id: sent.data.id,
+      gmail_message_id: gmailMessageId,
       reminders_enabled: true,
       reminder_count: 0,
       next_reminder_at: nextReminderAt,
@@ -214,5 +186,5 @@ export async function sendRecurringInvoice(
     recipient: to.join(", "),
     created_at: sentAt,
   });
-  return { gmailMessageId: sent.data.id };
+  return { gmailMessageId };
 }

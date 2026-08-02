@@ -1,8 +1,17 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getGmailClient, GOOGLE_WORKSPACE_SENDER } from "@/lib/google/gmail";
-import { loadCompanySettings } from "@/lib/settings/companySettings";
+import {
+  createDespachoLogoAttachment,
+  GOOGLE_WORKSPACE_SENDER,
+  INVOICE_SENDER_NAME,
+  sendEmail,
+} from "@/lib/email";
+import {
+  buildPaymentIntimationEmail,
+  buildPaymentReceiptEmail,
+} from "@/lib/email/templates/invoice";
+import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 
 type PaymentNotificationInvoice = {
   id: string;
@@ -33,36 +42,6 @@ function normalizeEmails(value: string | null) {
   );
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function encodeMimeHeader(value: string) {
-  return `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=`;
-}
-
-function wrapBase64(value: string) {
-  return (
-    Buffer.from(value, "utf8")
-      .toString("base64")
-      .match(/.{1,76}/g)
-      ?.join("\r\n") || ""
-  );
-}
-
-function encodeBase64Url(value: string) {
-  return Buffer.from(value)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
 function formatMoney(currency: string, value: number) {
   return `${currency} ${Number(value || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -82,51 +61,6 @@ function paymentMethod(value: string | null) {
   return (value || "Payment")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-async function sendEmail({
-  to,
-  cc = [],
-  subject,
-  text,
-  html,
-  companyName,
-}: {
-  to: string[];
-  cc?: string[];
-  subject: string;
-  text: string;
-  html: string;
-  companyName: string;
-}) {
-  const boundary = `alternative_${crypto.randomUUID()}`;
-  const raw = [
-    `From: ${encodeMimeHeader(companyName)} <${GOOGLE_WORKSPACE_SENDER}>`,
-    `To: ${to.join(", ")}`,
-    ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []),
-    `Subject: ${encodeMimeHeader(subject)}`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrapBase64(text),
-    `--${boundary}`,
-    "Content-Type: text/html; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    wrapBase64(html),
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
-  const response = await getGmailClient().users.messages.send({
-    userId: "me",
-    requestBody: { raw: encodeBase64Url(raw) },
-  });
-  if (!response.data.id) throw new Error("Gmail did not return a message ID");
-  return response.data.id;
 }
 
 async function recordActivity(
@@ -209,6 +143,7 @@ export async function sendInvoicePaymentNotifications(
   const invoice =
     invoiceResult.data as unknown as PaymentNotificationInvoice;
   const settings = await loadCompanySettings(admin);
+  const { buffer: logo } = await loadCompanyLogo(settings);
   const amount = formatMoney(
     invoice.currency,
     Number(invoice.paid_amount ?? invoice.total_amount),
@@ -242,14 +177,25 @@ Thank you.
 
 Regards,
 ${settings.company_name}`;
-      const receiptHtml = `<!doctype html><html><body style="margin:0;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a"><table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 16px"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#fff;border:1px solid #e5e7eb;border-radius:16px"><tr><td style="padding:28px 32px"><div style="font-size:12px;font-weight:700;color:#153e90;text-transform:uppercase">Payment receipt</div><h1 style="font-size:26px;margin:10px 0">${escapeHtml(invoiceLabel)}</h1><p style="color:#475569;line-height:1.7">Hello ${escapeHtml(clientName)},<br>We have received your payment. Thank you.</p><table width="100%" style="margin-top:22px;background:#f8fafc;border-radius:10px"><tr><td style="padding:14px;color:#64748b">Amount paid</td><td align="right" style="padding:14px;font-weight:700;color:#153e90">${escapeHtml(amount)}</td></tr><tr><td style="padding:0 14px 14px;color:#64748b">Payment date</td><td align="right" style="padding:0 14px 14px;font-weight:700">${escapeHtml(paidOn)}</td></tr><tr><td style="padding:0 14px 14px;color:#64748b">Payment method</td><td align="right" style="padding:0 14px 14px;font-weight:700">${escapeHtml(method)}</td></tr><tr><td style="padding:0 14px 14px;color:#64748b">Reference</td><td align="right" style="padding:0 14px 14px;font-weight:700">${escapeHtml(reference)}</td></tr></table><p style="margin-top:24px;color:#64748b">Regards,<br>${escapeHtml(settings.company_name)}</p></td></tr></table></td></tr></table></body></html>`;
+      const receiptHtml = buildPaymentReceiptEmail({
+        companyName: settings.company_name,
+        businessEmail: settings.business_email || GOOGLE_WORKSPACE_SENDER,
+        website: settings.website || "https://www.despacho.io",
+        invoiceLabel,
+        clientName,
+        amount,
+        paidOn,
+        method,
+        reference,
+      });
       const gmailMessageId = await sendEmail({
+        senderName: INVOICE_SENDER_NAME,
         to,
         cc,
         subject: `Payment receipt for ${invoiceLabel}`,
         text: receiptText,
         html: receiptHtml,
-        companyName: settings.company_name,
+        attachments: [createDespachoLogoAttachment(logo)],
       });
       const sentAt = new Date().toISOString();
       const update = await admin
@@ -287,13 +233,24 @@ Amount: ${amount}
 Payment date: ${paidOn}
 Payment method: ${method}
 Reference: ${reference}`;
-      const intimationHtml = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#0f172a"><h2>Payment received</h2><table cellpadding="7" cellspacing="0"><tr><td style="color:#64748b">Client</td><td><strong>${escapeHtml(clientName)}</strong></td></tr><tr><td style="color:#64748b">Invoice</td><td><strong>${escapeHtml(invoiceLabel)}</strong></td></tr><tr><td style="color:#64748b">Amount</td><td><strong>${escapeHtml(amount)}</strong></td></tr><tr><td style="color:#64748b">Payment date</td><td>${escapeHtml(paidOn)}</td></tr><tr><td style="color:#64748b">Payment method</td><td>${escapeHtml(method)}</td></tr><tr><td style="color:#64748b">Reference</td><td>${escapeHtml(reference)}</td></tr></table></body></html>`;
+      const intimationHtml = buildPaymentIntimationEmail({
+        companyName: settings.company_name,
+        businessEmail: settings.business_email || GOOGLE_WORKSPACE_SENDER,
+        website: settings.website || "https://www.despacho.io",
+        invoiceLabel,
+        clientName,
+        amount,
+        paidOn,
+        method,
+        reference,
+      });
       const gmailMessageId = await sendEmail({
+        senderName: INVOICE_SENDER_NAME,
         to: [internalRecipient],
         subject: `Payment received – ${invoiceLabel} – ${clientName}`,
         text: intimationText,
         html: intimationHtml,
-        companyName: settings.company_name,
+        attachments: [createDespachoLogoAttachment(logo)],
       });
       const sentAt = new Date().toISOString();
       const update = await admin
