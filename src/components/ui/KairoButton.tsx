@@ -1,7 +1,7 @@
 import { ButtonHTMLAttributes } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "danger" | "brown";
 };
 
 export default function KairoButton({
@@ -19,6 +19,9 @@ export default function KairoButton({
 
     danger:
       "bg-[#DC2626] text-white shadow-sm hover:bg-red-700",
+
+    brown:
+      "bg-[#5A2D1F] text-white shadow-sm hover:bg-[#442116]",
   };
 
   return (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
 import { downloadPayrollYtd, downloadPayslip, payrollRequest } from "@/lib/payroll/client";
 import { currentFinancialYear, financialYearFromValue, financialYearOptions, isInFinancialYear } from "@/lib/payroll/financialYear";
+import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
 import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
@@ -50,11 +51,143 @@ export default function PayrollWorkspace() {
   </div>;
 }
 
-function EmployeeOverview({ entry, entries }: { entry?: PayrollEntry; entries: PayrollEntry[] }) { const financialYear = currentFinancialYear(); const ytd = entries.filter((item) => isInFinancialYear(item.payroll_month, financialYear.value)).reduce((sum,item) => ({ earnings: sum.earnings + Number(item.total_earnings), deductions: sum.deductions + Number(item.total_deductions), net: sum.net + Number(item.net_salary) }), { earnings:0,deductions:0,net:0 }); return <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><Metric label={`${financialYear.label} Earnings`} value={money(ytd.earnings)} colour="text-emerald-700" /><Metric label={`${financialYear.label} Deductions`} value={money(ytd.deductions)} colour="text-rose-700" /><Metric label={`${financialYear.label} Net Pay`} value={money(ytd.net)} colour="text-[#153E90]" /></div><Card className="p-7">{entry ? <div className="flex flex-wrap items-center justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-wider text-slate-400">Latest published salary slip</p><h2 className="mt-2 text-2xl font-bold">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month:"long",year:"numeric",timeZone:"UTC" })}</h2><p className="mt-2 text-sm text-slate-500">Net salary <strong className="text-[#153E90]">{money(entry.net_salary)}</strong></p></div><KairoButton type="button" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0,7)}.pdf`)}>Download Payslip</KairoButton></div> : <p className="py-14 text-center text-slate-400">No published salary slip is available yet.</p>}</Card><Card className="p-7"><h2 className="text-xl font-bold">Form 16</h2><p className="mt-2 text-slate-500">Annual Form 16 download will be available here.</p><span className="mt-4 inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">Coming Soon</span></Card></div>; }
+function EmployeeOverview({
+  entry,
+  entries,
+}: {
+  entry?: PayrollEntry;
+  entries: PayrollEntry[];
+}) {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+
+  const financialYear = currentFinancialYear();
+
+  const ytd = entries
+    .filter((item) =>
+      isInFinancialYear(item.payroll_month, financialYear.value),
+    )
+    .reduce(
+      (sum, item) => ({
+        earnings: sum.earnings + Number(item.total_earnings),
+        deductions: sum.deductions + Number(item.total_deductions),
+        net: sum.net + Number(item.net_salary),
+      }),
+      {
+        earnings: 0,
+        deductions: 0,
+        net: 0,
+      },
+    );
+
+  async function downloadLatestPayslip() {
+    if (!entry || downloading) return;
+
+    setDownloadError("");
+    setDownloading(true);
+
+    try {
+      await downloadPayslip(
+        entry.id,
+        payslipFilename(entry.employee_code, entry.payroll_month),
+      );
+    } catch (cause) {
+      setDownloadError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to download payslip",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Metric
+          label={`${financialYear.label} Earnings`}
+          value={money(ytd.earnings)}
+          colour="text-emerald-700"
+        />
+
+        <Metric
+          label={`${financialYear.label} Deductions`}
+          value={money(ytd.deductions)}
+          colour="text-rose-700"
+        />
+
+        <Metric
+          label={`${financialYear.label} Net Pay`}
+          value={money(ytd.net)}
+          colour="text-[#153E90]"
+        />
+      </div>
+
+      <Card className="p-7">
+        {entry ? (
+          <div className="flex flex-wrap items-center justify-between gap-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Latest published salary slip
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold">
+                {payrollMonthLabel(entry.payroll_month)}
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Net salary{" "}
+                <strong className="text-[#153E90]">
+                  {money(entry.net_salary)}
+                </strong>
+              </p>
+            </div>
+
+            <KairoButton
+              type="button"
+              variant="brown"
+              disabled={downloading}
+              className="disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100"
+              onClick={() => void downloadLatestPayslip()}
+            >
+              {downloading ? "Downloading..." : "Download Payslip"}
+            </KairoButton>
+          </div>
+        ) : (
+          <p className="py-14 text-center text-slate-400">
+            No published salary slip is available yet.
+          </p>
+        )}
+
+        {downloadError ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+          >
+            {downloadError}
+          </p>
+        ) : null}
+      </Card>
+
+      <Card className="p-7">
+        <h2 className="text-xl font-bold">Form 16</h2>
+
+        <p className="mt-2 text-slate-500">
+          Annual Form 16 download will be available here.
+        </p>
+
+        <span className="mt-4 inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">
+          Coming Soon
+        </span>
+      </Card>
+    </div>
+  );
+}
 function Metric({ label,value,colour }: { label:string;value:string;colour:string }) { return <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{label}</p><p className={`mt-4 text-2xl font-bold ${colour}`}>{value}</p></Card>; }
 function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
   const defaultFinancialYear = useMemo(() => currentFinancialYear(), []);
-  const [selectedYear, setSelectedYear] = useState(defaultFinancialYear.value);
+  const [selectedYear, setSelectedYear] = useState("");
   const [appliedYear, setAppliedYear] = useState("");
   const [searched, setSearched] = useState(false);
   const [downloadingYtd, setDownloadingYtd] = useState(false);
@@ -74,7 +207,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
 
   function reset() {
     setDownloadError("");
-    setSelectedYear(defaultFinancialYear.value);
+    setSelectedYear("");
     setAppliedYear("");
     setSearched(false);
   }
@@ -86,6 +219,15 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
     try { await downloadPayrollYtd(appliedYear); }
     catch (cause) { setDownloadError(cause instanceof Error ? cause.message : "Unable to download YTD payroll report"); }
     finally { setDownloadingYtd(false); }
+  }
+
+  async function downloadHistoryPayslip(entry: PayrollEntry) {
+    if (downloadingPayslipId) return;
+    setDownloadError("");
+    setDownloadingPayslipId(entry.id);
+    try { await downloadPayslip(entry.id, payslipFilename(entry.employee_code, entry.payroll_month)); }
+    catch (cause) { setDownloadError(cause instanceof Error ? cause.message : "Unable to download payslip"); }
+    finally { setDownloadingPayslipId(""); }
   }
 
   return (
@@ -103,13 +245,14 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           <label className="w-44 text-sm font-bold text-slate-700">
             Financial Year
             <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">
+              <option value="" disabled>Select Year</option>
               {years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}
             </select>
           </label>
           <KairoButton type="button" disabled={!selectedYear} onClick={search}>Search</KairoButton>
           <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
           <div className="ml-auto">
-            <KairoButton type="button" disabled={!searched || !results.length || downloadingYtd} onClick={() => void downloadYtd()}>{downloadingYtd ? "Preparing PDF..." : "Download YTD"}</KairoButton>
+            <KairoButton type="button" disabled={!searched || !results.length || downloadingYtd} className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadYtd()}>{downloadingYtd ? "Downloading..." : "Download YTD"}</KairoButton>
           </div>
         </div>
         {downloadError ? <p role="alert" className="mx-6 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{downloadError}</p> : null}
@@ -136,11 +279,11 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
               <tbody className="divide-y divide-slate-100">
                 {results.map((entry) => (
                   <tr key={entry.id} className="bg-white transition hover:bg-blue-50/50">
-                    <td className="whitespace-nowrap px-6 py-5 font-bold text-slate-900">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" })}</td>
+                    <td className="whitespace-nowrap px-6 py-5 font-bold text-slate-900">{payrollMonthLabel(entry.payroll_month)}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-slate-700">{money(entry.gross_salary)}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-rose-700">{money(entry.total_deductions)}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-bold text-[#153E90]">{money(entry.net_salary)}</td>
-                    <td className="whitespace-nowrap px-6 py-5 text-center"><KairoButton type="button" variant="secondary" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0, 7)}.pdf`)}>Download PDF</KairoButton></td>
+                    <td className="whitespace-nowrap px-6 py-5 text-center"><KairoButton type="button" disabled={Boolean(downloadingPayslipId)} className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadHistoryPayslip(entry)}>{downloadingPayslipId === entry.id ? "Downloading..." : "Download PDF"}</KairoButton></td>
                   </tr>
                 ))}
               </tbody>

@@ -5,6 +5,7 @@ import { financialYearFromValue } from "@/lib/payroll/financialYear";
 import { payrollActor } from "@/lib/payroll/server";
 import type { PayrollEntry } from "@/lib/payroll/types";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
+import { ytdFilename } from "@/lib/payroll/filenames";
 
 function removeSalutation(name: string) {
   return name.replace(/^(?:mr|mrs|ms|miss|dr)\.?\s+/i, "").trim();
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
         .order("payroll_month", { ascending: true }),
       loadCompanySettings(actor.admin),
       actor.admin.from("employees").select("name,role,date_of_joining").eq("id", actor.employeeId).maybeSingle(),
-      actor.admin.from("employee_finance_details").select("bank_name,bank_account_number,epf_number,uan_number").eq("employee_id", actor.employeeId).maybeSingle(),
+      actor.admin.from("employee_finance_details").select("bank_name,bank_account_number,epf_number").eq("employee_id", actor.employeeId).maybeSingle(),
       actor.admin.from("employee_statutory_details").select("pan_number").eq("employee_id", actor.employeeId).maybeSingle(),
     ]);
     if (result.error) throw new Error(result.error.message);
@@ -42,7 +43,6 @@ export async function GET(request: Request) {
       bankName: financeResult.data?.bank_name || null,
       bankAccountNumber: financeResult.data?.bank_account_number || null,
       pfNumber: financeResult.data?.epf_number || null,
-      uan: financeResult.data?.uan_number || null,
       panNumber: statutoryResult.data?.pan_number || null,
     };
     const document = createElement(YtdPayrollPdfDocument, { entries, financialYear: financialYear.value, logoSrc: logo.dataUrl, employee }) as ReactElement<DocumentProps>;
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="YTD-${entries[0].employee_code}-${financialYear.value}.pdf"`,
+        "Content-Disposition": `attachment; filename="${ytdFilename(entries[0].employee_code, financialYear.value)}"`,
         "Cache-Control": "private, no-store",
       },
     });

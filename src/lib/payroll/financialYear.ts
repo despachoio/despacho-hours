@@ -55,7 +55,12 @@ export function isInFinancialYear(payrollMonth: string, financialYearValue: stri
 }
 
 export function financialYearOptions(payrollMonths: string[], current = currentFinancialYear()) {
-  const startYears = new Set([current.startYear]);
-  for (const month of payrollMonths) startYears.add(financialYearForPayrollMonth(month).startYear);
-  return [...startYears].sort((left, right) => right - left).map(buildFinancialYear);
+  const historicalStartYears = payrollMonths
+    .map((month) => financialYearForPayrollMonth(month).startYear)
+    .filter((startYear) => startYear <= current.startYear);
+  const oldestStartYear = historicalStartYears.length ? Math.min(...historicalStartYears) : current.startYear;
+  return Array.from(
+    { length: current.startYear - oldestStartYear + 1 },
+    (_, index) => buildFinancialYear(current.startYear - index),
+  );
 }

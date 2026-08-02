@@ -4,6 +4,7 @@ import { PayslipPdfDocument } from "@/components/payroll/PayslipPdfDocument";
 import { payrollActor } from "@/lib/payroll/server";
 import type { PayrollEntry } from "@/lib/payroll/types";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
+import { payslipFilename } from "@/lib/payroll/filenames";
 
 function inclusiveDayCount(start: string, end: string) {
   const startTime = new Date(`${start}T00:00:00Z`).getTime();
@@ -48,7 +49,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     };
     const document = createElement(PayslipPdfDocument, { entry, employee, logoSrc: logo.dataUrl, companyName: company.company_name }) as ReactElement<DocumentProps>;
     const pdf = await renderToBuffer(document);
-    return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="Payslip-${entry.employee_code}-${entry.payroll_month.slice(0, 7)}.pdf"`, "Cache-Control": "private, no-store" } });
+    return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${payslipFilename(entry.employee_code, entry.payroll_month)}"`, "Cache-Control": "private, no-store" } });
   } catch (cause) {
     return Response.json({ error: cause instanceof Error ? cause.message : "Unable to generate payslip" }, { status: 401 });
   }

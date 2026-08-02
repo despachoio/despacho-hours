@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculatePayroll, payrollPeriod } from "../src/lib/payroll/calculation";
-import { currentFinancialYear, financialYearForPayrollMonth, financialYearFromValue, isInFinancialYear } from "../src/lib/payroll/financialYear";
+import { currentFinancialYear, financialYearForPayrollMonth, financialYearFromValue, financialYearOptions, isInFinancialYear } from "../src/lib/payroll/financialYear";
+import { payslipFilename, ytdFilename } from "../src/lib/payroll/filenames";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -45,6 +46,16 @@ describe("Payroll financial year", () => {
     expect(isInFinancialYear("2027-04-01", financialYear.value)).toBe(false);
     expect(financialYearFromValue("2026-28")).toBeNull();
   });
+
+  it("uses employee-friendly payroll download filenames", () => {
+    expect(payslipFilename("90001", "2026-07")).toBe("Payslip_90001_July 2026.pdf");
+    expect(ytdFilename("90001", "2026-27")).toBe("YTD_90001_FY 2026-27.pdf");
+  });
+
+  it("lists financial years continuously from the current year to the oldest payroll year", () => {
+    const current = currentFinancialYear(new Date(2026, 7, 2));
+    expect(financialYearOptions(["2024-07"], current).map((year) => year.value)).toEqual(["2026-27", "2025-26", "2024-25"]);
+  });
 });
 
 describe("Payroll security and snapshot contracts", () => {
@@ -60,7 +71,7 @@ describe("Payroll security and snapshot contracts", () => {
   it("provides employee PDF and Finance Admin workflow surfaces", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
     expect(workspace).toContain("Salary Register");
-    expect(workspace).toContain("Download Salary Slip");
+    expect(workspace).toContain("Download Payslip");
     expect(workspace).toContain('setTab("administration")');
     expect(workspace).toContain('aria-label="Payroll administration sections"');
     for (const section of ["Payroll Dashboard", "Salary Structures", "Payroll Processing", "Salary Register", "Reports", "Settings"]) expect(workspace).toContain(section);
@@ -81,6 +92,9 @@ describe("Payroll security and snapshot contracts", () => {
     expect(history).toContain("Net Salary");
     expect(history).toContain("Download PDF");
     expect(history).toContain("Download YTD");
+    expect(history).toContain("Select Year");
+    expect(history).toContain("Downloading...");
+    expect(history).toContain("downloadingPayslipId");
     expect(history).toContain("downloadPayrollYtd");
     expect(history).toContain("table-fixed");
     expect(history).not.toContain("period_start");
@@ -101,6 +115,9 @@ describe("Payroll security and snapshot contracts", () => {
     expect(payslip).not.toContain("Employer EPS");
     expect(payslip).not.toContain("INR ");
     expect(payslip).not.toContain("period_start} to {entry.period_end");
+    expect(payslip).toContain('logo: { width: 138, height: 39');
+    expect(payslip).toContain('title: { fontSize: 22.4');
+    expect(payslip).toContain('backgroundColor: PRIMARY, borderRadius: 8');
   });
 
   it("uses the bundled Despacho logo and restores the INR currency footer", () => {
@@ -140,10 +157,15 @@ describe("Payroll security and snapshot contracts", () => {
     expect(document).toContain("System-generated YTD payroll statement. No signature is required.");
     expect(document).toContain("styles.alternateRow");
     expect(document).toContain("GRAND TOTAL");
+    expect(document).toContain("styles.itemHeaderText");
+    expect(document).toContain("styles.grandHeaderText");
+    expect(document).not.toContain('label="UAN"');
     expect(document).toContain('logo: { width: 130.5, height: 33.75');
     expect(document).toContain('earningsTotalRow: { minHeight: 19, backgroundColor: PRIMARY }');
     expect(document).toContain('deductionsTotalRow: { minHeight: 19, backgroundColor: "#FFF1F2" }');
     expect(route).toContain("financialYear.startDate");
     expect(route).toContain("financialYear.endDate");
+    expect(route).toContain("ytdFilename");
+    expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("payslipFilename");
   });
 });

@@ -15,7 +15,6 @@ export type YtdPayrollEmployeeDetails = {
   bankName: string | null;
   bankAccountNumber: string | null;
   pfNumber: string | null;
-  uan: string | null;
   panNumber: string | null;
 };
 
@@ -79,11 +78,14 @@ const styles = StyleSheet.create({
   deductionsTotalRow: { minHeight: 19, backgroundColor: "#FFF1F2" },
   netRow: { minHeight: 23, backgroundColor: PRIMARY },
   itemCell: { width: 116, justifyContent: "center", paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: BORDER },
+  itemHeaderCell: { width: 116, justifyContent: "center", alignItems: "flex-start", paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: "#4D6079" },
   monthCell: { width: 51, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 4, borderRightWidth: 0.5, borderRightColor: BORDER },
   monthHeaderCell: { width: 51, justifyContent: "center", alignItems: "center", borderRightWidth: 0.5, borderRightColor: "#4D6079" },
   grandCell: { width: 73, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 6, borderLeftWidth: 1, borderLeftColor: "#7692B5" },
-  grandHeaderCell: { width: 73, justifyContent: "center", alignItems: "center", backgroundColor: "#0F172A", borderLeftWidth: 1, borderLeftColor: "#4D6079" },
+  grandHeaderCell: { width: 73, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 6, backgroundColor: "#0F172A", borderLeftWidth: 1, borderLeftColor: "#4D6079" },
   headerText: { fontSize: 6.4, fontWeight: "bold", color: "#FFFFFF", textAlign: "center" },
+  itemHeaderText: { fontSize: 6.4, fontWeight: "bold", color: "#FFFFFF", textAlign: "left" },
+  grandHeaderText: { fontSize: 6.4, fontWeight: "bold", color: "#FFFFFF", textAlign: "right" },
   label: { fontSize: 6.8, color: SLATE },
   value: { fontSize: 6.5, color: SLATE, textAlign: "right" },
   sectionText: { fontSize: 7.4, fontWeight: "bold", color: PRIMARY_DARK },
@@ -158,7 +160,6 @@ export function YtdPayrollPdfDocument({ entries, financialYear: financialYearVal
                 <ExecutiveInfoRow icon="bank" label="Bank Name" value={employee.bankName} />
                 <ExecutiveInfoRow icon="card" label="Bank Account No" value={employee.bankAccountNumber} />
                 <ExecutiveInfoRow icon="shield" label="PF No" value={employee.pfNumber} />
-                <ExecutiveInfoRow icon="user" label="UAN" value={employee.uan} />
                 <ExecutiveInfoRow icon="id" label="PAN No" value={employee.panNumber} />
               </View>
             </View>
@@ -167,9 +168,9 @@ export function YtdPayrollPdfDocument({ entries, financialYear: financialYearVal
 
         <View style={styles.table}>
           <View style={[styles.row, styles.headerRow]}>
-            <View style={styles.itemCell}><Text style={styles.headerText}>ITEM</Text></View>
+            <View style={styles.itemHeaderCell}><Text style={styles.itemHeaderText}>ITEM</Text></View>
             {financialYear.months.map((month) => <View key={month} style={styles.monthHeaderCell}><Text style={styles.headerText}>{monthLabel(month)}</Text></View>)}
-            <View style={styles.grandHeaderCell}><Text style={styles.headerText}>GRAND TOTAL</Text></View>
+            <View style={styles.grandHeaderCell}><Text style={styles.grandHeaderText}>GRAND TOTAL</Text></View>
           </View>
           {rows.map((row, index) => {
             const section = row.tone === "earnings" || row.tone === "deductions";

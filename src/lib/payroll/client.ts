@@ -24,7 +24,7 @@ export async function downloadPayrollYtd(financialYear: string) {
   const response = await fetch(`/api/payroll/ytd?financialYear=${encodeURIComponent(financialYear)}`, { headers: { authorization: `Bearer ${await token()}` } });
   if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || "Unable to download YTD payroll report"); }
   const disposition = response.headers.get("content-disposition") || "";
-  const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `YTD-${financialYear}.pdf`;
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `YTD_FY ${financialYear}.pdf`;
   const link = document.createElement("a"); link.href = URL.createObjectURL(await response.blob()); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
 }
 
