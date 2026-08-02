@@ -267,7 +267,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] table-fixed text-sm">
               <colgroup><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[22%]" /></colgroup>
-              <thead className="bg-[#0F172A] text-xs uppercase tracking-wide text-slate-300">
+              <thead className="bg-[#153E90] text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-6 py-4">Month &amp; Year</th>
                   <th className="px-4 py-4 text-center">Gross Salary</th>
@@ -279,7 +279,9 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
               <tbody className="divide-y divide-slate-100">
                 {results.map((entry) => (
                   <tr key={entry.id} className="bg-white transition hover:bg-blue-50/50">
-                    <td className="whitespace-nowrap px-6 py-5 font-bold text-slate-900">{payrollMonthLabel(entry.payroll_month)}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-center font-bold text-slate-900">
+  {payrollMonthLabel(entry.payroll_month)}
+</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-slate-700">{money(entry.gross_salary)}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-rose-700">{money(entry.total_deductions)}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-bold text-[#153E90]">{money(entry.net_salary)}</td>
