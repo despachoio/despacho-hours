@@ -290,7 +290,11 @@ export function PayslipPdfDocument({
           <View style={styles.netItem}>
             <Text style={styles.netLabel}>Net Salary</Text>
             <Text style={styles.netValue}>{formatCurrency(entry.net_salary)}</Text>
-            <View style={styles.currencyNotice}>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <View style={styles.currencyNotice}>
             <Svg width={14} height={14} viewBox="0 0 14 14" style={styles.currencyIcon}>
               <Circle cx="7" cy="7" r="6.25" fill="none" stroke={PRIMARY} strokeWidth={0.8} />
               <Path
@@ -304,11 +308,6 @@ export function PayslipPdfDocument({
             </Svg>
             <Text style={styles.currencyText}>All amounts are in INR</Text>
           </View>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          
           <Text style={styles.footerText}>System-generated payslip. No signature is required.</Text>
         </View>
       </Page>
