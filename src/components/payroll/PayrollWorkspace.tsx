@@ -8,7 +8,7 @@ import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
 type PayrollData = { role: string; ownEntries: PayrollEntry[]; ownReimbursements: Array<Record<string, unknown>>; runs?: PayrollRun[]; structures?: SalaryStructure[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: Array<Record<string, unknown>>; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "reimbursements" | "dashboard" | "structures" | "process" | "register" | "reports" | "settings";
-const money = (value: number) => `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const monthValue = () => new Date().toISOString().slice(0, 7);
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <section className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,.35)] ${className}`}>{children}</section>;
 
@@ -66,11 +66,49 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
     setSearched(false);
   }
 
+  function downloadYtdDetails() {
+    if (!searched || !appliedYear || !results.length) return;
+    const totals = results.reduce(
+      (sum, entry) => ({
+        gross: sum.gross + Number(entry.gross_salary || 0),
+        deductions: sum.deductions + Number(entry.total_deductions || 0),
+        net: sum.net + Number(entry.net_salary || 0),
+      }),
+      { gross: 0, deductions: 0, net: 0 },
+    );
+    const rows: Array<Array<string | number>> = [
+      ["Month & Year", "Gross Salary", "Deductions", "Net Salary"],
+      ...results.map((entry) => [
+        new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }),
+        Math.round(Number(entry.gross_salary || 0)),
+        Math.round(Number(entry.total_deductions || 0)),
+        Math.round(Number(entry.net_salary || 0)),
+      ]),
+      ["YTD Total", Math.round(totals.gross), Math.round(totals.deductions), Math.round(totals.net)],
+    ];
+    const quote = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
+    const content = `\uFEFF${rows.map((row) => row.map(quote).join(",")).join("\n")}`;
+    const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `Payroll-YTD-${appliedYear}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-5">
-      <Card className="p-6">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="min-w-56 text-sm font-bold text-slate-700">
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 px-6 py-5">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Payroll archive</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-950">Find salary slips</h2>
+            <p className="mt-1 text-sm text-slate-500">Choose a year, then search to view or export published payroll.</p>
+          </div>
+          <span className="rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-bold text-[#153E90] shadow-sm">{searched ? `${results.length} slips` : "Awaiting search"}</span>
+        </div>
+        <div className="flex flex-wrap items-end gap-3 px-6 py-5">
+          <label className="min-w-64 flex-1 text-sm font-bold text-slate-700">
             Year
             <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">
               <option value="">Select year</option>
@@ -79,31 +117,38 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           </label>
           <KairoButton type="button" disabled={!selectedYear} onClick={search}>Search</KairoButton>
           <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
+          <div className="ml-auto">
+            <KairoButton type="button" variant="secondary" disabled={!searched || !results.length} onClick={downloadYtdDetails}>Download YTD Details</KairoButton>
+          </div>
         </div>
       </Card>
 
       <Card>
-        <Title title="Published Salary Slips" subtitle="Search by year to view published salary slips." />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5">
+          <div><h2 className="text-xl font-bold">Published Salary Slips</h2><p className="mt-1 text-sm text-slate-500">Search by year to view published salary slips.</p></div>
+          {searched ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{appliedYear} · {results.length} records</span> : null}
+        </div>
         {!searched ? <Empty text="Select a year and click Search to view published salary slips." /> : results.length ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[900px] table-fixed text-sm">
+              <colgroup><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[22%]" /></colgroup>
               <thead className="bg-[#0F172A] text-xs uppercase tracking-wide text-slate-300">
                 <tr>
                   <th className="px-6 py-4">Month &amp; Year</th>
-                  <th className="px-6 py-4 text-right">Gross Salary</th>
-                  <th className="px-6 py-4 text-right">Deductions</th>
-                  <th className="px-6 py-4 text-right">Net Salary</th>
-                  <th className="px-6 py-4 text-right">Payslip</th>
+                  <th className="px-4 py-4 text-center">Gross Salary</th>
+                  <th className="px-4 py-4 text-center">Deductions</th>
+                  <th className="px-4 py-4 text-center">Net Salary</th>
+                  <th className="px-6 py-4 text-center">Payslip</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {results.map((entry) => (
                   <tr key={entry.id} className="bg-white transition hover:bg-blue-50/50">
                     <td className="whitespace-nowrap px-6 py-5 font-bold text-slate-900">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" })}</td>
-                    <td className="whitespace-nowrap px-6 py-5 text-right font-semibold text-slate-700">{money(entry.gross_salary)}</td>
-                    <td className="whitespace-nowrap px-6 py-5 text-right font-semibold text-rose-700">{money(entry.total_deductions)}</td>
-                    <td className="whitespace-nowrap px-6 py-5 text-right font-bold text-[#153E90]">{money(entry.net_salary)}</td>
-                    <td className="whitespace-nowrap px-6 py-5 text-right"><KairoButton type="button" variant="secondary" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0, 7)}.pdf`)}>Download PDF</KairoButton></td>
+                    <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-slate-700">{money(entry.gross_salary)}</td>
+                    <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-rose-700">{money(entry.total_deductions)}</td>
+                    <td className="whitespace-nowrap px-4 py-5 text-center font-bold text-[#153E90]">{money(entry.net_salary)}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-center"><KairoButton type="button" variant="secondary" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0, 7)}.pdf`)}>Download PDF</KairoButton></td>
                   </tr>
                 ))}
               </tbody>

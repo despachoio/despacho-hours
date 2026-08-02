@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   page: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 20,
+    paddingBottom: 68,
     fontFamily: "Helvetica",
     fontSize: 9,
     color: SLATE,
@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
   logo: { width: 184, height: 52, objectFit: "contain", objectPosition: "left center" },
   brandTagline: { marginLeft: 40, marginTop: -3, fontSize: 8.5, color: "#9AA1AA", letterSpacing: 0.15 },
   headingBlock: { alignItems: "flex-end", paddingTop: 1 },
-  title: { fontSize: 28, fontWeight: "bold", color: PRIMARY_DARK, letterSpacing: 0.5 },
-  month: { marginTop: 5, fontSize: 12, fontWeight: "bold", color: PRIMARY_DARK },
+  title: { fontSize: 32, fontWeight: "bold", color: "#064FA8", letterSpacing: 0.35 },
+  month: { marginTop: 4, fontSize: 14, color: "#64748B" },
   employeeCard: {
     marginTop: 13,
     borderWidth: 1,
@@ -92,16 +92,18 @@ const styles = StyleSheet.create({
   tableTotal: { minHeight: 35, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, backgroundColor: LIGHT_BLUE, borderTopWidth: 1, borderTopColor: "#C9D8EA" },
   tableTotalLabel: { fontSize: 9.5, fontWeight: "bold", color: PRIMARY_DARK },
   tableTotalValue: { fontSize: 12, fontWeight: "bold", color: SLATE, textAlign: "right" },
-  summary: { marginTop: 13, minHeight: 63, flexDirection: "row", alignItems: "center", backgroundColor: PRIMARY_DARK, borderRadius: 6, paddingVertical: 8 },
-  summaryItem: { width: "33.333%", alignItems: "center", justifyContent: "center" },
-  summaryDivider: { borderLeftWidth: 0.8, borderLeftColor: "#9BB3D2" },
-  summaryLabel: { fontSize: 8.5, color: "#FFFFFF", marginBottom: 6 },
-  summaryValue: { fontSize: 17, fontWeight: "bold", color: "#FFFFFF" },
-  summaryNetValue: { fontSize: 19, fontWeight: "bold", color: "#FFFFFF" },
+  summary: { marginTop: 13, minHeight: 76, flexDirection: "row", alignItems: "stretch", backgroundColor: "#F8FAFC", borderWidth: 1.2, borderColor: "#C9D8EA", borderRadius: 9, padding: 9 },
+  summaryItem: { width: "31%", alignItems: "flex-start", justifyContent: "center", paddingLeft: 22 },
+  summaryDivider: { borderLeftWidth: 1, borderLeftColor: "#D8E1EC" },
+  summaryLabel: { fontSize: 9.5, color: "#64748B", marginBottom: 7 },
+  summaryValue: { fontSize: 19, fontWeight: "bold", color: "#0F172A" },
+  netItem: { width: "38%", justifyContent: "center", paddingLeft: 21, backgroundColor: "#0B4FA8", borderRadius: 8 },
+  netLabel: { fontSize: 9.5, color: "#FFFFFF", marginBottom: 7 },
+  netValue: { fontSize: 23, fontWeight: "bold", color: "#FFFFFF" },
   currencyNotice: { minHeight: 33, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   currencyIcon: { marginRight: 8 },
   currencyText: { fontSize: 8.5, color: "#303846" },
-  footer: { minHeight: 34, flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 8 },
+  footer: { position: "absolute", left: 24, right: 24, bottom: 18, minHeight: 34, flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 8 },
   footerBadge: { width: 25, height: 25, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: ICON_BLUE, marginRight: 9 },
   footerText: { fontSize: 8.2, color: "#303846" },
 });
@@ -166,11 +168,11 @@ function PayrollColumn({ rows, rowCount, totalLabel, total, right = false }: { r
   );
 }
 
-function SummaryItem({ label, value, divider = false, emphasis = false }: { label: string; value: number; divider?: boolean; emphasis?: boolean }) {
+function SummaryItem({ label, value, divider = false }: { label: string; value: number; divider?: boolean }) {
   return (
     <View style={divider ? [styles.summaryItem, styles.summaryDivider] : styles.summaryItem}>
       <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={emphasis ? styles.summaryNetValue : styles.summaryValue}>{formatCurrency(value)}</Text>
+      <Text style={styles.summaryValue}>{formatCurrency(value)}</Text>
     </View>
   );
 }
@@ -272,9 +274,12 @@ export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { 
         </View>
 
         <View style={styles.summary}>
-          <SummaryItem label="GROSS EARNINGS" value={entry.total_earnings} />
-          <SummaryItem label="TOTAL DEDUCTIONS" value={entry.total_deductions} divider />
-          <SummaryItem label="NET SALARY" value={entry.net_salary} divider emphasis />
+          <SummaryItem label="Gross Earnings" value={entry.total_earnings} />
+          <SummaryItem label="Total Deductions" value={entry.total_deductions} divider />
+          <View style={styles.netItem}>
+            <Text style={styles.netLabel}>Net Salary</Text>
+            <Text style={styles.netValue}>{formatCurrency(entry.net_salary)}</Text>
+          </View>
         </View>
 
         <RupeeNotice />

@@ -58,6 +58,10 @@ describe("Payroll security and snapshot contracts", () => {
     expect(history).toContain("Deductions");
     expect(history).toContain("Net Salary");
     expect(history).toContain("Download PDF");
+    expect(history).toContain("Download YTD Details");
+    expect(history).toContain("Payroll-YTD-");
+    expect(history).toContain("YTD Total");
+    expect(history).toContain("table-fixed");
     expect(history).not.toContain("period_start");
     expect(history).not.toContain("period_end");
     expect(history).not.toContain("viewPayslip");
@@ -89,7 +93,7 @@ describe("Payroll security and snapshot contracts", () => {
 
   it("matches the approved corporate payslip structure", () => {
     const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
-    for (const content of ["Great People. Great Impact.", "EMPLOYEE INFORMATION", "EARNINGS &amp; DEDUCTIONS", "GROSS EARNINGS", "TOTAL DEDUCTIONS", "NET SALARY"]) {
+    for (const content of ["EMPLOYEE INFORMATION", "EARNINGS &amp; DEDUCTIONS", "Gross Earnings", "Total Deductions", "Net Salary"]) {
       expect(payslip).toContain(content);
     }
     expect(payslip).toContain("styles.payrollHeaderCellRight");
