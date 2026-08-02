@@ -47,14 +47,14 @@ const rows: YtdRow[] = [
 
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18, fontFamily: "Helvetica", color: SLATE, backgroundColor: "#FFFFFF" },
-  header: { flexDirection: "row", alignItems: "flex-start", minHeight: 51 },
-  brand: { width: 190 },
-  logo: { width: 174, height: 45, objectFit: "contain", objectPosition: "left center" },
-  titleBlock: { flex: 1, alignItems: "center", paddingTop: 2 },
-  company: { fontSize: 17, fontWeight: "bold", color: PRIMARY_DARK, letterSpacing: 0.35 },
-  title: { marginTop: 7, fontSize: 11.5, fontWeight: "bold", color: "#64748B" },
-  headerSpacer: { width: 190 },
-  headerDivider: { height: 1.4, marginTop: 5, backgroundColor: PRIMARY_DARK },
+  header: { flexDirection: "row", alignItems: "flex-start", minHeight: 38.25 },
+  brand: { width: 142.5 },
+  logo: { width: 130.5, height: 33.75, objectFit: "contain", objectPosition: "left center" },
+  titleBlock: { flex: 1, alignItems: "center", paddingTop: 1.5 },
+  company: { fontSize: 12.75, fontWeight: "bold", color: PRIMARY_DARK, letterSpacing: 0.3 },
+  title: { marginTop: 5.25, fontSize: 8.6, fontWeight: "bold", color: "#64748B" },
+  headerSpacer: { width: 142.5 },
+  headerDivider: { height: 1.4, marginTop: 4, backgroundColor: PRIMARY_DARK },
   employeeShell: { marginTop: 9, borderRadius: 10, backgroundColor: "#EEF2F7", padding: 4, paddingBottom: 6 },
   employeeCard: { borderWidth: 0.8, borderColor: BORDER, borderRadius: 8, overflow: "hidden", backgroundColor: "#FFFFFF" },
   employeeHeading: { flexDirection: "row", alignItems: "center", minHeight: 25, paddingHorizontal: 12, backgroundColor: "#F4F8FD", borderBottomWidth: 0.6, borderBottomColor: "#DCE5F0" },
@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
   lastRow: { borderBottomWidth: 0 },
   headerRow: { minHeight: 25, backgroundColor: "#0F172A" },
   earningsRow: { minHeight: 18, backgroundColor: "#EAF3FF" },
-  earningsTotalRow: { minHeight: 19, backgroundColor: "#315A8F" },
+  earningsTotalRow: { minHeight: 19, backgroundColor: PRIMARY },
   deductionsRow: { minHeight: 18, backgroundColor: "#FFF1F2" },
-  deductionsTotalRow: { minHeight: 19, backgroundColor: "#52667F" },
+  deductionsTotalRow: { minHeight: 19, backgroundColor: "#FFF1F2" },
   netRow: { minHeight: 23, backgroundColor: PRIMARY },
   itemCell: { width: 116, justifyContent: "center", paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: BORDER },
   monthCell: { width: 51, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 4, borderRightWidth: 0.5, borderRightColor: BORDER },
@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 6.5, color: SLATE, textAlign: "right" },
   sectionText: { fontSize: 7.4, fontWeight: "bold", color: PRIMARY_DARK },
   deductionSectionText: { fontSize: 7.4, fontWeight: "bold", color: "#8B2635" },
+  deductionTotalText: { fontWeight: "bold", color: "#8B2635" },
   whiteText: { fontWeight: "bold", color: "#FFFFFF" },
   netText: { fontSize: 8.1, fontWeight: "bold", color: "#FFFFFF" },
   footer: { position: "absolute", left: 20, right: 20, bottom: 14, minHeight: 35, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 7 },
@@ -172,12 +173,13 @@ export function YtdPayrollPdfDocument({ entries, financialYear: financialYearVal
           </View>
           {rows.map((row, index) => {
             const section = row.tone === "earnings" || row.tone === "deductions";
-            const total = row.tone === "earningsTotal" || row.tone === "deductionsTotal";
+            const earningsTotal = row.tone === "earningsTotal";
+            const deductionsTotal = row.tone === "deductionsTotal";
             const net = row.tone === "net";
             const alternate = !row.tone && alternatingIndex++ % 2 === 1;
             const rowStyle = [styles.row, alternate ? styles.alternateRow : {}, row.tone === "earnings" ? styles.earningsRow : {}, row.tone === "earningsTotal" ? styles.earningsTotalRow : {}, row.tone === "deductions" ? styles.deductionsRow : {}, row.tone === "deductionsTotal" ? styles.deductionsTotalRow : {}, net ? styles.netRow : {}, index === rows.length - 1 ? styles.lastRow : {}];
-            const textStyle = [styles.label, row.tone === "earnings" ? styles.sectionText : {}, row.tone === "deductions" ? styles.deductionSectionText : {}, total ? styles.whiteText : {}, net ? styles.netText : {}];
-            const valueStyle = [styles.value, total ? styles.whiteText : {}, net ? styles.netText : {}];
+            const textStyle = [styles.label, row.tone === "earnings" ? styles.sectionText : {}, row.tone === "deductions" ? styles.deductionSectionText : {}, earningsTotal ? styles.whiteText : {}, deductionsTotal ? styles.deductionTotalText : {}, net ? styles.netText : {}];
+            const valueStyle = [styles.value, earningsTotal ? styles.whiteText : {}, deductionsTotal ? styles.deductionTotalText : {}, net ? styles.netText : {}];
             const grandTotal = section ? 0 : includedEntries.reduce((sum, entry) => sum + Number(row.value(entry) || 0), 0);
             return (
               <View key={row.label} style={rowStyle}>

@@ -140,6 +140,9 @@ describe("Payroll security and snapshot contracts", () => {
     expect(document).toContain("System-generated YTD payroll statement. No signature is required.");
     expect(document).toContain("styles.alternateRow");
     expect(document).toContain("GRAND TOTAL");
+    expect(document).toContain('logo: { width: 130.5, height: 33.75');
+    expect(document).toContain('earningsTotalRow: { minHeight: 19, backgroundColor: PRIMARY }');
+    expect(document).toContain('deductionsTotalRow: { minHeight: 19, backgroundColor: "#FFF1F2" }');
     expect(route).toContain("financialYear.startDate");
     expect(route).toContain("financialYear.endDate");
   });
