@@ -177,14 +177,14 @@ function SummaryItem({ label, value, divider = false }: { label: string; value: 
   );
 }
 
-export function RupeeNotice() {
+export function RupeeNotice({ text = "All amounts are in INR" }: { text?: string } = {}) {
   return (
     <View style={styles.currencyNotice}>
       <Svg width={22} height={22} viewBox="0 0 22 22" style={styles.currencyIcon}>
         <Circle cx="11" cy="11" r="9.6" fill="none" stroke={PRIMARY_DARK} strokeWidth={1} />
         <Path d="M7 7.2h8M7 9.4h8M7 7.2h2.9c2 0 3.2.9 3.2 2.35 0 1.55-1.3 2.5-3.45 2.5H7.6L13.4 17" fill="none" stroke={PRIMARY_DARK} strokeWidth={1.15} strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
-      <Text style={styles.currencyText}>All amounts are in INR</Text>
+      <Text style={styles.currencyText}>{text}</Text>
     </View>
   );
 }

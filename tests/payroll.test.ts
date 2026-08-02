@@ -123,12 +123,14 @@ describe("Payroll security and snapshot contracts", () => {
     expect(route).toContain("payrollActor(request)");
     expect(route).toContain('Content-Type": "application/pdf"');
     expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
-    expect(document).toContain('orientation="portrait"');
+    expect(document).toContain('orientation="landscape"');
     expect(document).toContain("DESPACHO INDIA PRIVATE LIMITED");
-    expect(document).toContain("YTD Summary for the Year");
+    expect(document).toContain("YTD Summary for the Financial Year");
     expect(document).toContain("financialYear.months.map");
-    expect(document).toContain("EmployeeInfoRow");
+    expect(document).toContain("ExecutiveInfoRow");
     expect(document).toContain("RupeeNotice");
+    expect(document).toContain("All amounts are in Indian Rupees (INR)");
+    expect(document).toContain("styles.alternateRow");
     expect(document).toContain("GRAND TOTAL");
     expect(route).toContain("financialYear.startDate");
     expect(route).toContain("financialYear.endDate");
