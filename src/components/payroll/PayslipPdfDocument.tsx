@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   brand: { width: 176.25 },
   logo: { width: 138, height: 39, objectFit: "contain", objectPosition: "left center" },
   brandTagline: { marginLeft: 40, marginTop: -3, fontSize: 8.5, color: "#9AA1AA", letterSpacing: 0.15 },
-  headingBlock: { alignItems: "flex-end", paddingTop: 1 },
+  headingBlock: { alignItems: "flex-end", marginRight: 20, paddingTop: 1 },
   title: {
   fontSize: 15,
   fontWeight: "bold",
@@ -62,6 +62,7 @@ month: {
   marginTop: 2,
   fontSize: 10,
   color: "#64748B",
+  textAlign: "center",
 },
   employeeCard: {
     marginTop: 13,
@@ -102,32 +103,74 @@ month: {
   tableTotal: { minHeight: 35, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, backgroundColor: LIGHT_BLUE, borderTopWidth: 1, borderTopColor: "#C9D8EA" },
   tableTotalLabel: { fontSize: 9.5, fontWeight: "bold", color: PRIMARY_DARK },
   tableTotalValue: { fontSize: 12, fontWeight: "bold", color: SLATE, textAlign: "right" },
-  summary: { marginTop: 13, minHeight: 76, flexDirection: "row", alignItems: "stretch", backgroundColor: "#F8FAFC", borderWidth: 1.2, borderColor: "#C9D8EA", borderRadius: 9, padding: 9 },
-  summaryItem: { width: "31%", alignItems: "flex-start", justifyContent: "center", paddingLeft: 22 },
-  summaryDivider: { borderLeftWidth: 1, borderLeftColor: "#D8E1EC" },
-  summaryLabel: { fontSize: 9.5, color: "#64748B", marginBottom: 7 },
-  summaryValue: { fontSize: 19, fontWeight: "bold", color: "#0F172A" },
-  netItem: {
+ summary: {
+  marginTop: 16,
+  minHeight: 82,
+  flexDirection: "row",
+  alignItems: "stretch",
+  backgroundColor: "#F8FAFC",
+  borderWidth: 1,
+  borderColor: "#D7E2EE",
+  borderRadius: 12,
+  padding: 0,
+  overflow: "hidden",
+},
+
+summaryItem: {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: 16,
+  paddingHorizontal: 12,
+  backgroundColor: "#FFFFFF",
+},
+
+summaryDivider: {
+  borderLeftWidth: 1,
+  borderLeftColor: "#E2E8F0",
+},
+
+summaryLabel: {
+  fontSize: 9,
+  fontWeight: "bold",
+  color: "#64748B",
+  textTransform: "uppercase",
+  letterSpacing: 1,
+  textAlign: "center",
+},
+
+summaryValue: {
+  marginTop: 8,
+  fontSize: 20,
+  fontWeight: "bold",
+  color: "#0F172A",
+  textAlign: "center",
+},
+
+netItem: {
   flex: 1,
   backgroundColor: "#153E90",
-  borderRadius: 10,
-  paddingVertical: 12,
-  paddingHorizontal: 16,
+  paddingVertical: 16,
+  paddingHorizontal: 12,
   alignItems: "center",
   justifyContent: "center",
 },
-  netLabel: {
+
+netLabel: {
   fontSize: 9,
+  fontWeight: "bold",
   color: "#DCE8FF",
   textTransform: "uppercase",
-  letterSpacing: 0.8,
-  fontWeight: "bold",
+  letterSpacing: 1,
+  textAlign: "center",
 },
-  netValue: {
-  marginTop: 4,
-  fontSize: 18,
+
+netValue: {
+  marginTop: 8,
+  fontSize: 20,
   fontWeight: "bold",
   color: "#FFFFFF",
+  textAlign: "center",
 },
   currencyNotice: { minHeight: 33, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   currencyIcon: { marginRight: 8 },
@@ -303,8 +346,8 @@ export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { 
         </View>
 
         <View style={styles.summary}>
-          <SummaryItem label="Gross Earnings" value={entry.total_earnings} />
-          <SummaryItem label="Total Deductions" value={entry.total_deductions} divider />
+          <SummaryItem label="GROSS SALARY" value={entry.total_earnings} />
+          <SummaryItem label="TOTAL DEDUCTIONS" value={entry.total_deductions} divider />
           <View style={styles.netItem}>
             <Text style={styles.netLabel}>Net Salary</Text>
             <Text style={styles.netValue}>{formatCurrency(entry.net_salary)}</Text>
