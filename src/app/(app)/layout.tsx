@@ -19,6 +19,7 @@ type IconName =
   | "team"
   | "time"
   | "timeOff"
+  | "payroll"
   | "reports"
   | "invoices"
   | "settings";
@@ -68,6 +69,13 @@ const allMenu: MenuItem[] = [
     roles: ["Finance Admin", "Super Admin"],
     icon: "invoices",
     shortcutNumber: 5,
+  },
+  {
+    name: "Payroll",
+    path: "/payroll",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+    icon: "payroll",
+    shortcutNumber: 0,
   },
   {
     name: "Clients",
@@ -136,6 +144,12 @@ const iconPaths: Record<IconName, ReactNode> = {
       <path d="M7 3v3M17 3v3M4 9h16" />
       <rect x="3" y="5" width="18" height="16" rx="3" />
       <path d="m9 15 2 2 4-5" />
+    </>
+  ),
+  payroll: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M7 9h10M7 13h4M16 12v4M14 14h4" />
     </>
   ),
   reports: (
@@ -218,6 +232,7 @@ export default function DashboardLayout({
       setAccessState(
         requiresAdminMobileAccess() &&
           !pathname.startsWith("/time-off") &&
+          !pathname.startsWith("/payroll") &&
           !isAdminLevelRole(resolvedRole)
           ? "mobile-blocked"
           : "allowed",
