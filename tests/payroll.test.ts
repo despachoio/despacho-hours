@@ -58,8 +58,12 @@ describe("Payroll security and snapshot contracts", () => {
     for (const column of ["gross_salary","basic_pay","hra","conveyance_allowance","other_allowance","bonus","leave_encashment","employee_pf","employer_pf","employer_eps","professional_tax","lop_deduction","previous_month_adjustment","tds","net_salary","salary_structure_version"]) expect(migration).toContain(column);
   });
   it("provides employee PDF and Finance Admin workflow surfaces", () => {
-    expect(source("src/components/payroll/PayrollWorkspace.tsx")).toContain("Salary Register");
-    expect(source("src/components/payroll/PayrollWorkspace.tsx")).toContain("Download Salary Slip");
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    expect(workspace).toContain("Salary Register");
+    expect(workspace).toContain("Download Salary Slip");
+    expect(workspace).toContain('setTab("administration")');
+    expect(workspace).toContain('aria-label="Payroll administration sections"');
+    for (const section of ["Payroll Dashboard", "Salary Structures", "Payroll Processing", "Salary Register", "Reports", "Settings"]) expect(workspace).toContain(section);
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("entry.employee_id !== actor.employeeId");
   });
 

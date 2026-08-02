@@ -8,33 +8,43 @@ import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from 
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
 type PayrollData = { role: string; ownEntries: PayrollEntry[]; ownReimbursements: Array<Record<string, unknown>>; runs?: PayrollRun[]; structures?: SalaryStructure[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: Array<Record<string, unknown>>; audit?: Array<Record<string, unknown>> };
-type Tab = "overview" | "history" | "reimbursements" | "dashboard" | "structures" | "process" | "register" | "reports" | "settings";
+type Tab = "overview" | "history" | "reimbursements" | "administration";
+type AdministrationTab = "dashboard" | "structures" | "process" | "register" | "reports" | "settings";
+const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"], ["reimbursements", "Reimbursements"]];
+const administrationTabs: Array<[AdministrationTab, string]> = [["dashboard", "Payroll Dashboard"], ["structures", "Salary Structures"], ["process", "Payroll Processing"], ["register", "Salary Register"], ["reports", "Reports"], ["settings", "Settings"]];
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const monthValue = () => new Date().toISOString().slice(0, 7);
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <section className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,.35)] ${className}`}>{children}</section>;
 
 export default function PayrollWorkspace() {
-  const [data, setData] = useState<PayrollData | null>(null); const [month, setMonth] = useState(monthValue()); const [tab, setTab] = useState<Tab>("overview"); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [message, setMessage] = useState(""); const [editing, setEditing] = useState<PayrollEntry | null>(null);
+  const [data, setData] = useState<PayrollData | null>(null); const [month, setMonth] = useState(monthValue()); const [tab, setTab] = useState<Tab>("overview"); const [administrationTab, setAdministrationTab] = useState<AdministrationTab>("dashboard"); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [message, setMessage] = useState(""); const [editing, setEditing] = useState<PayrollEntry | null>(null);
   const load = useCallback(async () => { setLoading(true); setError(""); try { setData(await payrollRequest<PayrollData>(`/api/payroll?month=${month}`)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load Payroll"); } finally { setLoading(false); } }, [month]);
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
   const finance = data?.role === "finance admin";
-  const tabs: Array<[Tab, string]> = [["overview","My Payroll"],["history","Payroll History"],["reimbursements","Reimbursements"], ...(finance ? [["dashboard","Payroll Dashboard"],["structures","Salary Structures"],["process","Payroll Processing"],["register","Salary Register"],["reports","Reports"],["settings","Settings"]] as Array<[Tab,string]> : [])];
   async function action(payload: Record<string, unknown>) { setMessage(""); setError(""); try { await payrollRequest("/api/payroll", { method: "POST", body: JSON.stringify(payload) }); setMessage("Payroll updated successfully."); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Payroll action failed"); } }
   const latest = data?.ownEntries?.[0];
   return <div className="space-y-7">
     <header className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl"><div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" /><p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">Finance &amp; compensation</p><h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">Payroll</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">Secure salary slips, payroll snapshots, statutory deductions, and controlled month-end processing.</p><span className="mt-5 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">{finance ? "Finance Admin workspace" : "Employee self-service"}</span></header>
-    <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabs.map(([value,label]) => <button key={value} onClick={() => setTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{label}</button>)}</nav>
+    <nav aria-label="Payroll sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+      {employeeTabs.map(([value,label]) => <button key={value} onClick={() => setTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{label}</button>)}
+      {finance ? <button onClick={() => setTab("administration")} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === "administration" ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>Administration</button> : null}
+    </nav>
     {error ? <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-700">{error}</p> : null}{message ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 font-semibold text-emerald-700">{message}</p> : null}
     {loading ? <div className="grid gap-4 md:grid-cols-3">{[1,2,3].map((item) => <div key={item} className="h-36 animate-pulse rounded-3xl bg-slate-200" />)}</div> : !data ? null : <>
       {tab === "overview" ? <EmployeeOverview entry={latest} entries={data.ownEntries} /> : null}
       {tab === "history" ? <PayrollHistory entries={data.ownEntries} /> : null}
       {tab === "reimbursements" ? <Reimbursements rows={data.ownReimbursements} /> : null}
-      {tab === "dashboard" && finance ? <FinanceDashboard data={data} /> : null}
-      {tab === "structures" && finance ? <Structures data={data} onSave={action} /> : null}
-      {tab === "process" && finance ? <Processing data={data} month={month} setMonth={setMonth} onAction={action} /> : null}
-      {tab === "register" && finance ? <SalaryRegister run={data.selectedRun || null} onEdit={setEditing} /> : null}
-      {tab === "reports" && finance ? <Reports run={data.selectedRun || null} bankDetails={data.bankDetails || []} /> : null}
-      {tab === "settings" && finance && data.settings ? <Settings value={data.settings} onSave={action} /> : null}
+      {tab === "administration" && finance ? <div className="space-y-5">
+        <nav aria-label="Payroll administration sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 p-2 shadow-sm">
+          {administrationTabs.map(([value, label]) => <button key={value} onClick={() => setAdministrationTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${administrationTab === value ? "bg-[#0F172A] text-white shadow" : "text-slate-600 hover:bg-white hover:text-[#153E90]"}`}>{label}</button>)}
+        </nav>
+        {administrationTab === "dashboard" ? <FinanceDashboard data={data} /> : null}
+        {administrationTab === "structures" ? <Structures data={data} onSave={action} /> : null}
+        {administrationTab === "process" ? <Processing data={data} month={month} setMonth={setMonth} onAction={action} /> : null}
+        {administrationTab === "register" ? <SalaryRegister run={data.selectedRun || null} onEdit={setEditing} /> : null}
+        {administrationTab === "reports" ? <Reports run={data.selectedRun || null} bankDetails={data.bankDetails || []} /> : null}
+        {administrationTab === "settings" && data.settings ? <Settings value={data.settings} onSave={action} /> : null}
+      </div> : null}
     </>}
     {editing ? <EntryDialog entry={editing} onClose={() => setEditing(null)} onSave={async (payload) => { await action(payload); setEditing(null); }} /> : null}
   </div>;
