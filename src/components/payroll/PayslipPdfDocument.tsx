@@ -50,7 +50,9 @@ const styles = StyleSheet.create({
   brand: { width: 176.25 },
   logo: { width: 138, height: 39, objectFit: "contain", objectPosition: "left center" },
   brandTagline: { marginLeft: 40, marginTop: -3, fontSize: 8.5, color: "#9AA1AA", letterSpacing: 0.15 },
-  headingBlock: { alignItems: "flex-end", marginRight: 20, paddingTop: 1 },
+  headingBlock: {
+  alignItems: "flex-end",
+},
   title: {
   fontSize: 15,
   fontWeight: "bold",
@@ -58,11 +60,16 @@ const styles = StyleSheet.create({
   letterSpacing: 0.6,
 },
 
-month: {
-  marginTop: 2,
-  fontSize: 10,
+separator: {
+  color: "#CBD5E1",
+  fontSize: 15,
+},
+
+monthInline: {
   color: "#64748B",
-  textAlign: "center",
+  fontSize: 15,
+  fontWeight: "semibold",
+  letterSpacing: 0.3,
 },
   employeeCard: {
     marginTop: 13,
@@ -105,14 +112,13 @@ month: {
   tableTotalValue: { fontSize: 12, fontWeight: "bold", color: SLATE, textAlign: "right" },
  summary: {
   marginTop: 16,
-  minHeight: 82,
+  minHeight: 92,
   flexDirection: "row",
   alignItems: "stretch",
   backgroundColor: "#F8FAFC",
   borderWidth: 1,
   borderColor: "#D7E2EE",
   borderRadius: 12,
-  padding: 0,
   overflow: "hidden",
 },
 
@@ -120,9 +126,8 @@ summaryItem: {
   flex: 1,
   alignItems: "center",
   justifyContent: "center",
-  paddingVertical: 16,
-  paddingHorizontal: 12,
   backgroundColor: "#FFFFFF",
+  paddingVertical: 10,
 },
 
 summaryDivider: {
@@ -147,11 +152,11 @@ summaryValue: {
   textAlign: "center",
 },
 
-netItem: {
-  flex: 1,
+netPill: {
+  width: "92%",
+  height: 68,
   backgroundColor: "#153E90",
-  paddingVertical: 16,
-  paddingHorizontal: 12,
+  borderRadius: 16,
   alignItems: "center",
   justifyContent: "center",
 },
@@ -159,18 +164,16 @@ netItem: {
 netLabel: {
   fontSize: 9,
   fontWeight: "bold",
-  color: "#DCE8FF",
+  color: "#E8F1FF",
+  letterSpacing: 1.3,
   textTransform: "uppercase",
-  letterSpacing: 1,
-  textAlign: "center",
 },
 
 netValue: {
-  marginTop: 8,
-  fontSize: 20,
+  marginTop: 5,
+  fontSize: 22,
   fontWeight: "bold",
   color: "#FFFFFF",
-  textAlign: "center",
 },
   currencyNotice: { minHeight: 33, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   currencyIcon: { marginRight: 8 },
@@ -293,9 +296,14 @@ export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { 
             
           </View>
           <View style={styles.headingBlock}>
-            <Text style={styles.title}>PAYSLIP</Text>
-            <Text style={styles.month}>{formatMonth(entry.payroll_month)}</Text>
-          </View>
+  <Text style={styles.title}>
+    PAYSLIP
+    <Text style={styles.separator}> • </Text>
+    <Text style={styles.monthInline}>
+      {formatMonth(entry.payroll_month).toUpperCase()}
+    </Text>
+  </Text>
+</View>
         </View>
 
         <View style={styles.employeeCard}>
@@ -348,10 +356,14 @@ export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { 
         <View style={styles.summary}>
           <SummaryItem label="GROSS SALARY" value={entry.total_earnings} />
           <SummaryItem label="TOTAL DEDUCTIONS" value={entry.total_deductions} divider />
-          <View style={styles.netItem}>
-            <Text style={styles.netLabel}>Net Salary</Text>
-            <Text style={styles.netValue}>{formatCurrency(entry.net_salary)}</Text>
-          </View>
+          <View style={styles.summaryItem}>
+  <View style={styles.netPill}>
+    <Text style={styles.netLabel}>NET SALARY</Text>
+    <Text style={styles.netValue}>
+      {formatCurrency(entry.net_salary)}
+    </Text>
+  </View>
+</View>
         </View>
 
         <RupeeNotice />
