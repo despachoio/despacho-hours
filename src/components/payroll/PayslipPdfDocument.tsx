@@ -216,7 +216,7 @@ export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { 
             {/* @react-pdf/renderer Image does not support the HTML alt prop. */}
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={logoSrc} style={styles.logo} />
-            <Text style={styles.brandTagline}>Great People. Great Impact.</Text>
+            
           </View>
           <View style={styles.headingBlock}>
             <Text style={styles.title}>PAYSLIP</Text>
