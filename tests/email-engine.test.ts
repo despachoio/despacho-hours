@@ -117,4 +117,24 @@ describe("shared email engine", () => {
       expect(notifications).toContain(`${event}:`);
     }
   });
+
+  it("dispatches leave emails immediately after every user action", () => {
+    const client = readFileSync("src/lib/time-off/client.ts", "utf8");
+    const route = readFileSync(
+      "src/app/api/time-off/notifications/dispatch/route.ts",
+      "utf8",
+    );
+    const notifications = readFileSync(
+      "src/lib/time-off/notifications.ts",
+      "utf8",
+    );
+
+    expect(client.match(/await dispatchQueuedLeaveEmails\(\);/g)).toHaveLength(3);
+    expect(client).toContain('fetch("/api/time-off/notifications/dispatch"');
+    expect(route).toContain("await admin.auth.getUser(token)");
+    expect(route).toContain("queueScheduledReminders: false");
+    expect(notifications).toContain(
+      "options.queueScheduledReminders !== false",
+    );
+  });
 });

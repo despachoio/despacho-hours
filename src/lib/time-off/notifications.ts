@@ -169,8 +169,13 @@ async function queueReminders(admin: SupabaseClient) {
   }
 }
 
-export async function dispatchTimeOffNotifications(admin: SupabaseClient) {
-  await queueReminders(admin);
+export async function dispatchTimeOffNotifications(
+  admin: SupabaseClient,
+  options: { queueScheduledReminders?: boolean } = {},
+) {
+  if (options.queueScheduledReminders !== false) {
+    await queueReminders(admin);
+  }
   const staleBefore = new Date(Date.now() - 10 * 60_000).toISOString();
   await admin
     .from("leave_notifications")

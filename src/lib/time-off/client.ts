@@ -298,6 +298,31 @@ export type TimeOffAdminData = {
 
 const requestSelect = `id,employee_id,leave_type_id,leave_year,start_date,end_date,start_day_part,end_day_part,requested_days,working_days,calendar_span_days,holidays_excluded,weekly_offs_excluded,reason,handover_notes,emergency,status,submitted_at,manager_comment,administrative_override_required,lop_salary_deduction_days,extended_exception_consumed,policy_snapshot,leave_types(name,code,colour,is_paid),employees(id,employee_code,name,title,department,reporting_manager_id),leave_request_days(id,leave_date,day_part,duration,is_working_day,is_holiday,is_weekly_off,status),leave_request_actions(id,action,actor_role,previous_status,new_status,comment,created_at),leave_request_comments(id,author_role,comment,created_at),leave_attachments(id,storage_path,file_name,mime_type,file_size_bytes)`;
 
+async function dispatchQueuedLeaveEmails() {
+  try {
+    const session = await supabase.auth.getSession();
+    const accessToken = session.data.session?.access_token;
+    if (!accessToken) return;
+    const response = await fetch("/api/time-off/notifications/dispatch", {
+      method: "POST",
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      console.error(
+        "Immediate Time Off email dispatch failed",
+        body?.error || response.statusText,
+      );
+    }
+  } catch (cause) {
+    // The database transaction is already complete. The scheduled dispatcher
+    // remains the retry safety net if immediate delivery is unavailable.
+    console.error("Immediate Time Off email dispatch failed", cause);
+  }
+}
+
 export async function loadTimeOffData(year: number): Promise<TimeOffData> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw new Error("Your session has expired.");
@@ -484,6 +509,7 @@ export async function submitLeave(input: {
     p_override_reason: input.overrideReason,
   });
   if (result.error) throw new Error(result.error.message);
+  await dispatchQueuedLeaveEmails();
   return result.data as LeaveRequest;
 }
 
@@ -493,6 +519,7 @@ export async function cancelLeave(requestId: string, comment = "") {
     p_comment: comment || null,
   });
   if (result.error) throw new Error(result.error.message);
+  await dispatchQueuedLeaveEmails();
   return result.data as LeaveRequest;
 }
 
@@ -509,6 +536,7 @@ export async function processLeave(
     p_override_reason: overrideReason || null,
   });
   if (result.error) throw new Error(result.error.message);
+  await dispatchQueuedLeaveEmails();
   return result.data as LeaveRequest;
 }
 
