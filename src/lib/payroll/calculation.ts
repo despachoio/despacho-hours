@@ -13,7 +13,8 @@ export type PayrollCalculationInput = {
   professionalTaxAmount?: number;
 };
 
-const money = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+const money = (value: number) =>
+  Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const safe = (value: number | undefined) => Math.max(Number(value || 0), 0);
 
 export function calculatePayroll(input: PayrollCalculationInput) {
@@ -23,13 +24,14 @@ export function calculatePayroll(input: PayrollCalculationInput) {
   const conveyanceAllowance = money(safe(input.conveyanceAllowance ?? 1_600));
   const otherAllowance = money(grossSalary - basicPay - hra - conveyanceAllowance);
   const epfSalary = money(Math.min(basicPay, 15_000));
-  const employeePf = money(epfSalary * 0.12);
+  const employeePf = Math.round(epfSalary * 0.12);
 
-const employerEps = money(
-  Math.min(Math.round(epfSalary * 0.0833), 1250),
+const employerEps = Math.min(
+  Math.round(epfSalary * 0.0833),
+  1_250,
 );
 
-const employerPf = money(employeePf - employerEps);
+const employerPf = employeePf - employerEps;
   const employerTotalContribution = money(employerPf + employerEps);
   const bonus = money(safe(input.bonus));
   const leaveEncashment = money(safe(input.leaveEncashment));
