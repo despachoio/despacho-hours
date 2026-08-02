@@ -58,9 +58,8 @@ describe("Payroll security and snapshot contracts", () => {
     expect(history).toContain("Deductions");
     expect(history).toContain("Net Salary");
     expect(history).toContain("Download PDF");
-    expect(history).toContain("Download YTD Details");
-    expect(history).toContain("Payroll-YTD-");
-    expect(history).toContain("YTD Total");
+    expect(history).toContain("Download YTD");
+    expect(history).toContain("downloadPayrollYtd");
     expect(history).toContain("table-fixed");
     expect(history).not.toContain("period_start");
     expect(history).not.toContain("period_end");
@@ -98,5 +97,16 @@ describe("Payroll security and snapshot contracts", () => {
     }
     expect(payslip).toContain("styles.payrollHeaderCellRight");
     expect(payslip).toContain("styles.summaryDivider");
+  });
+
+  it("generates a protected PDF YTD payroll statement", () => {
+    const route = source("src/app/api/payroll/ytd/route.ts");
+    const document = source("src/components/payroll/YtdPayrollPdfDocument.tsx");
+    expect(route).toContain("payrollActor(request)");
+    expect(route).toContain('Content-Type": "application/pdf"');
+    expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
+    expect(document).toContain('orientation="landscape"');
+    expect(document).toContain("YEAR-TO-DATE PAYROLL DETAILS");
+    expect(document).toContain("GRAND TOTAL");
   });
 });

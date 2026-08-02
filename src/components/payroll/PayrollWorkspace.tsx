@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
-import { downloadPayslip, payrollRequest } from "@/lib/payroll/client";
+import { downloadPayrollYtd, downloadPayslip, payrollRequest } from "@/lib/payroll/client";
 import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
@@ -45,6 +45,8 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
   const [selectedYear, setSelectedYear] = useState("");
   const [appliedYear, setAppliedYear] = useState("");
   const [searched, setSearched] = useState(false);
+  const [downloadingYtd, setDownloadingYtd] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
   const years = useMemo(
     () => Array.from(new Set(entries.map((entry) => entry.payroll_month.slice(0, 4)))).sort((left, right) => Number(right) - Number(left)),
     [entries],
@@ -56,44 +58,25 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
 
   function search() {
     if (!selectedYear) return;
+    setDownloadError("");
     setAppliedYear(selectedYear);
     setSearched(true);
   }
 
   function reset() {
+    setDownloadError("");
     setSelectedYear("");
     setAppliedYear("");
     setSearched(false);
   }
 
-  function downloadYtdDetails() {
-    if (!searched || !appliedYear || !results.length) return;
-    const totals = results.reduce(
-      (sum, entry) => ({
-        gross: sum.gross + Number(entry.gross_salary || 0),
-        deductions: sum.deductions + Number(entry.total_deductions || 0),
-        net: sum.net + Number(entry.net_salary || 0),
-      }),
-      { gross: 0, deductions: 0, net: 0 },
-    );
-    const rows: Array<Array<string | number>> = [
-      ["Month & Year", "Gross Salary", "Deductions", "Net Salary"],
-      ...results.map((entry) => [
-        new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }),
-        Math.round(Number(entry.gross_salary || 0)),
-        Math.round(Number(entry.total_deductions || 0)),
-        Math.round(Number(entry.net_salary || 0)),
-      ]),
-      ["YTD Total", Math.round(totals.gross), Math.round(totals.deductions), Math.round(totals.net)],
-    ];
-    const quote = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
-    const content = `\uFEFF${rows.map((row) => row.map(quote).join(",")).join("\n")}`;
-    const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `Payroll-YTD-${appliedYear}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+  async function downloadYtd() {
+    if (!searched || !appliedYear || !results.length || downloadingYtd) return;
+    setDownloadError("");
+    setDownloadingYtd(true);
+    try { await downloadPayrollYtd(appliedYear); }
+    catch (cause) { setDownloadError(cause instanceof Error ? cause.message : "Unable to download YTD payroll report"); }
+    finally { setDownloadingYtd(false); }
   }
 
   return (
@@ -108,7 +91,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           <span className="rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-bold text-[#153E90] shadow-sm">{searched ? `${results.length} slips` : "Awaiting search"}</span>
         </div>
         <div className="flex flex-wrap items-end gap-3 px-6 py-5">
-          <label className="min-w-64 flex-1 text-sm font-bold text-slate-700">
+          <label className="w-44 text-sm font-bold text-slate-700">
             Year
             <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">
               <option value="">Select year</option>
@@ -118,9 +101,10 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           <KairoButton type="button" disabled={!selectedYear} onClick={search}>Search</KairoButton>
           <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
           <div className="ml-auto">
-            <KairoButton type="button" variant="secondary" disabled={!searched || !results.length} onClick={downloadYtdDetails}>Download YTD Details</KairoButton>
+            <KairoButton type="button" disabled={!searched || !results.length || downloadingYtd} onClick={() => void downloadYtd()}>{downloadingYtd ? "Preparing PDF..." : "Download YTD"}</KairoButton>
           </div>
         </div>
+        {downloadError ? <p role="alert" className="mx-6 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{downloadError}</p> : null}
       </Card>
 
       <Card>

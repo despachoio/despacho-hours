@@ -20,6 +20,14 @@ export async function downloadPayslip(id: string, filename: string) {
   const link = document.createElement("a"); link.href = URL.createObjectURL(await response.blob()); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
 }
 
+export async function downloadPayrollYtd(year: string) {
+  const response = await fetch(`/api/payroll/ytd?year=${encodeURIComponent(year)}`, { headers: { authorization: `Bearer ${await token()}` } });
+  if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || "Unable to download YTD payroll report"); }
+  const disposition = response.headers.get("content-disposition") || "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `YTD-${year}.pdf`;
+  const link = document.createElement("a"); link.href = URL.createObjectURL(await response.blob()); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
+}
+
 export async function viewPayslip(id: string) {
   const response = await fetch(`/api/payroll/payslip/${id}`, { headers: { authorization: `Bearer ${await token()}` } });
   if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || "Unable to view payslip"); }
