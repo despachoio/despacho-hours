@@ -145,14 +145,13 @@ function EmployeeOverview({
             </div>
 
             <KairoButton
-              type="button"
-              variant="brown"
-              disabled={downloading}
-              className="disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100"
-              onClick={() => void downloadLatestPayslip()}
-            >
-              {downloading ? "Downloading..." : "Download Payslip"}
-            </KairoButton>
+  type="button"
+  variant="primary"
+  disabled={downloading}
+  onClick={() => void downloadLatestPayslip()}
+>
+  {downloading ? "Downloading..." : "Download Payslip"}
+</KairoButton>
           </div>
         ) : (
           <p className="py-14 text-center text-slate-400">
