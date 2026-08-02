@@ -5,6 +5,16 @@ import { payrollActor } from "@/lib/payroll/server";
 import type { PayrollEntry } from "@/lib/payroll/types";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 
+function inclusiveDayCount(start: string, end: string) {
+  const startTime = new Date(`${start}T00:00:00Z`).getTime();
+  const endTime = new Date(`${end}T00:00:00Z`).getTime();
+  return Math.max(0, Math.round((endTime - startTime) / 86_400_000) + 1);
+}
+
+function removeSalutation(name: string) {
+  return name.replace(/^(?:mr|mrs|ms|miss|dr)\.?\s+/i, "").trim();
+}
+
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const actor = await payrollActor(request);
@@ -14,9 +24,26 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const entry = result.data as PayrollEntry;
     const finance = actor.role === "finance admin";
     if (!finance && (entry.employee_id !== actor.employeeId || entry.status !== "published" || !entry.published_at)) return Response.json({ error: "Forbidden" }, { status: 403 });
-    const company = await loadCompanySettings(actor.admin);
+    const [company, employeeResult, financeResult, statutoryResult] = await Promise.all([
+      loadCompanySettings(actor.admin),
+      actor.admin.from("employees").select("name,role,date_of_joining").eq("id", entry.employee_id).maybeSingle(),
+      actor.admin.from("employee_finance_details").select("bank_name,bank_account_number,epf_number,uan_number").eq("employee_id", entry.employee_id).maybeSingle(),
+      actor.admin.from("employee_statutory_details").select("pan_number").eq("employee_id", entry.employee_id).maybeSingle(),
+    ]);
     const logo = await loadCompanyLogo(company, false);
-    const document = createElement(PayslipPdfDocument, { entry, logoSrc: logo.dataUrl, companyName: company.company_name }) as ReactElement<DocumentProps>;
+    const periodDays = inclusiveDayCount(entry.period_start, entry.period_end);
+    const employee = {
+      employeeName: employeeResult.data?.name || removeSalutation(entry.employee_name),
+      designation: employeeResult.data?.role || null,
+      effectiveWorkingDays: Math.max(periodDays - Number(entry.lop_days || 0), 0),
+      dateOfJoining: employeeResult.data?.date_of_joining || null,
+      bankName: financeResult.data?.bank_name || null,
+      bankAccountNumber: financeResult.data?.bank_account_number || null,
+      pfNumber: financeResult.data?.epf_number || null,
+      uan: financeResult.data?.uan_number || null,
+      panNumber: statutoryResult.data?.pan_number || null,
+    };
+    const document = createElement(PayslipPdfDocument, { entry, employee, logoSrc: logo.dataUrl, companyName: company.company_name }) as ReactElement<DocumentProps>;
     const pdf = await renderToBuffer(document);
     return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="Payslip-${entry.employee_code}-${entry.payroll_month.slice(0, 7)}.pdf"`, "Cache-Control": "private, no-store" } });
   } catch (cause) {

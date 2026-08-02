@@ -46,4 +46,19 @@ describe("Payroll security and snapshot contracts", () => {
     expect(source("src/components/payroll/PayrollWorkspace.tsx")).toContain("Download Salary Slip");
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("entry.employee_id !== actor.employeeId");
   });
+
+  it("renders a premium employee payslip without internal payroll details", () => {
+    const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
+    expect(payslip).toContain("PAYSLIP");
+    expect(payslip).toContain("EMPLOYEE INFORMATION");
+    expect(payslip).toContain("EARNINGS &amp; DEDUCTIONS");
+    expect(payslip).toContain("Effective Working Days");
+    expect(payslip).toContain("System-generated payslip. No signature is required.");
+    expect(payslip).not.toContain("SALARY SLIP");
+    expect(payslip).not.toContain("Employer contribution");
+    expect(payslip).not.toContain("Employer PF");
+    expect(payslip).not.toContain("Employer EPS");
+    expect(payslip).not.toContain("INR ");
+    expect(payslip).not.toContain("period_start} to {entry.period_end");
+  });
 });
