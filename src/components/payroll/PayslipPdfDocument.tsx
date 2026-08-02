@@ -46,15 +46,24 @@ const styles = StyleSheet.create({
     color: SLATE,
     backgroundColor: "#FFFFFF",
   },
-  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", minHeight: 50.25 },
+  header: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  minHeight: 62,
+},
   brand: { width: 176.25 },
   logo: { width: 138, height: 39, objectFit: "contain", objectPosition: "left center" },
   brandTagline: { marginLeft: 40, marginTop: -3, fontSize: 8.5, color: "#9AA1AA", letterSpacing: 0.15 },
   headingBlock: {
   alignItems: "flex-end",
+  justifyContent: "center",
+  height: 42,
+  paddingTop: 10,
+  marginRight: 28,
 },
   title: {
-  fontSize: 15,
+  fontSize: 12,
   fontWeight: "bold",
   color: "#153E90",
   letterSpacing: 0.6,
@@ -62,12 +71,12 @@ const styles = StyleSheet.create({
 
 separator: {
   color: "#CBD5E1",
-  fontSize: 15,
+  fontSize: 12,
 },
 
 monthInline: {
   color: "#64748B",
-  fontSize: 15,
+  fontSize: 12,
   fontWeight: "semibold",
   letterSpacing: 0.3,
 },

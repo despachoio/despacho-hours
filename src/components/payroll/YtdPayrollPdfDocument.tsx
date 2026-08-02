@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   paddingHorizontal: 8,
   backgroundColor: "#153E90",
   borderRightWidth: 0.5,
-  borderRightColor: "#2D5AA7",
+  borderRightColor: "#4B74B8",
 },
   monthCell: { width: 51, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 4, borderRightWidth: 0.5, borderRightColor: BORDER },
   monthHeaderCell: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   alignItems: "center",
   backgroundColor: "#153E90",
   borderRightWidth: 0.5,
-  borderRightColor: "#2D5AA7",
+  borderRightColor: "#4B74B8",
 },
   grandCell: { width: 73, justifyContent: "center", alignItems: "flex-end", paddingHorizontal: 6, borderLeftWidth: 1, borderLeftColor: "#7692B5" },
   grandHeaderCell: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   paddingHorizontal: 6,
   backgroundColor: "#153E90",
   borderLeftWidth: 1,
-  borderLeftColor: "#2D5AA7",
+  borderLeftColor: "#4B74B8",
 },
   headerText: {
   fontSize: 6.8,
