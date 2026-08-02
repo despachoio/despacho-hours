@@ -31,6 +31,14 @@ export default function EmployeeCard({
       : analytics.utilisation >= 80
         ? "text-emerald-600"
         : "text-amber-500";
+  const totalHours = analytics.hours;
+  const billableHours = analytics.billableHours;
+  const nonBillableHours = Math.max(totalHours - billableHours, 0);
+  const totalWorkedPercentage = analytics.expectedHours > 0
+    ? Math.min(totalHours / analytics.expectedHours, 1)
+    : 0;
+  const billableRatio = totalHours > 0 ? billableHours / totalHours : 0;
+  const nonBillableRatio = totalHours > 0 ? nonBillableHours / totalHours : 0;
   return (
     <div
       data-shortcut-row={canViewDetails ? true : undefined}
@@ -87,14 +95,31 @@ export default function EmployeeCard({
             value={`${analytics.utilisation.toFixed(0)}%`}
             valueClassName={utilisationTextTone}
           />
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <div
+            role="progressbar"
+            aria-label="Recorded hours against expected hours"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(totalWorkedPercentage * 100)}
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]"
+          >
             <div
-              className="h-full bg-[#153E90]"
-              style={{ width: `${Math.min(100, analytics.billableUtilisation)}%` }}
-            />
+              className="flex h-full overflow-hidden transition-all duration-700 ease-out"
+              style={{ width: `${totalWorkedPercentage * 100}%` }}
+            >
+              <div
+                className="h-full shrink-0 bg-[#153E90]"
+                style={{ width: `${billableRatio * 100}%` }}
+              />
+              <div
+                className="h-full shrink-0 bg-[#A78BFA]"
+                style={{ width: `${nonBillableRatio * 100}%` }}
+              />
+            </div>
           </div>
-          <div className="mt-1.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 text-[9px] font-bold uppercase tracking-wide text-slate-400">
             <span><span className="mr-1 text-[#153E90]">●</span>Billable</span>
+            <span><span className="mr-1 text-[#A78BFA]">●</span>Non-billable</span>
           </div>
         </div>
         <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">
