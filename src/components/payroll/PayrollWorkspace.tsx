@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
-import { downloadPayslip, payrollRequest, viewPayslip } from "@/lib/payroll/client";
+import { downloadPayslip, payrollRequest } from "@/lib/payroll/client";
 import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
@@ -41,7 +41,79 @@ export default function PayrollWorkspace() {
 
 function EmployeeOverview({ entry, entries }: { entry?: PayrollEntry; entries: PayrollEntry[] }) { const ytd = entries.filter((item) => item.payroll_month.slice(0,4) === new Date().getFullYear().toString()).reduce((sum,item) => ({ earnings: sum.earnings + Number(item.total_earnings), deductions: sum.deductions + Number(item.total_deductions), net: sum.net + Number(item.net_salary) }), { earnings:0,deductions:0,net:0 }); return <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><Metric label="YTD Earnings" value={money(ytd.earnings)} colour="text-emerald-700" /><Metric label="YTD Deductions" value={money(ytd.deductions)} colour="text-rose-700" /><Metric label="YTD Net Pay" value={money(ytd.net)} colour="text-[#153E90]" /></div><Card className="p-7">{entry ? <div className="flex flex-wrap items-center justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-wider text-slate-400">Latest published salary slip</p><h2 className="mt-2 text-2xl font-bold">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month:"long",year:"numeric",timeZone:"UTC" })}</h2><p className="mt-2 text-sm text-slate-500">Net salary <strong className="text-[#153E90]">{money(entry.net_salary)}</strong></p></div><KairoButton type="button" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0,7)}.pdf`)}>Download Salary Slip</KairoButton></div> : <p className="py-14 text-center text-slate-400">No published salary slip is available yet.</p>}</Card><Card className="p-7"><h2 className="text-xl font-bold">Form 16</h2><p className="mt-2 text-slate-500">Annual Form 16 download will be available here.</p><span className="mt-4 inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">Coming Soon</span></Card></div>; }
 function Metric({ label,value,colour }: { label:string;value:string;colour:string }) { return <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{label}</p><p className={`mt-4 text-2xl font-bold ${colour}`}>{value}</p></Card>; }
-function PayrollHistory({ entries }: { entries: PayrollEntry[] }) { return <Card><Title title="Published Salary Slips" subtitle="Historical payslips use locked payroll snapshots." /><div className="divide-y">{entries.map(entry => <div key={entry.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-5"><div><p className="font-bold">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN",{month:"long",year:"numeric",timeZone:"UTC"})}</p><p className="mt-1 text-xs text-slate-500">{entry.period_start} – {entry.period_end}</p></div><p className="font-bold text-[#153E90]">{money(entry.net_salary)}</p><div className="flex gap-2"><KairoButton type="button" variant="secondary" onClick={() => void viewPayslip(entry.id)}>View</KairoButton><KairoButton type="button" variant="secondary" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0,7)}.pdf`)}>Download PDF</KairoButton></div></div>)}{!entries.length ? <Empty text="No payroll history available." /> : null}</div></Card>; }
+function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
+  const [selectedYear, setSelectedYear] = useState("");
+  const [appliedYear, setAppliedYear] = useState("");
+  const [searched, setSearched] = useState(false);
+  const years = useMemo(
+    () => Array.from(new Set(entries.map((entry) => entry.payroll_month.slice(0, 4)))).sort((left, right) => Number(right) - Number(left)),
+    [entries],
+  );
+  const results = useMemo(
+    () => searched ? entries.filter((entry) => entry.payroll_month.startsWith(`${appliedYear}-`)) : [],
+    [appliedYear, entries, searched],
+  );
+
+  function search() {
+    if (!selectedYear) return;
+    setAppliedYear(selectedYear);
+    setSearched(true);
+  }
+
+  function reset() {
+    setSelectedYear("");
+    setAppliedYear("");
+    setSearched(false);
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card className="p-6">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="min-w-56 text-sm font-bold text-slate-700">
+            Year
+            <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">
+              <option value="">Select year</option>
+              {years.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </label>
+          <KairoButton type="button" disabled={!selectedYear} onClick={search}>Search</KairoButton>
+          <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
+        </div>
+      </Card>
+
+      <Card>
+        <Title title="Published Salary Slips" subtitle="Search by year to view published salary slips." />
+        {!searched ? <Empty text="Select a year and click Search to view published salary slips." /> : results.length ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-[#0F172A] text-xs uppercase tracking-wide text-slate-300">
+                <tr>
+                  <th className="px-6 py-4">Month &amp; Year</th>
+                  <th className="px-6 py-4 text-right">Gross Salary</th>
+                  <th className="px-6 py-4 text-right">Deductions</th>
+                  <th className="px-6 py-4 text-right">Net Salary</th>
+                  <th className="px-6 py-4 text-right">Payslip</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {results.map((entry) => (
+                  <tr key={entry.id} className="bg-white transition hover:bg-blue-50/50">
+                    <td className="whitespace-nowrap px-6 py-5 font-bold text-slate-900">{new Date(`${entry.payroll_month}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" })}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-right font-semibold text-slate-700">{money(entry.gross_salary)}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-right font-semibold text-rose-700">{money(entry.total_deductions)}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-right font-bold text-[#153E90]">{money(entry.net_salary)}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-right"><KairoButton type="button" variant="secondary" onClick={() => void downloadPayslip(entry.id, `Payslip-${entry.employee_code}-${entry.payroll_month.slice(0, 7)}.pdf`)}>Download PDF</KairoButton></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <Empty text={`No published salary slips are available for ${appliedYear}.`} />}
+      </Card>
+    </div>
+  );
+}
 function Reimbursements({ rows }: { rows: Array<Record<string,unknown>> }) { return <Card><Title title="Reimbursements" subtitle="Approved and paid reimbursements included in payroll." /><div className="divide-y">{rows.map(row => <div key={String(row.id)} className="grid gap-3 px-6 py-4 md:grid-cols-4"><strong>{String(row.description)}</strong><span>{String(row.payroll_month).slice(0,7)}</span><span>{money(Number(row.amount))}</span><span className="capitalize text-emerald-700">{String(row.status)}</span></div>)}{!rows.length ? <Empty text="No reimbursements recorded." /> : null}</div></Card>; }
 function Title({ title,subtitle }: {title:string;subtitle:string}) { return <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5"><h2 className="text-xl font-bold">{title}</h2><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>; }
 function Empty({text}:{text:string}) { return <p className="px-6 py-14 text-center text-sm text-slate-400">{text}</p>; }

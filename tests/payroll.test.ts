@@ -47,6 +47,22 @@ describe("Payroll security and snapshot contracts", () => {
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("entry.employee_id !== actor.employeeId");
   });
 
+  it("requires a year search before showing payroll history", () => {
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    const history = workspace.slice(workspace.indexOf("function PayrollHistory"), workspace.indexOf("function Reimbursements"));
+    expect(history).toContain('const [searched, setSearched] = useState(false)');
+    expect(history).toContain("Select a year and click Search");
+    expect(history).toContain("Month &amp; Year");
+    expect(history).toContain("Gross Salary");
+    expect(history).toContain("entry.gross_salary");
+    expect(history).toContain("Deductions");
+    expect(history).toContain("Net Salary");
+    expect(history).toContain("Download PDF");
+    expect(history).not.toContain("period_start");
+    expect(history).not.toContain("period_end");
+    expect(history).not.toContain("viewPayslip");
+  });
+
   it("renders a premium employee payslip without internal payroll details", () => {
     const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
     expect(payslip).toContain("PAYSLIP");
