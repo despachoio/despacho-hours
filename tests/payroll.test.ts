@@ -70,4 +70,13 @@ describe("Payroll security and snapshot contracts", () => {
     expect(payslip).toContain("All amounts are in INR");
     expect(payslip).not.toContain("kairo-logo");
   });
+
+  it("matches the approved corporate payslip structure", () => {
+    const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
+    for (const content of ["Great People. Great Impact.", "EMPLOYEE INFORMATION", "EARNINGS &amp; DEDUCTIONS", "GROSS EARNINGS", "TOTAL DEDUCTIONS", "NET SALARY"]) {
+      expect(payslip).toContain(content);
+    }
+    expect(payslip).toContain("styles.payrollHeaderCellRight");
+    expect(payslip).toContain("styles.summaryDivider");
+  });
 });

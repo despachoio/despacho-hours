@@ -14,189 +14,150 @@ export type PayslipEmployeeDetails = {
 };
 
 type AmountRow = { label: string; value: number };
+type IconName = "user" | "id" | "briefcase" | "calendar" | "clock" | "bank" | "card" | "shield" | "wallet" | "file";
 
 const PRIMARY = "#153E90";
-const SLATE = "#0F172A";
-const MUTED = "#64748B";
-const BORDER = "#E2E8F0";
-const SURFACE = "#F8FAFC";
+const PRIMARY_DARK = "#07316F";
+const SLATE = "#111827";
+const BORDER = "#D7DEE8";
+const LIGHT_BLUE = "#F4F8FD";
+const ICON_BLUE = "#E8F3FF";
+
+const iconPaths: Record<IconName, string> = {
+  user: "M4 21c0-4 3.2-7 8-7s8 3 8 7M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9",
+  id: "M3 5h18v15H3zM8 5V3h8v2M7 10a2 2 0 1 0 0-4M5 15c.4-2 1.5-3 3-3s2.6 1 3 3M14 10h4M14 14h4",
+  briefcase: "M3 8h18v12H3zM8 8V5h8v3M3 12h18M10 12v2h4v-2",
+  calendar: "M4 5h16v16H4zM8 3v4M16 3v4M4 9h16M8 13h1M12 13h1M16 13h1M8 17h1M12 17h1M16 17h1",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v6l4 2",
+  bank: "M3 9h18L12 3 3 9zM5 10v8M9 10v8M15 10v8M19 10v8M3 19h18M2 22h20",
+  card: "M3 6h18v13H3zM3 10h18M7 15h4",
+  shield: "M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11zM8 12l2.5 2.5L16 9",
+  wallet: "M3 7h17v13H3zM3 7l14-3v3M15 12h7v5h-7zM18 14.5h1",
+  file: "M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 15h6M9 18h4",
+};
 
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: 38,
-    paddingTop: 34,
-    paddingBottom: 48,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
     fontFamily: "Helvetica",
     fontSize: 9,
     color: SLATE,
     backgroundColor: "#FFFFFF",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingBottom: 18,
-    borderBottomWidth: 2,
-    borderBottomColor: PRIMARY,
-  },
-  logo: { width: 152, height: 46, objectFit: "contain", objectPosition: "left center" },
-  headingBlock: { alignItems: "flex-end" },
-  title: { fontSize: 23, fontWeight: "bold", color: PRIMARY, letterSpacing: 0.7 },
-  month: { marginTop: 5, fontSize: 10, color: MUTED },
-  section: { marginTop: 18 },
-  sectionHeading: {
-    marginBottom: 8,
-    fontSize: 9,
-    fontWeight: "bold",
-    color: PRIMARY,
-    letterSpacing: 1.2,
-  },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", minHeight: 67 },
+  brand: { width: 235 },
+  logo: { width: 184, height: 52, objectFit: "contain", objectPosition: "left center" },
+  brandTagline: { marginLeft: 40, marginTop: -3, fontSize: 8.5, color: "#9AA1AA", letterSpacing: 0.15 },
+  headingBlock: { alignItems: "flex-end", paddingTop: 1 },
+  title: { fontSize: 28, fontWeight: "bold", color: PRIMARY_DARK, letterSpacing: 0.5 },
+  month: { marginTop: 5, fontSize: 12, fontWeight: "bold", color: PRIMARY_DARK },
   employeeCard: {
-    flexDirection: "row",
+    marginTop: 13,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 9,
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 13,
-    paddingHorizontal: 15,
-  },
-  employeeColumn: { width: "50%", paddingRight: 12 },
-  employeeColumnRight: { width: "50%", paddingLeft: 15, borderLeftWidth: 1, borderLeftColor: BORDER },
-  infoRow: { flexDirection: "row", minHeight: 19, alignItems: "center" },
-  infoLabel: { width: 88, fontSize: 7.5, color: MUTED },
-  infoValue: { flex: 1, fontSize: 8.5, fontWeight: "bold", color: SLATE },
-  tables: { flexDirection: "row" },
-  tableCard: {
-    width: "48.5%",
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 9,
+    borderRadius: 7,
     overflow: "hidden",
     backgroundColor: "#FFFFFF",
   },
-  tableCardRight: { marginLeft: "3%" },
-  tableHeader: {
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    backgroundColor: SURFACE,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    fontSize: 9,
-    fontWeight: "bold",
-    color: PRIMARY,
-  },
-  moneyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 27,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EDF2F7",
-  },
-  moneyLabel: { width: "68%", color: "#334155" },
-  moneyValue: { width: "32%", textAlign: "right", fontWeight: "bold", color: SLATE },
-  emptyRow: { minHeight: 27, paddingHorizontal: 12, paddingVertical: 9, color: MUTED },
-  tableTotal: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: SURFACE,
-  },
-  tableTotalLabel: { fontWeight: "bold", color: "#334155" },
-  tableTotalValue: { fontWeight: "bold", color: PRIMARY, textAlign: "right" },
-  summary: {
-    marginTop: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    borderRadius: 9,
-    backgroundColor: SURFACE,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  summaryItem: { width: "31%", paddingHorizontal: 10, justifyContent: "center" },
-  summaryDivider: { borderLeftWidth: 1, borderLeftColor: BORDER },
-  summaryLabel: { fontSize: 7.5, color: MUTED, marginBottom: 5 },
-  summaryValue: { fontSize: 13, fontWeight: "bold", color: SLATE },
-  netItem: {
-    width: "38%",
-    paddingVertical: 10,
-    paddingHorizontal: 13,
-    backgroundColor: PRIMARY,
-    borderRadius: 7,
-  },
-  netLabel: { fontSize: 7.5, color: "#DBEAFE", marginBottom: 5 },
-  netValue: { fontSize: 17, fontWeight: "bold", color: "#FFFFFF" },
-  footer: {
-    position: "absolute",
-    left: 38,
-    right: 38,
-    bottom: 25,
-    paddingTop: 9,
-    borderTopWidth: 1,
-    borderTopColor: BORDER,
-    alignItems: "center",
-  },
-  currencyNotice: { flexDirection: "row", alignItems: "center", marginBottom: 7 },
-  currencyIcon: { marginRight: 6 },
-  currencyText: { color: "#64748B", fontSize: 7.5 },
-  footerText: { color: "#94A3B8", fontSize: 7, textAlign: "center" },
+  employeeHeading: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 9, paddingBottom: 6 },
+  employeeHeadingBadge: { width: 25, height: 25, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: ICON_BLUE, marginRight: 8 },
+  employeeHeadingText: { fontSize: 11.5, fontWeight: "bold", color: PRIMARY_DARK },
+  employeeColumns: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 10 },
+  employeeColumn: { width: "50%", paddingRight: 12 },
+  employeeColumnRight: { width: "50%", paddingLeft: 15, borderLeftWidth: 1, borderLeftColor: BORDER },
+  infoRow: { flexDirection: "row", alignItems: "center", minHeight: 27 },
+  infoIcon: { width: 22, alignItems: "center", marginRight: 6 },
+  infoLabel: { width: 88, fontSize: 8, color: "#303846" },
+  infoColon: { width: 12, fontSize: 8, color: "#303846", textAlign: "center" },
+  infoValue: { flex: 1, fontSize: 8.4, fontWeight: "bold", color: SLATE },
+  sectionHeading: { marginTop: 14, marginBottom: 9, flexDirection: "row", alignItems: "center" },
+  sectionLine: { height: 1, flex: 1, backgroundColor: "#B9CAE1" },
+  sectionHeadingText: { marginHorizontal: 16, fontSize: 11.5, fontWeight: "bold", color: PRIMARY_DARK },
+  payrollCard: { borderWidth: 1, borderColor: "#C9D8EA", borderRadius: 7, overflow: "hidden" },
+  payrollHeader: { flexDirection: "row", backgroundColor: LIGHT_BLUE, borderBottomWidth: 1, borderBottomColor: "#C9D8EA" },
+  payrollHeaderCell: { width: "50%", minHeight: 35, flexDirection: "row", alignItems: "center", paddingHorizontal: 14 },
+  payrollHeaderCellRight: { borderLeftWidth: 1, borderLeftColor: "#C9D8EA" },
+  payrollHeaderBadge: { width: 25, height: 25, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: ICON_BLUE, marginRight: 8 },
+  payrollHeaderText: { fontSize: 10.5, fontWeight: "bold", color: PRIMARY_DARK },
+  payrollBody: { flexDirection: "row" },
+  payrollColumn: { width: "50%", justifyContent: "space-between" },
+  payrollColumnRight: { borderLeftWidth: 1, borderLeftColor: "#C9D8EA" },
+  moneyRows: { paddingHorizontal: 16, paddingVertical: 6 },
+  moneyRow: { minHeight: 23, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 0.6, borderBottomColor: "#E8EDF3" },
+  blankMoneyRow: { minHeight: 23 },
+  moneyLabel: { width: "68%", fontSize: 8.4, color: SLATE },
+  moneyValue: { width: "32%", textAlign: "right", fontSize: 8.4, color: SLATE },
+  tableTotal: { minHeight: 35, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, backgroundColor: LIGHT_BLUE, borderTopWidth: 1, borderTopColor: "#C9D8EA" },
+  tableTotalLabel: { fontSize: 9.5, fontWeight: "bold", color: PRIMARY_DARK },
+  tableTotalValue: { fontSize: 12, fontWeight: "bold", color: SLATE, textAlign: "right" },
+  summary: { marginTop: 13, minHeight: 63, flexDirection: "row", alignItems: "center", backgroundColor: PRIMARY_DARK, borderRadius: 6, paddingVertical: 8 },
+  summaryItem: { width: "33.333%", alignItems: "center", justifyContent: "center" },
+  summaryDivider: { borderLeftWidth: 0.8, borderLeftColor: "#9BB3D2" },
+  summaryLabel: { fontSize: 8.5, color: "#FFFFFF", marginBottom: 6 },
+  summaryValue: { fontSize: 17, fontWeight: "bold", color: "#FFFFFF" },
+  summaryNetValue: { fontSize: 19, fontWeight: "bold", color: "#FFFFFF" },
+  currencyNotice: { minHeight: 33, flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  currencyIcon: { marginRight: 8 },
+  currencyText: { fontSize: 8.5, color: "#303846" },
+  footer: { minHeight: 34, flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 8 },
+  footerBadge: { width: 25, height: 25, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: ICON_BLUE, marginRight: 9 },
+  footerText: { fontSize: 8.2, color: "#303846" },
 });
 
 export function formatCurrency(value: number) {
-  return Math.round(Number(value || 0)).toLocaleString("en-IN", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  return Math.round(Number(value || 0)).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatMonth(value: string) {
-  return new Date(`${value.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString("en-IN", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  return new Date(`${value.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 function formatDate(value: string | null) {
   if (!value) return "—";
-  return new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 function formatDays(value: number) {
   return Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
 
-function EmployeeInfoRow({ label, value }: { label: string; value: string | number | null }) {
+function PdfIcon({ name, size = 15, colour = PRIMARY }: { name: IconName; size?: number; colour?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d={iconPaths[name]} fill="none" stroke={colour} strokeWidth={1.65} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function EmployeeInfoRow({ icon, label, value }: { icon: IconName; label: string; value: string | number | null }) {
   return (
     <View style={styles.infoRow}>
+      <View style={styles.infoIcon}><PdfIcon name={icon} size={17} /></View>
       <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoColon}>:</Text>
       <Text style={styles.infoValue}>{value === null || value === "" ? "—" : String(value)}</Text>
     </View>
   );
 }
 
-function MoneyRow({ label, value }: AmountRow) {
+function MoneyRow({ row }: { row: AmountRow | null }) {
+  if (!row) return <View style={styles.blankMoneyRow} />;
   return (
     <View style={styles.moneyRow}>
-      <Text style={styles.moneyLabel}>{label}</Text>
-      <Text style={styles.moneyValue}>{formatCurrency(value)}</Text>
+      <Text style={styles.moneyLabel}>{row.label}</Text>
+      <Text style={styles.moneyValue}>{formatCurrency(row.value)}</Text>
     </View>
   );
 }
 
-function PayrollTable({ title, rows, totalLabel, total, right = false }: { title: string; rows: AmountRow[]; totalLabel: string; total: number; right?: boolean }) {
+function PayrollColumn({ rows, rowCount, totalLabel, total, right = false }: { rows: AmountRow[]; rowCount: number; totalLabel: string; total: number; right?: boolean }) {
   return (
-    <View style={right ? [styles.tableCard, styles.tableCardRight] : styles.tableCard}>
-      <Text style={styles.tableHeader}>{title}</Text>
-      {rows.length ? rows.map((row) => <MoneyRow key={row.label} {...row} />) : <Text style={styles.emptyRow}>No deductions</Text>}
+    <View style={right ? [styles.payrollColumn, styles.payrollColumnRight] : styles.payrollColumn}>
+      <View style={styles.moneyRows}>
+        {Array.from({ length: rowCount }, (_, index) => <MoneyRow key={rows[index]?.label || `blank-${index}`} row={rows[index] || null} />)}
+      </View>
       <View style={styles.tableTotal}>
         <Text style={styles.tableTotalLabel}>{totalLabel}</Text>
         <Text style={styles.tableTotalValue}>{formatCurrency(total)}</Text>
@@ -205,26 +166,28 @@ function PayrollTable({ title, rows, totalLabel, total, right = false }: { title
   );
 }
 
-function SummaryItem({ label, value, divider = false }: { label: string; value: number; divider?: boolean }) {
+function SummaryItem({ label, value, divider = false, emphasis = false }: { label: string; value: number; divider?: boolean; emphasis?: boolean }) {
   return (
     <View style={divider ? [styles.summaryItem, styles.summaryDivider] : styles.summaryItem}>
       <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{formatCurrency(value)}</Text>
+      <Text style={emphasis ? styles.summaryNetValue : styles.summaryValue}>{formatCurrency(value)}</Text>
     </View>
   );
 }
 
-export function PayslipPdfDocument({
-  entry,
-  logoSrc,
-  companyName,
-  employee,
-}: {
-  entry: PayrollEntry;
-  logoSrc: string;
-  companyName: string;
-  employee: PayslipEmployeeDetails;
-}) {
+function RupeeNotice() {
+  return (
+    <View style={styles.currencyNotice}>
+      <Svg width={22} height={22} viewBox="0 0 22 22" style={styles.currencyIcon}>
+        <Circle cx="11" cy="11" r="9.6" fill="none" stroke={PRIMARY_DARK} strokeWidth={1} />
+        <Path d="M7 7.2h8M7 9.4h8M7 7.2h2.9c2 0 3.2.9 3.2 2.35 0 1.55-1.3 2.5-3.45 2.5H7.6L13.4 17" fill="none" stroke={PRIMARY_DARK} strokeWidth={1.15} strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+      <Text style={styles.currencyText}>All amounts are in INR</Text>
+    </View>
+  );
+}
+
+export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { entry: PayrollEntry; logoSrc: string; companyName: string; employee: PayslipEmployeeDetails }) {
   const earnings: AmountRow[] = [
     { label: "Basic Pay", value: entry.basic_pay },
     { label: "HRA", value: entry.hra },
@@ -243,71 +206,81 @@ export function PayslipPdfDocument({
     { label: "TDS", value: entry.tds },
   ].filter((item) => Number(item.value) > 0);
 
+  const rowCount = Math.max(earnings.length, deductions.length, 1);
+
   return (
     <Document title={`Payslip ${entry.employee_code} ${entry.payroll_month}`} author={companyName}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image src={logoSrc} style={styles.logo} />
+          <View style={styles.brand}>
+            {/* @react-pdf/renderer Image does not support the HTML alt prop. */}
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={logoSrc} style={styles.logo} />
+            <Text style={styles.brandTagline}>Great People. Great Impact.</Text>
+          </View>
           <View style={styles.headingBlock}>
             <Text style={styles.title}>PAYSLIP</Text>
             <Text style={styles.month}>{formatMonth(entry.payroll_month)}</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>EMPLOYEE INFORMATION</Text>
-          <View style={styles.employeeCard}>
+        <View style={styles.employeeCard}>
+          <View style={styles.employeeHeading}>
+            <View style={styles.employeeHeadingBadge}><PdfIcon name="user" size={15} /></View>
+            <Text style={styles.employeeHeadingText}>EMPLOYEE INFORMATION</Text>
+          </View>
+          <View style={styles.employeeColumns}>
             <View style={styles.employeeColumn}>
-              <EmployeeInfoRow label="Employee Name" value={employee.employeeName} />
-              <EmployeeInfoRow label="Employee Code" value={entry.employee_code} />
-              <EmployeeInfoRow label="Designation" value={employee.designation} />
-              <EmployeeInfoRow label="Effective Working Days" value={formatDays(employee.effectiveWorkingDays)} />
-              <EmployeeInfoRow label="LOP" value={formatDays(entry.lop_days)} />
+              <EmployeeInfoRow icon="user" label="Employee Name" value={employee.employeeName} />
+              <EmployeeInfoRow icon="id" label="Employee Code" value={entry.employee_code} />
+              <EmployeeInfoRow icon="briefcase" label="Designation" value={employee.designation} />
+              <EmployeeInfoRow icon="calendar" label="Effective Working Days" value={formatDays(employee.effectiveWorkingDays)} />
+              <EmployeeInfoRow icon="clock" label="LOP" value={formatDays(entry.lop_days)} />
             </View>
             <View style={styles.employeeColumnRight}>
-              <EmployeeInfoRow label="Date of Joining" value={formatDate(employee.dateOfJoining)} />
-              <EmployeeInfoRow label="Bank Name" value={employee.bankName} />
-              <EmployeeInfoRow label="Bank Account No" value={employee.bankAccountNumber} />
-              <EmployeeInfoRow label="PF No" value={employee.pfNumber} />
-              <EmployeeInfoRow label="UAN" value={employee.uan} />
-              <EmployeeInfoRow label="PAN No" value={employee.panNumber} />
+              <EmployeeInfoRow icon="calendar" label="Date of Joining" value={formatDate(employee.dateOfJoining)} />
+              <EmployeeInfoRow icon="bank" label="Bank Name" value={employee.bankName} />
+              <EmployeeInfoRow icon="card" label="Bank Account No" value={employee.bankAccountNumber} />
+              <EmployeeInfoRow icon="shield" label="PF No" value={employee.pfNumber} />
+              <EmployeeInfoRow icon="user" label="UAN" value={employee.uan} />
+              <EmployeeInfoRow icon="id" label="PAN No" value={employee.panNumber} />
             </View>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>EARNINGS &amp; DEDUCTIONS</Text>
-          <View style={styles.tables}>
-            <PayrollTable title="Earnings" rows={earnings} totalLabel="Gross Earnings" total={entry.total_earnings} />
-            <PayrollTable title="Deductions" rows={deductions} totalLabel="Total Deductions" total={entry.total_deductions} right />
+        <View style={styles.sectionHeading}>
+          <View style={styles.sectionLine} />
+          <Text style={styles.sectionHeadingText}>EARNINGS &amp; DEDUCTIONS</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        <View style={styles.payrollCard}>
+          <View style={styles.payrollHeader}>
+            <View style={styles.payrollHeaderCell}>
+              <View style={styles.payrollHeaderBadge}><PdfIcon name="wallet" size={15} /></View>
+              <Text style={styles.payrollHeaderText}>EARNINGS</Text>
+            </View>
+            <View style={[styles.payrollHeaderCell, styles.payrollHeaderCellRight]}>
+              <View style={styles.payrollHeaderBadge}><PdfIcon name="shield" size={15} /></View>
+              <Text style={styles.payrollHeaderText}>DEDUCTIONS</Text>
+            </View>
+          </View>
+          <View style={styles.payrollBody}>
+            <PayrollColumn rows={earnings} rowCount={rowCount} totalLabel="Total Earnings" total={entry.total_earnings} />
+            <PayrollColumn rows={deductions} rowCount={rowCount} totalLabel="Total Deductions" total={entry.total_deductions} right />
           </View>
         </View>
 
         <View style={styles.summary}>
-          <SummaryItem label="Gross Earnings" value={entry.total_earnings} />
-          <SummaryItem label="Total Deductions" value={entry.total_deductions} divider />
-          <View style={styles.netItem}>
-            <Text style={styles.netLabel}>Net Salary</Text>
-            <Text style={styles.netValue}>{formatCurrency(entry.net_salary)}</Text>
-          </View>
+          <SummaryItem label="GROSS EARNINGS" value={entry.total_earnings} />
+          <SummaryItem label="TOTAL DEDUCTIONS" value={entry.total_deductions} divider />
+          <SummaryItem label="NET SALARY" value={entry.net_salary} divider emphasis />
         </View>
 
+        <RupeeNotice />
+
         <View style={styles.footer}>
-          <View style={styles.currencyNotice}>
-            <Svg width={14} height={14} viewBox="0 0 14 14" style={styles.currencyIcon}>
-              <Circle cx="7" cy="7" r="6.25" fill="none" stroke={PRIMARY} strokeWidth={0.8} />
-              <Path
-                d="M4 4.1h6M4 5.65h6M4 4.1h2.05c1.55 0 2.45.68 2.45 1.72 0 1.16-.93 1.86-2.55 1.86H4.4L8.65 11"
-                fill="none"
-                stroke={PRIMARY}
-                strokeWidth={0.75}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text style={styles.currencyText}>All amounts are in INR</Text>
-          </View>
+          <View style={styles.footerBadge}><PdfIcon name="file" size={15} /></View>
           <Text style={styles.footerText}>System-generated payslip. No signature is required.</Text>
         </View>
       </Page>
