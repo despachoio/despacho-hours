@@ -130,6 +130,8 @@ describe("Payroll security and snapshot contracts", () => {
     expect(document).toContain("ExecutiveInfoRow");
     expect(document).toContain("RupeeNotice");
     expect(document).toContain("All amounts are in Indian Rupees (INR)");
+    expect(document).not.toContain("styles.infoCircle");
+    expect(document).toContain("System-generated YTD payroll statement. No signature is required.");
     expect(document).toContain("styles.alternateRow");
     expect(document).toContain("GRAND TOTAL");
     expect(route).toContain("financialYear.startDate");
