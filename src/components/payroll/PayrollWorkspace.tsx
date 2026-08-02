@@ -191,6 +191,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
   const [appliedYear, setAppliedYear] = useState("");
   const [searched, setSearched] = useState(false);
   const [downloadingYtd, setDownloadingYtd] = useState(false);
+  const [downloadingPayslipId, setDownloadingPayslipId] = useState("");
   const [downloadError, setDownloadError] = useState("");
   const years = useMemo(() => financialYearOptions(entries.map((entry) => entry.payroll_month), defaultFinancialYear), [defaultFinancialYear, entries]);
   const results = useMemo(
