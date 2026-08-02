@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   brandTagline: { marginLeft: 40, marginTop: -3, fontSize: 8.5, color: "#9AA1AA", letterSpacing: 0.15 },
   headingBlock: { alignItems: "flex-end", paddingTop: 1 },
   title: {
-  fontSize: 18,
+  fontSize: 15,
   fontWeight: "bold",
   color: "#153E90",
   letterSpacing: 0.6,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
 
 month: {
   marginTop: 2,
-  fontSize: 10.5,
+  fontSize: 10,
   color: "#64748B",
 },
   employeeCard: {
@@ -206,7 +206,7 @@ function SummaryItem({ label, value, divider = false }: { label: string; value: 
   );
 }
 
-export function RupeeNotice({ text = "All amounts are in INR" }: { text?: string } = {}) {
+export function RupeeNotice({ text = "All amounts are in Indian Rupees (INR)" }: { text?: string } = {}) {
   return (
     <View style={styles.currencyNotice}>
       <Svg width={22} height={22} viewBox="0 0 22 22" style={styles.currencyIcon}>
