@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
 },
 
 separator: {
-  color: "#CBD5E1",
+  color: "#153E90",
   fontSize: 12,
 },
 

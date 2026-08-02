@@ -149,7 +149,7 @@ function amount(value: number) {
 }
 
 function monthLabel(month: string) {
-  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: "UTC" });
+  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 function ExecutiveInfoRow({ icon, label, value }: { icon: PayrollPdfIconName; label: string; value: string | null }) {
