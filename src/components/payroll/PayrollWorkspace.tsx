@@ -146,8 +146,8 @@ function EmployeeOverview({
 
             <KairoButton
   type="button"
-  variant="primary"
   disabled={downloading}
+  className="!bg-[#153E90] !text-white hover:!bg-[#0F3276] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100"
   onClick={() => void downloadLatestPayslip()}
 >
   {downloading ? "Downloading..." : "Download Payslip"}
