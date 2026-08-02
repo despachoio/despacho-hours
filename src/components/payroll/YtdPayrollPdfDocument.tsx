@@ -33,7 +33,7 @@ const rows: YtdRow[] = [
   { label: "Bonus", value: (entry) => entry.bonus },
   { label: "Leave Encashment", value: (entry) => entry.leave_encashment },
   { label: "Reimbursements", value: (entry) => entry.reimbursements },
-  { label: "TOTAL EARNINGS", value: (entry) => entry.total_earnings, tone: "earningsTotal" },
+  { label: "GROSS SALARY", value: (entry) => entry.total_earnings, tone: "earningsTotal" },
   { label: "DEDUCTIONS", value: () => 0, tone: "deductions" },
   { label: "Employee PF", value: (entry) => entry.employee_pf },
   { label: "Professional Tax", value: (entry) => entry.professional_tax },
@@ -41,7 +41,7 @@ const rows: YtdRow[] = [
   { label: "Previous Month Adjustment", value: (entry) => entry.previous_month_adjustment },
   { label: "TDS", value: (entry) => entry.tds },
   { label: "TOTAL DEDUCTIONS", value: (entry) => entry.total_deductions, tone: "deductionsTotal" },
-  { label: "NET PAY", value: (entry) => entry.net_salary, tone: "net" },
+  { label: "NET SALARY", value: (entry) => entry.net_salary, tone: "net" },
 ];
 
 const styles = StyleSheet.create({

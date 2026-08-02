@@ -24,8 +24,12 @@ export function calculatePayroll(input: PayrollCalculationInput) {
   const otherAllowance = money(grossSalary - basicPay - hra - conveyanceAllowance);
   const epfSalary = money(Math.min(basicPay, 15_000));
   const employeePf = money(epfSalary * 0.12);
-  const employerEps = money(Math.min(epfSalary * 0.0833, 1_250));
-  const employerPf = money(epfSalary * 0.0367);
+
+const employerEps = money(
+  Math.min(Math.round(epfSalary * 0.0833), 1250),
+);
+
+const employerPf = money(employeePf - employerEps);
   const employerTotalContribution = money(employerPf + employerEps);
   const bonus = money(safe(input.bonus));
   const leaveEncashment = money(safe(input.leaveEncashment));
