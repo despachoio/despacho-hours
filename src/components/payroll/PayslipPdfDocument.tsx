@@ -1,4 +1,4 @@
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Circle, Document, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { PayrollEntry } from "@/lib/payroll/types";
 
 export type PayslipEmployeeDetails = {
@@ -137,10 +137,12 @@ const styles = StyleSheet.create({
     paddingTop: 9,
     borderTopWidth: 1,
     borderTopColor: BORDER,
-    textAlign: "center",
-    color: "#94A3B8",
-    fontSize: 7,
+    alignItems: "center",
   },
+  currencyNotice: { flexDirection: "row", alignItems: "center", marginBottom: 7 },
+  currencyIcon: { marginRight: 6 },
+  currencyText: { color: "#64748B", fontSize: 7.5 },
+  footerText: { color: "#94A3B8", fontSize: 7, textAlign: "center" },
 });
 
 export function formatCurrency(value: number) {
@@ -291,7 +293,23 @@ export function PayslipPdfDocument({
           </View>
         </View>
 
-        <Text style={styles.footer}>System-generated payslip. No signature is required.</Text>
+        <View style={styles.footer}>
+          <View style={styles.currencyNotice}>
+            <Svg width={14} height={14} viewBox="0 0 14 14" style={styles.currencyIcon}>
+              <Circle cx="7" cy="7" r="6.25" fill="none" stroke={PRIMARY} strokeWidth={0.8} />
+              <Path
+                d="M4 4.1h6M4 5.65h6M4 4.1h2.05c1.55 0 2.45.68 2.45 1.72 0 1.16-.93 1.86-2.55 1.86H4.4L8.65 11"
+                fill="none"
+                stroke={PRIMARY}
+                strokeWidth={0.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+            <Text style={styles.currencyText}>All amounts are in INR</Text>
+          </View>
+          <Text style={styles.footerText}>System-generated payslip. No signature is required.</Text>
+        </View>
       </Page>
     </Document>
   );

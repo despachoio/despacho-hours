@@ -61,4 +61,13 @@ describe("Payroll security and snapshot contracts", () => {
     expect(payslip).not.toContain("INR ");
     expect(payslip).not.toContain("period_start} to {entry.period_end");
   });
+
+  it("uses the bundled Despacho logo and restores the INR currency footer", () => {
+    const route = source("src/app/api/payroll/payslip/[id]/route.ts");
+    const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
+    expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
+    expect(route).not.toContain("kairo-logo");
+    expect(payslip).toContain("All amounts are in INR");
+    expect(payslip).not.toContain("kairo-logo");
+  });
 });

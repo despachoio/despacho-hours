@@ -30,7 +30,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       actor.admin.from("employee_finance_details").select("bank_name,bank_account_number,epf_number,uan_number").eq("employee_id", entry.employee_id).maybeSingle(),
       actor.admin.from("employee_statutory_details").select("pan_number").eq("employee_id", entry.employee_id).maybeSingle(),
     ]);
-    const logo = await loadCompanyLogo(company, false);
+    const logo = await loadCompanyLogo({
+      ...company,
+      invoice_logo_url: "/despacho-logo-full.png",
+    });
     const periodDays = inclusiveDayCount(entry.period_start, entry.period_end);
     const employee = {
       employeeName: employeeResult.data?.name || removeSalutation(entry.employee_name),
