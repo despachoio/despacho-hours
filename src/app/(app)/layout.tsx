@@ -40,21 +40,21 @@ const allMenu: MenuItem[] = [
     path: "/dashboard",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "dashboard",
-    shortcutNumber: 1,
+    shortcutNumber: 0,
   },
   {
     name: "Timer",
     path: "/timer",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "time",
-    shortcutNumber: 2,
+    shortcutNumber: 1,
   },
   {
     name: "Team",
     path: "/team",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "team",
-    shortcutNumber: 4,
+    shortcutNumber: 2,
   },
   {
     name: "Time Off",
@@ -64,19 +64,20 @@ const allMenu: MenuItem[] = [
     shortcutNumber: 3,
   },
   {
+    name: "Payroll",
+    path: "/payroll",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+    icon: "payroll",
+    shortcutNumber: 4,
+  },
+  {
     name: "Invoices",
     path: "/invoices",
     roles: ["Finance Admin", "Super Admin"],
     icon: "invoices",
     shortcutNumber: 5,
   },
-  {
-    name: "Payroll",
-    path: "/payroll",
-    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "payroll",
-    shortcutNumber: 0,
-  },
+  
   {
     name: "Clients",
     path: "/clients",
