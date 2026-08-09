@@ -3,11 +3,13 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { calculatePayroll, payrollPeriod } from "./calculation";
 import { toPayrollEntryDto } from "./entry";
+import { calculateSalaryStructure, latestSalaryStructure, selectEffectiveSalaryStructures, type SalaryStructureComponents } from "./salaryStructures";
 import type {
   CompanyPayrollBankDetails,
   EmployeeBankDetails,
   PayrollRun,
   PayrollSettings,
+  SalaryStructure,
 } from "./types";
 import { isAdminLevelRole, isFinanceAdminRole } from "@/lib/roles";
 
@@ -64,9 +66,12 @@ export async function loadPayroll(request: Request, month?: string | null) {
   const base = { role: actor.role, employeeId: actor.employeeId, ownEntries: (ownEntries.data || []).map(toPayrollEntryDto) };
   if (!isAdminLevelRole(actor.role)) return base;
   const payrollMonth = month ? `${month.slice(0, 7)}-01` : null;
+  const salaryStructures = isFinanceAdminRole(actor.role)
+    ? actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").order("effective_from", { ascending: false }).order("version", { ascending: false })
+    : Promise.resolve({ data: [], error: null });
   const [runs, structures, payrollSettings, employees, auditRows, companyBank] = await Promise.all([
     actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(120),
-    actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").eq("is_active", true).order("created_at", { ascending: false }),
+    salaryStructures,
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
     actor.admin.from("employees").select("id,employee_code,name,title,department,status").eq("status", "active").order("employee_code"),
     actor.admin.from("payroll_audit_log").select("*").order("created_at", { ascending: false }).limit(100),
@@ -123,21 +128,143 @@ export async function loadPayroll(request: Request, month?: string | null) {
   };
 }
 
-export async function saveSalaryStructure(request: Request, input: { employeeId: string; grossSalary: number; effectiveFrom: string; notes?: string }) {
-  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
-  const active = await actor.admin.from("salary_structures").select("*").eq("employee_id", input.employeeId).eq("is_active", true).maybeSingle();
-  if (active.error) throw new Error(active.error.message);
-  const versions = await actor.admin.from("salary_structures").select("version").eq("employee_id", input.employeeId).order("version", { ascending: false }).limit(1);
-  if (versions.error) throw new Error(versions.error.message);
-  if (active.data) {
-    const previousDay = new Date(`${input.effectiveFrom}T00:00:00Z`); previousDay.setUTCDate(previousDay.getUTCDate() - 1);
-    const close = await actor.admin.from("salary_structures").update({ is_active: false, effective_to: previousDay.toISOString().slice(0, 10), updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("id", active.data.id);
-    if (close.error) throw new Error(close.error.message);
+const processedPayrollMessage = "Payroll has already been processed for a period affected by this effective date. Please choose a later effective date.";
+
+function validEffectiveDate(value: string) {
+  const normalized = String(value || "").trim();
+  const parsed = new Date(`${normalized}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized) || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== normalized) {
+    throw new Error("Select a valid effective date.");
   }
-  const insert = await actor.admin.from("salary_structures").insert({ employee_id: input.employeeId, version: Number(versions.data?.[0]?.version || 0) + 1, gross_salary: input.grossSalary, effective_from: input.effectiveFrom, notes: input.notes || null, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
-  if (insert.error) throw new Error(insert.error.message);
-  await audit(actor.admin, actor, { action: "salary_structure_changed", structureId: insert.data.id, previous: active.data, next: insert.data });
+  return normalized;
+}
+
+function validStructureComponents(input: SalaryStructureComponents) {
+  const entries = Object.entries(input);
+  if (entries.some(([, value]) => !Number.isFinite(Number(value)) || Number(value) < 0)) {
+    throw new Error("Salary components must contain valid non-negative values.");
+  }
+  const composition = Number(input.basic_pay) + Number(input.hra) + Number(input.conveyance_allowance) + Number(input.other_allowance);
+  if (Math.abs(composition - Number(input.gross_salary)) > 0.01) {
+    throw new Error("Basic Pay, HRA, Conveyance Allowance, and Other Allowance must equal Monthly Gross Salary.");
+  }
+  return Object.fromEntries(entries.map(([key, value]) => [key, Number(value)])) as unknown as SalaryStructureComponents;
+}
+
+async function activeEmployee(admin: SupabaseClient, employeeId: string) {
+  const employee = await admin.from("employees").select("id,employee_code,name,status").eq("id", employeeId).maybeSingle();
+  if (employee.error) throw new Error(employee.error.message);
+  if (!employee.data) throw new Error("Employee could not be found.");
+  if (employee.data.status !== "active") throw new Error("Salary structures can be managed only for active employees.");
+  return employee.data;
+}
+
+async function employeeStructures(admin: SupabaseClient, employeeId: string) {
+  const result = await admin.from("salary_structures").select("*").eq("employee_id", employeeId).order("effective_from", { ascending: false }).order("version", { ascending: false });
+  if (result.error) throw new Error(result.error.message);
+  return (result.data || []) as SalaryStructure[];
+}
+
+async function ensureUniqueEffectiveDate(admin: SupabaseClient, employeeId: string, effectiveFrom: string, excludedId?: string) {
+  let query = admin.from("salary_structures").select("id").eq("employee_id", employeeId).eq("effective_from", effectiveFrom);
+  if (excludedId) query = query.neq("id", excludedId);
+  const duplicate = await query.limit(1).maybeSingle();
+  if (duplicate.error) throw new Error(duplicate.error.message);
+  if (duplicate.data) throw new Error("A salary structure already exists for this employee with this effective date.");
+}
+
+async function ensureNoAffectedPayroll(admin: SupabaseClient, effectiveFrom: string, structureId?: string) {
+  if (structureId) {
+    const used = await admin.from("payroll_entries").select("id").eq("salary_structure_id", structureId).limit(1).maybeSingle();
+    if (used.error) throw new Error(used.error.message);
+    if (used.data) throw new Error(processedPayrollMessage);
+  }
+  const affectedMonth = `${effectiveFrom.slice(0, 7)}-01`;
+  const processed = await admin.from("payroll_runs").select("id").gte("payroll_month", affectedMonth).limit(1).maybeSingle();
+  if (processed.error) throw new Error(processed.error.message);
+  if (processed.data) throw new Error(processedPayrollMessage);
+}
+
+async function nextStructureVersion(admin: SupabaseClient, employeeId: string) {
+  const versions = await admin.from("salary_structures").select("version").eq("employee_id", employeeId).order("version", { ascending: false }).limit(1);
+  if (versions.error) throw new Error(versions.error.message);
+  return Number(versions.data?.[0]?.version || 0) + 1;
+}
+
+export async function createSalaryStructure(request: Request, input: { employeeId: string; grossSalary: number; effectiveFrom: string; notes?: string }) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const effectiveFrom = validEffectiveDate(input.effectiveFrom);
+  await activeEmployee(actor.admin, input.employeeId);
+  await ensureUniqueEffectiveDate(actor.admin, input.employeeId, effectiveFrom);
+  await ensureNoAffectedPayroll(actor.admin, effectiveFrom);
+  const config = await settings(actor.admin);
+  const components = validStructureComponents(calculateSalaryStructure(input.grossSalary, config.conveyance_allowance));
+  const version = await nextStructureVersion(actor.admin, input.employeeId);
+  const insert = await actor.admin.from("salary_structures").insert({ employee_id: input.employeeId, version, ...components, effective_from: effectiveFrom, effective_to: null, is_active: false, notes: input.notes || null, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
+  if (insert.error) throw new Error(insert.error.code === "23505" ? "A salary structure already exists for this employee with this effective date." : insert.error.message);
+  await audit(actor.admin, actor, { action: "salary_structure_created", structureId: insert.data.id, next: { ...insert.data, employee_id: input.employeeId, effective_from: effectiveFrom } });
   return insert.data;
+}
+
+export async function updateSalaryStructure(request: Request, structureId: string, input: SalaryStructureComponents & { effectiveFrom: string; notes?: string }) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const current = await actor.admin.from("salary_structures").select("*").eq("id", structureId).single();
+  if (current.error) throw new Error(current.error.message);
+  await activeEmployee(actor.admin, current.data.employee_id);
+  const structures = await employeeStructures(actor.admin, current.data.employee_id);
+  if (latestSalaryStructure(structures)?.id !== structureId) throw new Error("Only the latest salary structure version can be edited.");
+  const effectiveFrom = validEffectiveDate(input.effectiveFrom);
+  const previousVersion = structures.filter((structure) => structure.id !== structureId).sort((left, right) => right.effective_from.localeCompare(left.effective_from))[0];
+  if (previousVersion && effectiveFrom <= previousVersion.effective_from) throw new Error("The latest salary structure must have an effective date after the previous version.");
+  await ensureUniqueEffectiveDate(actor.admin, current.data.employee_id, effectiveFrom, structureId);
+  await ensureNoAffectedPayroll(actor.admin, effectiveFrom < current.data.effective_from ? effectiveFrom : current.data.effective_from, structureId);
+  const components = validStructureComponents({
+    gross_salary: input.gross_salary,
+    basic_pay: input.basic_pay,
+    hra: input.hra,
+    conveyance_allowance: input.conveyance_allowance,
+    other_allowance: input.other_allowance,
+    epf_salary: input.epf_salary,
+    employee_pf: input.employee_pf,
+    employer_pf: input.employer_pf,
+    employer_eps: input.employer_eps,
+  });
+  const updated = await actor.admin.from("salary_structures").update({ ...components, effective_from: effectiveFrom, notes: input.notes ?? current.data.notes, updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("id", structureId).select("*").single();
+  if (updated.error) throw new Error(updated.error.code === "23505" ? "A salary structure already exists for this employee with this effective date." : updated.error.message);
+  await audit(actor.admin, actor, { action: "salary_structure_edited", structureId, previous: current.data, next: updated.data });
+  return updated.data;
+}
+
+export async function duplicateSalaryStructure(request: Request, structureId: string, effectiveDate: string) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const source = await actor.admin.from("salary_structures").select("*").eq("id", structureId).single();
+  if (source.error) throw new Error(source.error.message);
+  await activeEmployee(actor.admin, source.data.employee_id);
+  const effectiveFrom = validEffectiveDate(effectiveDate);
+  await ensureUniqueEffectiveDate(actor.admin, source.data.employee_id, effectiveFrom);
+  await ensureNoAffectedPayroll(actor.admin, effectiveFrom);
+  const version = await nextStructureVersion(actor.admin, source.data.employee_id);
+  const components = validStructureComponents({ gross_salary: source.data.gross_salary, basic_pay: source.data.basic_pay, hra: source.data.hra, conveyance_allowance: source.data.conveyance_allowance, other_allowance: source.data.other_allowance, epf_salary: source.data.epf_salary, employee_pf: source.data.employee_pf, employer_pf: source.data.employer_pf, employer_eps: source.data.employer_eps });
+  const inserted = await actor.admin.from("salary_structures").insert({ employee_id: source.data.employee_id, version, ...components, effective_from: effectiveFrom, effective_to: null, is_active: false, notes: source.data.notes, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
+  if (inserted.error) throw new Error(inserted.error.code === "23505" ? "A salary structure already exists for this employee with this effective date." : inserted.error.message);
+  await audit(actor.admin, actor, { action: "salary_structure_duplicated", structureId: inserted.data.id, previous: source.data, next: inserted.data });
+  return inserted.data;
+}
+
+export async function deleteSalaryStructure(request: Request, structureId: string) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const current = await actor.admin.from("salary_structures").select("*").eq("id", structureId).single();
+  if (current.error) throw new Error(current.error.message);
+  const structures = await employeeStructures(actor.admin, current.data.employee_id);
+  if (latestSalaryStructure(structures)?.id !== structureId) throw new Error("Only the latest salary structure version can be deleted.");
+  if (structures.length <= 1) throw new Error("At least one salary structure must remain for this employee.");
+  const used = await actor.admin.from("payroll_entries").select("id").eq("salary_structure_id", structureId).limit(1).maybeSingle();
+  if (used.error) throw new Error(used.error.message);
+  if (used.data) throw new Error("This salary structure is used by processed payroll. Cancel the affected payroll before deleting it.");
+  const removed = await actor.admin.from("salary_structures").delete().eq("id", structureId);
+  if (removed.error) throw new Error(removed.error.message);
+  await audit(actor.admin, actor, { action: "salary_structure_deleted", previous: current.data, next: { employee_id: current.data.employee_id, deleted_structure_id: structureId, reactivated_structure_id: structures[1]?.id || null } });
+  return { deleted: true, structureId, reactivatedStructureId: structures[1]?.id || null };
 }
 
 async function buildPayroll(request: Request, payrollMonth: string, preserveManualAdjustments: boolean, requestedProcessingDate?: string) {
@@ -164,16 +291,17 @@ async function buildPayroll(request: Request, payrollMonth: string, preserveManu
     const clear = await actor.admin.from("payroll_entries").delete().eq("payroll_run_id", run.id);
     if (clear.error) throw new Error(clear.error.message);
   }
-  const structures = await actor.admin.from("salary_structures").select("*,employees!inner(id,employee_code,name,title,department,status)").eq("is_active", true).eq("employees.status", "active");
-  if (structures.error) throw new Error(structures.error.message);
+  const structureCandidates = await actor.admin.from("salary_structures").select("*,employees!inner(id,employee_code,name,title,department,status)").eq("employees.status", "active").lte("effective_from", month).order("effective_from", { ascending: false }).order("version", { ascending: false });
+  if (structureCandidates.error) throw new Error(structureCandidates.error.message);
+  const structures = selectEffectiveSalaryStructures(structureCandidates.data || [], month);
   const lop = await actor.admin.from("leave_requests").select("employee_id,lop_salary_deduction_days,leave_types!inner(code)").in("status", ["approved", "cancellation_rejected"]).eq("leave_types.code", "LOP").lte("start_date", period.end).gte("end_date", period.start);
   if (lop.error) throw new Error(lop.error.message);
   const lopByEmployee = new Map<string, number>();
   for (const item of lop.data || []) lopByEmployee.set(item.employee_id, (lopByEmployee.get(item.employee_id) || 0) + Number(item.lop_salary_deduction_days || 0));
-  const rows = (structures.data || []).map((structure) => {
+  const rows = structures.map((structure) => {
     const employee = Array.isArray(structure.employees) ? structure.employees[0] : structure.employees;
     const manual = manualByEmployee.get(structure.employee_id);
-    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), conveyanceAllowance: config.conveyance_allowance, bonus: Number(manual?.bonus || 0), leaveEncashment: Number(manual?.leave_encashment || 0), lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, confirmedLopDeduction: manual ? Number(manual.lop_deduction || 0) : undefined, previousMonthAdjustment: Number(manual?.previous_month_adjustment || 0), tds: Number(manual?.tds || 0), professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
+    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), basicPay: Number(structure.basic_pay), hra: Number(structure.hra), conveyanceAllowance: Number(structure.conveyance_allowance), otherAllowance: Number(structure.other_allowance), epfSalary: Number(structure.epf_salary), employeePf: Number(structure.employee_pf), employerPf: Number(structure.employer_pf), employerEps: Number(structure.employer_eps), bonus: Number(manual?.bonus || 0), leaveEncashment: Number(manual?.leave_encashment || 0), lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, confirmedLopDeduction: manual ? Number(manual.lop_deduction || 0) : undefined, previousMonthAdjustment: Number(manual?.previous_month_adjustment || 0), tds: Number(manual?.tds || 0), professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
     return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, status: "draft" };
   });
   if (rows.length) { const inserted = await actor.admin.from("payroll_entries").insert(rows); if (inserted.error) throw new Error(inserted.error.message); }

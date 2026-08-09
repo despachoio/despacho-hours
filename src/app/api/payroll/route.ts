@@ -1,4 +1,4 @@
-import { cancelPayroll, generatePayroll, loadPayroll, reprocessPayroll, savePayrollSettings, saveSalaryStructure, transitionPayroll, updatePayrollEntry } from "@/lib/payroll/server";
+import { cancelPayroll, createSalaryStructure, deleteSalaryStructure, duplicateSalaryStructure, generatePayroll, loadPayroll, reprocessPayroll, savePayrollSettings, transitionPayroll, updatePayrollEntry, updateSalaryStructure } from "@/lib/payroll/server";
 import { normalizePayrollNumber } from "@/lib/payroll/numbers";
 
 export async function GET(request: Request) {
@@ -15,7 +15,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const action = String(body.action || "");
-    if (action === "save_structure") return Response.json(await saveSalaryStructure(request, { employeeId: String(body.employeeId), grossSalary: normalizePayrollNumber(body.grossSalary as string | number | null | undefined), effectiveFrom: String(body.effectiveFrom), notes: String(body.notes || "") }));
+    if (action === "create_structure") return Response.json(await createSalaryStructure(request, { employeeId: String(body.employeeId), grossSalary: normalizePayrollNumber(body.grossSalary as string | number | null | undefined), effectiveFrom: String(body.effectiveFrom), notes: String(body.notes || "") }));
+    if (action === "update_structure") return Response.json(await updateSalaryStructure(request, String(body.structureId), { gross_salary: normalizePayrollNumber(body.grossSalary as string | number | null | undefined), basic_pay: normalizePayrollNumber(body.basicPay as string | number | null | undefined), hra: normalizePayrollNumber(body.hra as string | number | null | undefined), conveyance_allowance: normalizePayrollNumber(body.conveyanceAllowance as string | number | null | undefined), other_allowance: normalizePayrollNumber(body.otherAllowance as string | number | null | undefined), epf_salary: normalizePayrollNumber(body.epfSalary as string | number | null | undefined), employee_pf: normalizePayrollNumber(body.employeePf as string | number | null | undefined), employer_pf: normalizePayrollNumber(body.employerPf as string | number | null | undefined), employer_eps: normalizePayrollNumber(body.employerEps as string | number | null | undefined), effectiveFrom: String(body.effectiveFrom), notes: String(body.notes || "") }));
+    if (action === "duplicate_structure") return Response.json(await duplicateSalaryStructure(request, String(body.structureId), String(body.effectiveFrom || "")));
+    if (action === "delete_structure") return Response.json(await deleteSalaryStructure(request, String(body.structureId)));
     if (action === "generate") return Response.json(await generatePayroll(request, String(body.payrollMonth), String(body.processingDate || "")));
     if (action === "reprocess") return Response.json(await reprocessPayroll(request, String(body.payrollMonth)));
     if (action === "update_entry") return Response.json(await updatePayrollEntry(request, String(body.entryId), { bonus: normalizePayrollNumber(body.bonus as string | number | null | undefined), leaveEncashment: normalizePayrollNumber(body.leaveEncashment as string | number | null | undefined), lopDeduction: normalizePayrollNumber(body.lopDeduction as string | number | null | undefined), previousMonthAdjustment: normalizePayrollNumber(body.previousMonthAdjustment as string | number | null | undefined), tds: normalizePayrollNumber(body.tds as string | number | null | undefined), notes: String(body.notes || "") }));

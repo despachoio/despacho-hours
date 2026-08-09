@@ -1,6 +1,13 @@
 export type PayrollCalculationInput = {
   grossSalary: number;
+  basicPay?: number;
+  hra?: number;
   conveyanceAllowance?: number;
+  otherAllowance?: number;
+  epfSalary?: number;
+  employeePf?: number;
+  employerPf?: number;
+  employerEps?: number;
   bonus?: number;
   leaveEncashment?: number;
   lopDays?: number;
@@ -18,19 +25,16 @@ const safe = (value: number | undefined) => Math.max(Number(value || 0), 0);
 
 export function calculatePayroll(input: PayrollCalculationInput) {
   const grossSalary = safe(input.grossSalary);
-  const basicPay = money(grossSalary <= 16_800 ? 15_000 : grossSalary * 0.5);
-  const hra = money(grossSalary <= 16_800 ? 0 : basicPay * 0.4);
+  const basicPay = money(input.basicPay == null ? (grossSalary <= 16_800 ? 15_000 : grossSalary * 0.5) : input.basicPay);
+  const hra = money(input.hra == null ? (grossSalary <= 16_800 ? 0 : basicPay * 0.4) : input.hra);
   const conveyanceAllowance = money(safe(input.conveyanceAllowance ?? 1_600));
-  const otherAllowance = money(grossSalary - basicPay - hra - conveyanceAllowance);
-  const epfSalary = money(Math.min(basicPay, 15_000));
-  const employeePf = Math.round(epfSalary * 0.12);
+  const otherAllowance = money(input.otherAllowance == null ? grossSalary - basicPay - hra - conveyanceAllowance : input.otherAllowance);
+  const epfSalary = money(input.epfSalary == null ? Math.min(basicPay, 15_000) : input.epfSalary);
+  const employeePf = money(input.employeePf == null ? Math.round(epfSalary * 0.12) : input.employeePf);
 
-const employerEps = Math.min(
-  Math.round(epfSalary * 0.0833),
-  1_250,
-);
+  const employerEps = money(input.employerEps == null ? Math.min(Math.round(epfSalary * 0.0833), 1_250) : input.employerEps);
 
-const employerPf = employeePf - employerEps;
+  const employerPf = money(input.employerPf == null ? employeePf - employerEps : input.employerPf);
   const employerTotalContribution = money(employerPf + employerEps);
   const bonus = money(safe(input.bonus));
   const leaveEncashment = money(safe(input.leaveEncashment));

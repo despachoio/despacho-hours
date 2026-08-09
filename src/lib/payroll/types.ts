@@ -5,10 +5,19 @@ export type SalaryStructure = {
   employee_id: string;
   version: number;
   gross_salary: number;
+  basic_pay: number;
+  hra: number;
+  conveyance_allowance: number;
+  other_allowance: number;
+  epf_salary: number;
+  employee_pf: number;
+  employer_pf: number;
+  employer_eps: number;
   effective_from: string;
   effective_to: string | null;
   is_active: boolean;
   notes: string | null;
+  created_at: string;
   employees?: { id: string; employee_code: string; name: string; title: string | null; department: string | null; status: string } | null;
 };
 

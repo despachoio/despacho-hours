@@ -8,6 +8,8 @@ import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels
 import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
 import { buildBankTransferFile, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
+import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus, selectEffectiveSalaryStructures } from "../src/lib/payroll/salaryStructures";
+import type { SalaryStructure } from "../src/lib/payroll/types";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -63,6 +65,44 @@ describe("Payroll calculation engine", () => {
   it("uses the configurable 26th to 25th payroll period", () => {
     expect(payrollPeriod("2026-07-01", 26, 25)).toEqual({ start: "2026-06-26", end: "2026-07-25", days: 30 });
   });
+
+  it("auto-calculates complete salary structure components with existing payroll rules", () => {
+    expect(calculateSalaryStructure(16_800)).toEqual({ gross_salary: 16_800, basic_pay: 15_000, hra: 0, conveyance_allowance: 1_600, other_allowance: 200, epf_salary: 15_000, employee_pf: 1_800, employer_pf: 550, employer_eps: 1_250 });
+    expect(calculateSalaryStructure(30_000)).toEqual({ gross_salary: 30_000, basic_pay: 15_000, hra: 6_000, conveyance_allowance: 1_600, other_allowance: 7_400, epf_salary: 15_000, employee_pf: 1_800, employer_pf: 550, employer_eps: 1_250 });
+  });
+
+  it("honours manually overridden salary components without changing deduction rules", () => {
+    const value = calculatePayroll({ grossSalary: 30_000, basicPay: 14_000, hra: 5_000, conveyanceAllowance: 2_000, otherAllowance: 9_000, epfSalary: 14_000, employeePf: 1_680, employerEps: 1_166, employerPf: 514, periodDays: 30 });
+    expect(value.basicPay).toBe(14_000);
+    expect(value.otherAllowance).toBe(9_000);
+    expect(value.employeePf).toBe(1_680);
+    expect(value.employerPf).toBe(514);
+  });
+});
+
+describe("Effective-dated salary structure selection", () => {
+  const structures: Array<{ id: string; employee_id: string; version: number; effective_from: string }> = [
+    { id: "april", employee_id: "employee-1", version: 1, effective_from: "2026-04-01" },
+    { id: "june", employee_id: "employee-1", version: 2, effective_from: "2026-06-01" },
+    { id: "future", employee_id: "employee-2", version: 1, effective_from: "2026-09-01" },
+  ];
+
+  it("uses the 01 April structure for May payroll", () => {
+    expect(selectEffectiveSalaryStructures(structures, "2026-05-01").find((item) => item.employee_id === "employee-1")?.id).toBe("april");
+  });
+
+  it("uses the 01 June structure for June and later payroll", () => {
+    expect(selectEffectiveSalaryStructures(structures, "2026-06-01").find((item) => item.employee_id === "employee-1")?.id).toBe("june");
+  });
+
+  it("derives active, scheduled, and historical status from effective dates", () => {
+    const allStructures = structures as unknown as SalaryStructure[];
+    const employeeStructures = allStructures.filter((item) => item.employee_id === "employee-1");
+    expect(salaryStructureDisplayStatus(allStructures[1], employeeStructures, "2026-07-01")).toBe("active");
+    expect(salaryStructureDisplayStatus(allStructures[0], employeeStructures, "2026-07-01")).toBe("historical");
+    expect(salaryStructureDisplayStatus(allStructures[2], allStructures, "2026-07-01")).toBe("scheduled");
+    expect(latestSalaryStructure(employeeStructures)?.id).toBe("june");
+  });
 });
 
 describe("Payroll financial year", () => {
@@ -94,6 +134,7 @@ describe("Payroll security and snapshot contracts", () => {
   const migration = source("supabase/migrations/202608020001_payroll_module.sql");
   const lifecycleMigration = source("supabase/migrations/202608090001_payroll_admin_lifecycle.sql");
   const bankTransferMigration = source("supabase/migrations/202608090002_payroll_bank_transfer_details.sql");
+  const salaryVersionMigration = source("supabase/migrations/202608090003_salary_structure_effective_versions.sql");
   it("allows Finance Admin, Super Admin, and Admin administration while employees retain published snapshots", () => {
     expect(migration).toContain("public.get_my_actual_role() = 'finance admin'");
     expect(migration).toContain("employee_id = public.get_my_employee_id() and published_at is not null and status = 'published'");
@@ -207,6 +248,70 @@ describe("Payroll security and snapshot contracts", () => {
     expect(server).not.toContain('to: "draft" } }');
   });
 
+  it("provides the Finance-only salary structure search and history workflow", () => {
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    const structures = source("src/components/payroll/SalaryStructures.tsx");
+    expect(workspace).toContain('value !== "structures" || salaryStructureAccess');
+    expect(workspace).toContain("isFinanceAdminRole");
+    for (const label of ["Add Salary Structure", "Select active employee", "Search", "Reset", "Salary Structure History", "Effective Date", "Monthly Gross Salary", "Basic Pay", "HRA", "Conveyance Allowance", "Other Allowance", "EPF Salary", "Employee PF", "Employer PF", "Employer EPS", "Created At"]) expect(structures).toContain(label);
+    expect(structures).toContain("setAppliedEmployeeId(selectedEmployeeId)");
+    expect(structures).toContain("No salary structure exists for this employee.");
+  });
+
+  it("supports create, latest-only edit/delete, duplicate, and recalculate dialogs", () => {
+    const structures = source("src/components/payroll/SalaryStructures.tsx");
+    const route = source("src/app/api/payroll/route.ts");
+    const server = source("src/lib/payroll/server.ts");
+    for (const action of ["create_structure", "update_structure", "duplicate_structure", "delete_structure"]) {
+      expect(structures).toContain(action);
+      expect(route).toContain(action);
+    }
+    expect(structures).toContain("Recalculate from Gross Salary");
+    expect(structures).toContain('state.mode === "duplicate" ? ""');
+    expect(structures).toContain("Deleting this version will reactivate the previous salary structure.");
+    expect(server).toContain("Only the latest salary structure version can be edited.");
+    expect(server).toContain("Only the latest salary structure version can be deleted.");
+    expect(server).toContain("At least one salary structure must remain for this employee.");
+  });
+
+  it("enforces duplicate-date and processed-payroll protection on the server", () => {
+    const server = source("src/lib/payroll/server.ts");
+    expect(server).toContain("financePayrollOnly(actor.role)");
+    expect(server).toContain("A salary structure already exists for this employee with this effective date.");
+    expect(server).toContain("Payroll has already been processed for a period affected by this effective date. Please choose a later effective date.");
+    expect(server).toContain('.from("payroll_runs").select("id").gte("payroll_month", affectedMonth)');
+    expect(server).toContain('.eq("salary_structure_id", structureId)');
+    expect(server).toContain("Salary components must contain valid non-negative values.");
+  });
+
+  it("stores full component versions, refreshes timelines, and restores Finance-only RLS", () => {
+    for (const column of ["basic_pay", "hra", "conveyance_allowance", "other_allowance", "epf_salary", "employee_pf", "employer_pf", "employer_eps"]) expect(salaryVersionMigration).toContain(column);
+    expect(salaryVersionMigration).toContain("salary_structures_employee_effective_unique_idx");
+    expect(salaryVersionMigration).toContain("salary_structures_employee_effective_lookup_idx");
+    expect(salaryVersionMigration).toContain("refresh_salary_structure_timeline");
+    expect(salaryVersionMigration).toContain("lead(effective_from)");
+    expect(salaryVersionMigration).toContain("effective_from <= current_date");
+    expect(salaryVersionMigration).toContain("salary_structures_finance_all");
+    expect(salaryVersionMigration).toContain("public.get_my_actual_role() = 'finance admin'");
+  });
+
+  it("selects structures by payroll-month applicability and preserves generated snapshots", () => {
+    const server = source("src/lib/payroll/server.ts");
+    expect(server).toContain('.lte("effective_from", month)');
+    expect(server).toContain("selectEffectiveSalaryStructures(structureCandidates.data || [], month)");
+    expect(server).not.toContain('.eq("is_active", true).eq("employees.status", "active")');
+    expect(server).toContain("salary_structure_id: structure.id");
+    expect(server).toContain("salary_structure_version: structure.version");
+    expect(server).toContain("basicPay: Number(structure.basic_pay)");
+    expect(source("supabase/migrations/202608020001_payroll_module.sql")).toContain("Immutable payroll-month snapshots");
+  });
+
+  it("audits every salary structure mutation through the existing payroll audit log", () => {
+    const server = source("src/lib/payroll/server.ts");
+    for (const action of ["salary_structure_created", "salary_structure_edited", "salary_structure_duplicated", "salary_structure_deleted"]) expect(server).toContain(action);
+    expect(server).toContain('admin.from("payroll_audit_log").insert');
+  });
+
   it("builds employee and Finance payroll reporting surfaces", () => {
     const administration = source("src/components/payroll/PayrollAdministration.tsx");
     const ytdRoute = source("src/app/api/payroll/ytd/route.ts");
@@ -230,7 +335,7 @@ describe("Payroll security and snapshot contracts", () => {
 
   it("requires a financial year search before showing payroll history", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
-    const history = workspace.slice(workspace.indexOf("function PayrollHistory"), workspace.indexOf("function Title"));
+    const history = workspace.slice(workspace.indexOf("function PayrollHistory"), workspace.indexOf("function Empty"));
     expect(history).toContain('const [searched, setSearched] = useState(false)');
     expect(history).toContain("Select a financial year and click Search");
     expect(history).toContain("Financial Year");
