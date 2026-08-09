@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculatePayroll, payrollPeriod } from "../src/lib/payroll/calculation";
+import { toPayrollEntryDto } from "../src/lib/payroll/entry";
 import { currentFinancialYear, financialYearForPayrollMonth, financialYearFromValue, financialYearOptions, isInFinancialYear } from "../src/lib/payroll/financialYear";
 import { payslipFilename, ytdFilename } from "../src/lib/payroll/filenames";
+import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels";
+import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -15,17 +18,44 @@ describe("Payroll calculation engine", () => {
     expect(value.otherAllowance).toBe(13_400);
     expect(value.epfSalary).toBe(15_000);
     expect(value.employeePf).toBe(1_800);
-    expect(value.employerEps).toBe(1_249.5);
-    expect(value.employerPf).toBe(550.5);
+    expect(value.employerEps).toBe(1_250);
+    expect(value.employerPf).toBe(550);
     expect(value.employerTotalContribution).toBe(1_800);
     expect(value.professionalTax).toBe(200);
     expect(value.netSalary).toBe(48_000);
   });
 
   it("keeps LOP based only on gross salary", () => {
-    const value = calculatePayroll({ grossSalary: 30_000, periodDays: 30, lopDays: 1.5, bonus: 10_000, leaveEncashment: 5_000, reimbursements: 2_000 });
+    const value = calculatePayroll({ grossSalary: 30_000, periodDays: 30, lopDays: 1.5, bonus: 10_000, leaveEncashment: 5_000 });
     expect(value.lopRecommended).toBe(1_500);
-    expect(value.totalEarnings).toBe(47_000);
+    expect(value.totalEarnings).toBe(45_000);
+  });
+
+  it("excludes the legacy reimbursement value from historical DTO totals", () => {
+    const entry = toPayrollEntryDto({
+      gross_salary: 30_000,
+      bonus: 1_000,
+      leave_encashment: 500,
+      reimbursements: 2_000,
+      total_earnings: 33_500,
+      total_deductions: 2_500,
+      net_salary: 31_000,
+    });
+
+    expect(entry).not.toHaveProperty("reimbursements");
+    expect(entry.total_earnings).toBe(31_500);
+    expect(entry.net_salary).toBe(29_000);
+  });
+
+  it("normalizes blank payroll drafts only at calculation boundaries", () => {
+    expect(normalizePayrollNumber("")).toBe(0);
+    expect(normalizePayrollNumber(null)).toBe(0);
+    expect(normalizePayrollNumber(undefined)).toBe(0);
+    expect(normalizePayrollNumber("0")).toBe(0);
+    expect(normalizePayrollNumber("1250")).toBe(1_250);
+    expect(normalizePayrollNumber(1_250)).toBe(1_250);
+    expect(normalizePayrollNumber("not-a-number")).toBe(0);
+    expect(normalizePayrollNumber(-250)).toBe(-250);
   });
 
   it("uses the configurable 26th to 25th payroll period", () => {
@@ -67,6 +97,7 @@ describe("Payroll security and snapshot contracts", () => {
   });
   it("stores every required payslip snapshot component", () => {
     for (const column of ["gross_salary","basic_pay","hra","conveyance_allowance","other_allowance","bonus","leave_encashment","employee_pf","employer_pf","employer_eps","professional_tax","lop_deduction","previous_month_adjustment","tds","net_salary","salary_structure_version"]) expect(migration).toContain(column);
+    expect(migration).toContain("reimbursements numeric(14,2) not null default 0");
   });
   it("provides employee PDF and Finance Admin workflow surfaces", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
@@ -80,7 +111,7 @@ describe("Payroll security and snapshot contracts", () => {
 
   it("requires a financial year search before showing payroll history", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
-    const history = workspace.slice(workspace.indexOf("function PayrollHistory"), workspace.indexOf("function Reimbursements"));
+    const history = workspace.slice(workspace.indexOf("function PayrollHistory"), workspace.indexOf("function Title"));
     expect(history).toContain('const [searched, setSearched] = useState(false)');
     expect(history).toContain("Select a financial year and click Search");
     expect(history).toContain("Financial Year");
@@ -102,6 +133,28 @@ describe("Payroll security and snapshot contracts", () => {
     expect(history).not.toContain("viewPayslip");
   });
 
+  it("removes reimbursements and uses string-backed manual payroll inputs", () => {
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    const server = source("src/lib/payroll/server.ts");
+    const route = source("src/app/api/payroll/route.ts");
+    expect(workspace).not.toMatch(/reimbursements?/i);
+    expect(server).not.toMatch(/reimbursements?/i);
+    expect(route).not.toMatch(/reimbursements?/i);
+    expect(workspace).toContain("value={form[key]}");
+    expect(workspace).toContain("e.target.value");
+    expect(workspace).not.toContain("Number(e.target.value)");
+    expect(route).toContain("normalizePayrollNumber(body.bonus");
+    expect(route).toContain("normalizePayrollNumber(body.lopDeduction");
+    expect(MANUAL_PAYROLL_FIELDS.map((field) => field.label)).toEqual([
+      "Bonus",
+      "Leave Encashment",
+      "LOP",
+      "Previous Month Adjustment",
+      "TDS",
+    ]);
+    expect(PAYROLL_LABELS).toEqual({ lop: "LOP", tds: "TDS" });
+  });
+
   it("renders a premium employee payslip without internal payroll details", () => {
     const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
     expect(payslip).toContain("PAYSLIP");
@@ -116,8 +169,10 @@ describe("Payroll security and snapshot contracts", () => {
     expect(payslip).not.toContain("INR ");
     expect(payslip).not.toContain("period_start} to {entry.period_end");
     expect(payslip).toContain('logo: { width: 138, height: 39');
-    expect(payslip).toContain('title: { fontSize: 22.4');
-    expect(payslip).toContain('backgroundColor: PRIMARY, borderRadius: 8');
+    expect(payslip).toContain("fontSize: 12");
+    expect(payslip).toContain('backgroundColor: "#153E90"');
+    expect(payslip).not.toMatch(/reimbursements?/i);
+    expect(payslip).not.toContain("LOP Deduction");
   });
 
   it("uses the bundled Despacho logo and restores the INR currency footer", () => {
@@ -125,13 +180,13 @@ describe("Payroll security and snapshot contracts", () => {
     const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
     expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
     expect(route).not.toContain("kairo-logo");
-    expect(payslip).toContain("All amounts are in INR");
+    expect(payslip).toContain("All amounts are in Indian Rupees (INR)");
     expect(payslip).not.toContain("kairo-logo");
   });
 
   it("matches the approved corporate payslip structure", () => {
     const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
-    for (const content of ["EMPLOYEE INFORMATION", "EARNINGS &amp; DEDUCTIONS", "Gross Earnings", "Total Deductions", "Net Salary"]) {
+    for (const content of ["EMPLOYEE INFORMATION", "EARNINGS &amp; DEDUCTIONS", "GROSS SALARY", "TOTAL DEDUCTIONS", "NET SALARY"]) {
       expect(payslip).toContain(content);
     }
     expect(payslip).toContain("styles.payrollHeaderCellRight");
@@ -163,6 +218,8 @@ describe("Payroll security and snapshot contracts", () => {
     expect(document).toContain('logo: { width: 130.5, height: 33.75');
     expect(document).toContain('earningsTotalRow: { minHeight: 19, backgroundColor: PRIMARY }');
     expect(document).toContain('deductionsTotalRow: { minHeight: 19, backgroundColor: "#FFF1F2" }');
+    expect(document).not.toMatch(/reimbursements?/i);
+    expect(document).not.toContain("LOP Deduction");
     expect(route).toContain("financialYear.startDate");
     expect(route).toContain("financialYear.endDate");
     expect(route).toContain("ytdFilename");

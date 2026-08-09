@@ -3,9 +3,9 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { YtdPayrollPdfDocument } from "@/components/payroll/YtdPayrollPdfDocument";
 import { financialYearFromValue } from "@/lib/payroll/financialYear";
 import { payrollActor } from "@/lib/payroll/server";
-import type { PayrollEntry } from "@/lib/payroll/types";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 import { ytdFilename } from "@/lib/payroll/filenames";
+import { toPayrollEntryDto } from "@/lib/payroll/entry";
 
 function removeSalutation(name: string) {
   return name.replace(/^(?:mr|mrs|ms|miss|dr)\.?\s+/i, "").trim();
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       actor.admin.from("employee_statutory_details").select("pan_number").eq("employee_id", actor.employeeId).maybeSingle(),
     ]);
     if (result.error) throw new Error(result.error.message);
-    const entries = (result.data || []) as PayrollEntry[];
+    const entries = (result.data || []).map(toPayrollEntryDto);
     if (!entries.length) return Response.json({ error: `No published payroll is available for ${financialYear.label}` }, { status: 404 });
     const logo = await loadCompanyLogo({ ...company, invoice_logo_url: "/despacho-logo-full.png" });
     const employee = {

@@ -2,9 +2,9 @@ import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { PayslipPdfDocument } from "@/components/payroll/PayslipPdfDocument";
 import { payrollActor } from "@/lib/payroll/server";
-import type { PayrollEntry } from "@/lib/payroll/types";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 import { payslipFilename } from "@/lib/payroll/filenames";
+import { toPayrollEntryDto } from "@/lib/payroll/entry";
 
 function inclusiveDayCount(start: string, end: string) {
   const startTime = new Date(`${start}T00:00:00Z`).getTime();
@@ -22,7 +22,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const { id } = await context.params;
     const result = await actor.admin.from("payroll_entries").select("*").eq("id", id).single();
     if (result.error || !result.data) return Response.json({ error: "Payslip not found" }, { status: 404 });
-    const entry = result.data as PayrollEntry;
+    const entry = toPayrollEntryDto(result.data);
     const finance = actor.role === "finance admin";
     if (!finance && (entry.employee_id !== actor.employeeId || entry.status !== "published" || !entry.published_at)) return Response.json({ error: "Forbidden" }, { status: 403 });
     const [company, employeeResult, financeResult, statutoryResult] = await Promise.all([

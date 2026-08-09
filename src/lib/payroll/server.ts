@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { calculatePayroll, payrollPeriod } from "./calculation";
+import { toPayrollEntryDto } from "./entry";
 import type { PayrollRun, PayrollSettings } from "./types";
 
 export function payrollAdmin() {
@@ -40,36 +41,51 @@ async function audit(admin: SupabaseClient, actor: Awaited<ReturnType<typeof pay
 export async function loadPayroll(request: Request, month?: string | null) {
   const actor = await payrollActor(request);
   const ownEntries = await actor.admin.from("payroll_entries").select("*").eq("employee_id", actor.employeeId).eq("status", "published").not("published_at", "is", null).order("payroll_month", { ascending: false });
-  const ownReimbursements = await actor.admin.from("payroll_reimbursements").select("*").eq("employee_id", actor.employeeId).order("payroll_month", { ascending: false });
-  if (ownEntries.error || ownReimbursements.error) throw new Error((ownEntries.error || ownReimbursements.error)?.message);
-  const base = { role: actor.role, employeeId: actor.employeeId, ownEntries: ownEntries.data || [], ownReimbursements: ownReimbursements.data || [] };
+  if (ownEntries.error) throw new Error(ownEntries.error.message);
+  const base = { role: actor.role, employeeId: actor.employeeId, ownEntries: (ownEntries.data || []).map(toPayrollEntryDto) };
   if (actor.role !== "finance admin") return base;
   const payrollMonth = month ? `${month.slice(0, 7)}-01` : null;
-  const [runs, structures, payrollSettings, reimbursements, employees, auditRows] = await Promise.all([
+  const [runs, structures, payrollSettings, employees, auditRows] = await Promise.all([
     actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(24),
     actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").eq("is_active", true).order("created_at", { ascending: false }),
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
-    actor.admin.from("payroll_reimbursements").select("*,employees(employee_code,name,title)").order("payroll_month", { ascending: false }).limit(500),
     actor.admin.from("employees").select("id,employee_code,name,title,department,status").eq("status", "active").order("employee_code"),
     actor.admin.from("payroll_audit_log").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
-  const failure = runs.error || structures.error || payrollSettings.error || reimbursements.error || employees.error || auditRows.error;
+  const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error;
   if (failure) throw new Error(failure.message);
+  const runIds = (runs.data || []).map((run) => run.id);
+  const runEntries = runIds.length
+    ? await actor.admin.from("payroll_entries").select("*").in("payroll_run_id", runIds).order("employee_code")
+    : { data: [], error: null };
+  if (runEntries.error) throw new Error(runEntries.error.message);
+  const entryDtos = (runEntries.data || []).map(toPayrollEntryDto);
+  const entriesByRun = new Map<string, typeof entryDtos>();
+  for (const entry of entryDtos) {
+    const entries = entriesByRun.get(entry.payroll_run_id) || [];
+    entries.push(entry);
+    entriesByRun.set(entry.payroll_run_id, entries);
+  }
+  const runDtos = (runs.data || []).map((run) => {
+    const entries = entriesByRun.get(run.id) || [];
+    return {
+      ...run,
+      net_payroll: entries.reduce((sum, entry) => sum + entry.net_salary, 0),
+    } as PayrollRun;
+  });
   let selectedRun: PayrollRun | null = null;
   let bankDetails: Array<Record<string, unknown>> = [];
   if (payrollMonth) {
-    const run = await actor.admin.from("payroll_runs").select("*").eq("payroll_month", payrollMonth).maybeSingle();
-    if (run.error) throw new Error(run.error.message);
-    if (run.data) {
-      const entries = await actor.admin.from("payroll_entries").select("*").eq("payroll_run_id", run.data.id).order("employee_code");
-      if (entries.error) throw new Error(entries.error.message);
-      selectedRun = { ...run.data, entries: entries.data || [] } as PayrollRun;
-      const bank = await actor.admin.from("employee_finance_details").select("employee_id,bank_account_number,bank_name,ifsc_code,branch_name").in("employee_id", (entries.data || []).map((entry) => entry.employee_id));
+    const run = runDtos.find((item) => item.payroll_month === payrollMonth);
+    if (run) {
+      const entries = entriesByRun.get(run.id) || [];
+      selectedRun = { ...run, entries };
+      const bank = await actor.admin.from("employee_finance_details").select("employee_id,bank_account_number,bank_name,ifsc_code,branch_name").in("employee_id", entries.map((entry) => entry.employee_id));
       if (bank.error) throw new Error(bank.error.message);
       bankDetails = bank.data || [];
     }
   }
-  return { ...base, runs: runs.data || [], structures: structures.data || [], settings: payrollSettings.data, reimbursements: reimbursements.data || [], employees: employees.data || [], audit: auditRows.data || [], selectedRun, bankDetails };
+  return { ...base, runs: runDtos, structures: structures.data || [], settings: payrollSettings.data, employees: employees.data || [], audit: auditRows.data || [], selectedRun, bankDetails };
 }
 
 export async function saveSalaryStructure(request: Request, input: { employeeId: string; grossSalary: number; effectiveFrom: string; notes?: string }) {
@@ -107,18 +123,14 @@ export async function generatePayroll(request: Request, payrollMonth: string) {
   }
   const structures = await actor.admin.from("salary_structures").select("*,employees!inner(id,employee_code,name,title,department,status)").eq("is_active", true).eq("employees.status", "active");
   if (structures.error) throw new Error(structures.error.message);
-  const reimbursements = await actor.admin.from("payroll_reimbursements").select("employee_id,amount").eq("payroll_month", month).eq("status", "approved");
-  if (reimbursements.error) throw new Error(reimbursements.error.message);
-  const reimbursementByEmployee = new Map<string, number>();
-  for (const item of reimbursements.data || []) reimbursementByEmployee.set(item.employee_id, (reimbursementByEmployee.get(item.employee_id) || 0) + Number(item.amount));
   const lop = await actor.admin.from("leave_requests").select("employee_id,lop_salary_deduction_days,leave_types!inner(code)").in("status", ["approved", "cancellation_rejected"]).eq("leave_types.code", "LOP").lte("start_date", period.end).gte("end_date", period.start);
   if (lop.error) throw new Error(lop.error.message);
   const lopByEmployee = new Map<string, number>();
   for (const item of lop.data || []) lopByEmployee.set(item.employee_id, (lopByEmployee.get(item.employee_id) || 0) + Number(item.lop_salary_deduction_days || 0));
   const rows = (structures.data || []).map((structure) => {
     const employee = Array.isArray(structure.employees) ? structure.employees[0] : structure.employees;
-    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), conveyanceAllowance: config.conveyance_allowance, reimbursements: reimbursementByEmployee.get(structure.employee_id) || 0, lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
-    return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, reimbursements: calculated.reimbursements, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, status: "draft" };
+    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), conveyanceAllowance: config.conveyance_allowance, lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
+    return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, status: "draft" };
   });
   if (rows.length) { const inserted = await actor.admin.from("payroll_entries").insert(rows); if (inserted.error) throw new Error(inserted.error.message); }
   const totals = rows.reduce((sum, row) => ({ gross: sum.gross + row.gross_salary, net: sum.net + row.net_salary, pf: sum.pf + row.employer_pf, eps: sum.eps + row.employer_eps }), { gross: 0, net: 0, pf: 0, eps: 0 });
@@ -128,15 +140,15 @@ export async function generatePayroll(request: Request, payrollMonth: string) {
   return update.data;
 }
 
-export async function updatePayrollEntry(request: Request, entryId: string, values: { bonus?: number; leaveEncashment?: number; reimbursements?: number; lopDeduction?: number; previousMonthAdjustment?: number; tds?: number; notes?: string }) {
+export async function updatePayrollEntry(request: Request, entryId: string, values: { bonus?: number; leaveEncashment?: number; lopDeduction?: number; previousMonthAdjustment?: number; tds?: number; notes?: string }) {
   const actor = await payrollActor(request); financeOnly(actor.role);
   const current = await actor.admin.from("payroll_entries").select("*").eq("id", entryId).single();
   if (current.error) throw new Error(current.error.message);
   if (!['draft','under_review'].includes(current.data.status)) throw new Error("Manual fields are locked for this payroll");
   const config = await settings(actor.admin);
   const periodDays = Math.round((new Date(current.data.period_end).getTime() - new Date(current.data.period_start).getTime()) / 86_400_000) + 1;
-  const calculated = calculatePayroll({ grossSalary: current.data.gross_salary, conveyanceAllowance: current.data.conveyance_allowance, bonus: values.bonus ?? current.data.bonus, leaveEncashment: values.leaveEncashment ?? current.data.leave_encashment, reimbursements: values.reimbursements ?? current.data.reimbursements, lopDays: current.data.lop_days, periodDays, confirmedLopDeduction: values.lopDeduction ?? current.data.lop_deduction, previousMonthAdjustment: values.previousMonthAdjustment ?? current.data.previous_month_adjustment, tds: values.tds ?? current.data.tds, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
-  const updateValues = { bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, reimbursements: calculated.reimbursements, professional_tax: calculated.professionalTax, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, manual_notes: values.notes ?? current.data.manual_notes, updated_at: new Date().toISOString() };
+  const calculated = calculatePayroll({ grossSalary: current.data.gross_salary, conveyanceAllowance: current.data.conveyance_allowance, bonus: values.bonus ?? current.data.bonus, leaveEncashment: values.leaveEncashment ?? current.data.leave_encashment, lopDays: current.data.lop_days, periodDays, confirmedLopDeduction: values.lopDeduction ?? current.data.lop_deduction, previousMonthAdjustment: values.previousMonthAdjustment ?? current.data.previous_month_adjustment, tds: values.tds ?? current.data.tds, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
+  const updateValues = { bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, professional_tax: calculated.professionalTax, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, manual_notes: values.notes ?? current.data.manual_notes, updated_at: new Date().toISOString() };
   const update = await actor.admin.from("payroll_entries").update(updateValues).eq("id", entryId).select("*").single();
   if (update.error) throw new Error(update.error.message);
   await refreshRunTotals(actor.admin, current.data.payroll_run_id);
@@ -145,9 +157,9 @@ export async function updatePayrollEntry(request: Request, entryId: string, valu
 }
 
 async function refreshRunTotals(admin: SupabaseClient, runId: string) {
-  const entries = await admin.from("payroll_entries").select("gross_salary,net_salary,employer_pf,employer_eps").eq("payroll_run_id", runId);
+  const entries = await admin.from("payroll_entries").select("*").eq("payroll_run_id", runId);
   if (entries.error) throw new Error(entries.error.message);
-  const totals = (entries.data || []).reduce((sum, row) => ({ gross: sum.gross + Number(row.gross_salary), net: sum.net + Number(row.net_salary), pf: sum.pf + Number(row.employer_pf), eps: sum.eps + Number(row.employer_eps) }), { gross: 0, net: 0, pf: 0, eps: 0 });
+  const totals = (entries.data || []).map(toPayrollEntryDto).reduce((sum, row) => ({ gross: sum.gross + Number(row.gross_salary), net: sum.net + Number(row.net_salary), pf: sum.pf + Number(row.employer_pf), eps: sum.eps + Number(row.employer_eps) }), { gross: 0, net: 0, pf: 0, eps: 0 });
   const update = await admin.from("payroll_runs").update({ gross_payroll: totals.gross, net_payroll: totals.net, employer_pf_total: totals.pf, employer_eps_total: totals.eps, updated_at: new Date().toISOString() }).eq("id", runId);
   if (update.error) throw new Error(update.error.message);
 }

@@ -29,7 +29,6 @@ export type PayrollEntry = {
   other_allowance: number;
   bonus: number;
   leave_encashment: number;
-  reimbursements: number;
   epf_salary: number;
   employee_pf: number;
   employer_pf: number;

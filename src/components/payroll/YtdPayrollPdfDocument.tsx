@@ -1,6 +1,7 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { PdfIcon, RupeeNotice, formatDate, type PayrollPdfIconName } from "@/components/payroll/PayslipPdfDocument";
 import { financialYearFromValue } from "@/lib/payroll/financialYear";
+import { PAYROLL_LABELS } from "@/lib/payroll/labels";
 import type { PayrollEntry } from "@/lib/payroll/types";
 
 const PRIMARY = "#153E90";
@@ -32,14 +33,13 @@ const rows: YtdRow[] = [
   { label: "Other Allowance", value: (entry) => entry.other_allowance },
   { label: "Bonus", value: (entry) => entry.bonus },
   { label: "Leave Encashment", value: (entry) => entry.leave_encashment },
-  { label: "Reimbursements", value: (entry) => entry.reimbursements },
   { label: "GROSS SALARY", value: (entry) => entry.total_earnings, tone: "earningsTotal" },
   { label: "DEDUCTIONS", value: () => 0, tone: "deductions" },
   { label: "Employee PF", value: (entry) => entry.employee_pf },
   { label: "Professional Tax", value: (entry) => entry.professional_tax },
-  { label: "LOP Deduction", value: (entry) => entry.lop_deduction },
+  { label: PAYROLL_LABELS.lop, value: (entry) => entry.lop_deduction },
   { label: "Previous Month Adjustment", value: (entry) => entry.previous_month_adjustment },
-  { label: "TDS", value: (entry) => entry.tds },
+  { label: PAYROLL_LABELS.tds, value: (entry) => entry.tds },
   { label: "TOTAL DEDUCTIONS", value: (entry) => entry.total_deductions, tone: "deductionsTotal" },
   { label: "NET SALARY", value: (entry) => entry.net_salary, tone: "net" },
 ];

@@ -3,7 +3,6 @@ export type PayrollCalculationInput = {
   conveyanceAllowance?: number;
   bonus?: number;
   leaveEncashment?: number;
-  reimbursements?: number;
   lopDays?: number;
   periodDays?: number;
   confirmedLopDeduction?: number | null;
@@ -35,14 +34,13 @@ const employerPf = employeePf - employerEps;
   const employerTotalContribution = money(employerPf + employerEps);
   const bonus = money(safe(input.bonus));
   const leaveEncashment = money(safe(input.leaveEncashment));
-  const reimbursements = money(safe(input.reimbursements));
   const lopDays = safe(input.lopDays);
   const periodDays = Math.max(Number(input.periodDays || 30), 1);
   const lopRecommended = money((grossSalary / periodDays) * lopDays);
   const lopDeduction = money(input.confirmedLopDeduction == null ? lopRecommended : safe(input.confirmedLopDeduction));
   const previousMonthAdjustment = money(Number(input.previousMonthAdjustment || 0));
   const tds = money(safe(input.tds));
-  const totalEarnings = money(grossSalary + bonus + leaveEncashment + reimbursements);
+  const totalEarnings = money(grossSalary + bonus + leaveEncashment);
   const beforeProfessionalTax = money(totalEarnings - employeePf - lopDeduction - previousMonthAdjustment - tds);
   const professionalTax = beforeProfessionalTax >= Number(input.professionalTaxThreshold ?? 25_000)
     ? money(Number(input.professionalTaxAmount ?? 200))
@@ -50,7 +48,7 @@ const employerPf = employeePf - employerEps;
   const totalDeductions = money(employeePf + professionalTax + lopDeduction + previousMonthAdjustment + tds);
   const netSalary = money(Math.max(totalEarnings - totalDeductions, 0));
 
-  return { grossSalary, basicPay, hra, conveyanceAllowance, otherAllowance, bonus, leaveEncashment, reimbursements, epfSalary, employeePf, employerPf, employerEps, employerTotalContribution, professionalTax, lopDays, lopRecommended, lopDeduction, previousMonthAdjustment, tds, totalEarnings, totalDeductions, netSalary };
+  return { grossSalary, basicPay, hra, conveyanceAllowance, otherAllowance, bonus, leaveEncashment, epfSalary, employeePf, employerPf, employerEps, employerTotalContribution, professionalTax, lopDays, lopRecommended, lopDeduction, previousMonthAdjustment, tds, totalEarnings, totalDeductions, netSalary };
 }
 
 export function payrollPeriod(payrollMonth: string, startDay = 26, endDay = 25) {

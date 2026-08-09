@@ -1,5 +1,6 @@
 import { Circle, Document, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { PayrollEntry } from "@/lib/payroll/types";
+import { PAYROLL_LABELS } from "@/lib/payroll/labels";
 
 export type PayslipEmployeeDetails = {
   employeeName: string;
@@ -304,15 +305,14 @@ export function PayslipPdfDocument({ entry, logoSrc, companyName, employee }: { 
     { label: "Other Allowance", value: entry.other_allowance },
     { label: "Bonus", value: entry.bonus },
     { label: "Leave Encashment", value: entry.leave_encashment },
-    { label: "Reimbursements", value: entry.reimbursements },
   ].filter((item) => Number(item.value) > 0);
 
   const deductions: AmountRow[] = [
     { label: "Employee PF", value: entry.employee_pf },
     { label: "Professional Tax", value: entry.professional_tax },
-    { label: "LOP Deduction", value: entry.lop_deduction },
+    { label: PAYROLL_LABELS.lop, value: entry.lop_deduction },
     { label: "Previous Month Adjustment", value: entry.previous_month_adjustment },
-    { label: "TDS", value: entry.tds },
+    { label: PAYROLL_LABELS.tds, value: entry.tds },
   ].filter((item) => Number(item.value) > 0);
 
   const rowCount = Math.max(earnings.length, deductions.length, 1);
