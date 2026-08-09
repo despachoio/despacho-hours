@@ -6,6 +6,8 @@ import { currentFinancialYear, financialYearForPayrollMonth, financialYearFromVa
 import { payslipFilename, ytdFilename } from "../src/lib/payroll/filenames";
 import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels";
 import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
+import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
+import { summarizePayroll } from "../src/lib/payroll/exports";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -90,23 +92,82 @@ describe("Payroll financial year", () => {
 
 describe("Payroll security and snapshot contracts", () => {
   const migration = source("supabase/migrations/202608020001_payroll_module.sql");
-  it("limits administration to Finance Admin and employees to their published snapshots", () => {
+  const lifecycleMigration = source("supabase/migrations/202608090001_payroll_admin_lifecycle.sql");
+  it("allows Finance Admin, Super Admin, and Admin administration while employees retain published snapshots", () => {
     expect(migration).toContain("public.get_my_actual_role() = 'finance admin'");
     expect(migration).toContain("employee_id = public.get_my_employee_id() and published_at is not null and status = 'published'");
-    expect(migration).not.toContain("super admin'\n");
+    expect(lifecycleMigration).toContain("('finance admin', 'super admin', 'admin')");
+    expect(lifecycleMigration).toContain("payroll_runs_admin_all");
+    expect(lifecycleMigration).toContain("payroll_entries_admin_all");
   });
   it("stores every required payslip snapshot component", () => {
     for (const column of ["gross_salary","basic_pay","hra","conveyance_allowance","other_allowance","bonus","leave_encashment","employee_pf","employer_pf","employer_eps","professional_tax","lop_deduction","previous_month_adjustment","tds","net_salary","salary_structure_version"]) expect(migration).toContain(column);
     expect(migration).toContain("reimbursements numeric(14,2) not null default 0");
   });
-  it("provides employee PDF and Finance Admin workflow surfaces", () => {
+  it("provides employee PDF and payroll administration workflow surfaces", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
-    expect(workspace).toContain("Salary Register");
     expect(workspace).toContain("Download Payslip");
     expect(workspace).toContain('setTab("administration")');
     expect(workspace).toContain('aria-label="Payroll administration sections"');
-    for (const section of ["Payroll Dashboard", "Salary Structures", "Payroll Processing", "Salary Register", "Reports", "Settings"]) expect(workspace).toContain(section);
+    for (const section of ["Payroll Dashboard", "Salary Structures", "Payroll Processing", "Reports", "Settings"]) expect(workspace).toContain(section);
+    expect(workspace).not.toContain('["register", "Salary Register"]');
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("entry.employee_id !== actor.employeeId");
+  });
+
+  it("implements the Generated, Approved, Submitted lifecycle", () => {
+    expect(payrollLifecycleStatus("draft")).toBe("generated");
+    expect(payrollLifecycleStatus("under_review")).toBe("generated");
+    expect(payrollLifecycleStatus("approved")).toBe("approved");
+    expect(payrollLifecycleStatus("locked")).toBe("approved");
+    expect(payrollLifecycleStatus("published")).toBe("submitted");
+    expect(canEditPayroll("draft")).toBe(true);
+    expect(canApprovePayroll("draft")).toBe(true);
+    expect(canExportPayroll("draft")).toBe(false);
+    expect(canSubmitPayroll("approved")).toBe(true);
+    expect(canEditPayroll("published")).toBe(false);
+  });
+
+  it("keeps the register inside Payroll Processing and removes standalone register exports", () => {
+    const administration = source("src/components/payroll/PayrollAdministration.tsx");
+    expect(administration).toContain("Generate Payroll");
+    expect(administration).toContain("Reprocess Payroll");
+    expect(administration).toContain("Approve Payroll");
+    expect(administration).toContain("Submit Payroll");
+    expect(administration).toContain("Cancel Payroll");
+    expect(administration).toContain("Salary Register");
+    expect(administration).toContain("Download Salary Register");
+    expect(administration).toContain("Export Bank Transfer File");
+    expect(administration).toContain("editable={canEditPayroll(run.status)}");
+  });
+
+  it("reprocesses with manual adjustments and cancellation deletes only the payroll run", () => {
+    const server = source("src/lib/payroll/server.ts");
+    expect(server).toContain("preserveManualAdjustments");
+    expect(server).toContain("manualByEmployee");
+    expect(server).toContain('"payroll_reprocessed" : "payroll_generated"');
+    expect(server).toContain('.from("payroll_runs").delete().eq("id", runId)');
+    expect(server).not.toContain('to: "draft" } }');
+  });
+
+  it("builds employee and Finance payroll reporting surfaces", () => {
+    const administration = source("src/components/payroll/PayrollAdministration.tsx");
+    const ytdRoute = source("src/app/api/payroll/ytd/route.ts");
+    const summaryRoute = source("src/app/api/payroll/reports/summary/route.ts");
+    for (const label of ["Employee Payroll", "Financial Year", "From Month", "To Month", "All Employees", "Download Payslip", "Download YTD", "Payroll Summary", "Download Excel", "Download PDF"]) expect(administration).toContain(label);
+    expect(ytdRoute).toContain("includedMonths");
+    expect(ytdRoute).toContain("requestedEmployeeId");
+    expect(summaryRoute).toContain("financePayrollOnly(actor.role)");
+    expect(summaryRoute).toContain('format === "xlsx"');
+    expect(summaryRoute).toContain("PayrollSummaryPdfDocument");
+  });
+
+  it("aggregates Finance payroll summary values without changing calculations", () => {
+    const summary = summarizePayroll([{ employee_id: "one", basic_pay: 10, hra: 5, conveyance_allowance: 2, other_allowance: 3, bonus: 1, leave_encashment: 4, gross_salary: 20, employee_pf: 2, employer_pf: 1, employer_eps: 1, professional_tax: 1, lop_deduction: 2, previous_month_adjustment: 3, tds: 4, net_salary: 14 } as never]);
+    expect(summary.employeesProcessed).toBe(1);
+    expect(summary.grossPayroll).toBe(20);
+    expect(summary.netPayroll).toBe(14);
+    expect(summary.lop).toBe(2);
+    expect(summary.tds).toBe(4);
   });
 
   it("requires a financial year search before showing payroll history", () => {
@@ -202,7 +263,7 @@ describe("Payroll security and snapshot contracts", () => {
     expect(document).toContain('orientation="landscape"');
     expect(document).toContain("DESPACHO INDIA PRIVATE LIMITED");
     expect(document).toContain("YTD Summary for the Financial Year");
-    expect(document).toContain("financialYear.months.map");
+    expect(document).toContain("reportMonths.map");
     expect(document).toContain("ExecutiveInfoRow");
     expect(document).toContain("RupeeNotice");
     expect(document).toContain("All amounts are in Indian Rupees (INR)");
@@ -220,8 +281,8 @@ describe("Payroll security and snapshot contracts", () => {
     expect(document).toContain('deductionsTotalRow: { minHeight: 19, backgroundColor: "#FFF1F2" }');
     expect(document).not.toMatch(/reimbursements?/i);
     expect(document).not.toContain("LOP Deduction");
-    expect(route).toContain("financialYear.startDate");
-    expect(route).toContain("financialYear.endDate");
+    expect(route).toContain("includedMonths[0]");
+    expect(route).toContain("includedMonths.at(-1)");
     expect(route).toContain("ytdFilename");
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("payslipFilename");
   });

@@ -180,10 +180,11 @@ function ExecutiveInfoRow({ icon, label, value }: { icon: PayrollPdfIconName; la
   );
 }
 
-export function YtdPayrollPdfDocument({ entries, financialYear: financialYearValue, logoSrc, employee }: { entries: PayrollEntry[]; financialYear: string; logoSrc: string; employee: YtdPayrollEmployeeDetails }) {
+export function YtdPayrollPdfDocument({ entries, financialYear: financialYearValue, includedMonths, logoSrc, employee }: { entries: PayrollEntry[]; financialYear: string; includedMonths?: string[]; logoSrc: string; employee: YtdPayrollEmployeeDetails }) {
   const financialYear = financialYearFromValue(financialYearValue);
   if (!financialYear) throw new Error("Invalid financial year");
-  const includedEntries = entries.filter((entry) => financialYear.months.includes(entry.payroll_month.slice(0, 7)));
+  const reportMonths = includedMonths?.length ? financialYear.months.filter((month) => includedMonths.includes(month)) : financialYear.months;
+  const includedEntries = entries.filter((entry) => reportMonths.includes(entry.payroll_month.slice(0, 7)));
   const entryByMonth = new Map(includedEntries.map((entry) => [entry.payroll_month.slice(0, 7), entry]));
   const employeeCode = includedEntries[0]?.employee_code || "Employee";
   let alternatingIndex = 0;
@@ -229,7 +230,7 @@ export function YtdPayrollPdfDocument({ entries, financialYear: financialYearVal
         <View style={styles.table}>
           <View style={[styles.row, styles.headerRow]}>
             <View style={styles.itemHeaderCell}><Text style={styles.itemHeaderText}>ITEM</Text></View>
-            {financialYear.months.map((month) => <View key={month} style={styles.monthHeaderCell}><Text style={styles.headerText}>{monthLabel(month)}</Text></View>)}
+            {reportMonths.map((month) => <View key={month} style={styles.monthHeaderCell}><Text style={styles.headerText}>{monthLabel(month)}</Text></View>)}
             <View style={styles.grandHeaderCell}><Text style={styles.grandHeaderText}>GRAND TOTAL</Text></View>
           </View>
           {rows.map((row, index) => {
@@ -245,7 +246,7 @@ export function YtdPayrollPdfDocument({ entries, financialYear: financialYearVal
             return (
               <View key={row.label} style={rowStyle}>
                 <View style={styles.itemCell}><Text style={textStyle}>{row.label}</Text></View>
-                {financialYear.months.map((month) => {
+                {reportMonths.map((month) => {
                   const entry = entryByMonth.get(month);
                   return <View key={month} style={styles.monthCell}><Text style={valueStyle}>{section || !entry ? "" : amount(row.value(entry))}</Text></View>;
                 })}

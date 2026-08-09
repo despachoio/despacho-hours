@@ -5,6 +5,7 @@ import { payrollActor } from "@/lib/payroll/server";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 import { payslipFilename } from "@/lib/payroll/filenames";
 import { toPayrollEntryDto } from "@/lib/payroll/entry";
+import { isAdminLevelRole } from "@/lib/roles";
 
 function inclusiveDayCount(start: string, end: string) {
   const startTime = new Date(`${start}T00:00:00Z`).getTime();
@@ -23,8 +24,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const result = await actor.admin.from("payroll_entries").select("*").eq("id", id).single();
     if (result.error || !result.data) return Response.json({ error: "Payslip not found" }, { status: 404 });
     const entry = toPayrollEntryDto(result.data);
-    const finance = actor.role === "finance admin";
-    if (!finance && (entry.employee_id !== actor.employeeId || entry.status !== "published" || !entry.published_at)) return Response.json({ error: "Forbidden" }, { status: 403 });
+    const payrollAdmin = isAdminLevelRole(actor.role);
+    if (!payrollAdmin && (entry.employee_id !== actor.employeeId || entry.status !== "published" || !entry.published_at)) return Response.json({ error: "Forbidden" }, { status: 403 });
     const [company, employeeResult, financeResult, statutoryResult] = await Promise.all([
       loadCompanySettings(actor.admin),
       actor.admin.from("employees").select("name,role,date_of_joining").eq("id", entry.employee_id).maybeSingle(),

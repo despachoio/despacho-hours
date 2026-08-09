@@ -7,6 +7,14 @@ async function token() {
   return value;
 }
 
+async function downloadResponse(path: string, fallbackFilename: string) {
+  const response = await fetch(path, { headers: { authorization: `Bearer ${await token()}` } });
+  if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || "Unable to download payroll report"); }
+  const disposition = response.headers.get("content-disposition") || "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] || fallbackFilename;
+  const link = document.createElement("a"); link.href = URL.createObjectURL(await response.blob()); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
+}
+
 export async function payrollRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json", authorization: `Bearer ${await token()}`, ...init?.headers } });
   const body = await response.json().catch(() => null) as { error?: string } | T | null;
@@ -20,12 +28,21 @@ export async function downloadPayslip(id: string, filename: string) {
   const link = document.createElement("a"); link.href = URL.createObjectURL(await response.blob()); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
 }
 
-export async function downloadPayrollYtd(financialYear: string) {
-  const response = await fetch(`/api/payroll/ytd?financialYear=${encodeURIComponent(financialYear)}`, { headers: { authorization: `Bearer ${await token()}` } });
+export async function downloadPayrollYtd(financialYear: string, options: { employeeId?: string; fromMonth?: string; toMonth?: string } = {}) {
+  const query = new URLSearchParams({ financialYear });
+  if (options.employeeId) query.set("employeeId", options.employeeId);
+  if (options.fromMonth) query.set("fromMonth", options.fromMonth);
+  if (options.toMonth) query.set("toMonth", options.toMonth);
+  const response = await fetch(`/api/payroll/ytd?${query}`, { headers: { authorization: `Bearer ${await token()}` } });
   if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || "Unable to download YTD payroll report"); }
   const disposition = response.headers.get("content-disposition") || "";
   const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `YTD_FY ${financialYear}.pdf`;
   const link = document.createElement("a"); link.href = URL.createObjectURL(await response.blob()); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
+}
+
+export async function downloadPayrollSummary(financialYear: string, fromMonth: string, toMonth: string, format: "xlsx" | "pdf") {
+  const query = new URLSearchParams({ financialYear, fromMonth, toMonth, format });
+  await downloadResponse(`/api/payroll/reports/summary?${query}`, `Payroll_Summary_${financialYear}.${format}`);
 }
 
 export async function viewPayslip(id: string) {

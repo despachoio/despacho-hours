@@ -6,6 +6,7 @@ import { payrollActor } from "@/lib/payroll/server";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 import { ytdFilename } from "@/lib/payroll/filenames";
 import { toPayrollEntryDto } from "@/lib/payroll/entry";
+import { isAdminLevelRole } from "@/lib/roles";
 
 function removeSalutation(name: string) {
   return name.replace(/^(?:mr|mrs|ms|miss|dr)\.?\s+/i, "").trim();
@@ -14,23 +15,30 @@ function removeSalutation(name: string) {
 export async function GET(request: Request) {
   try {
     const actor = await payrollActor(request);
-    const financialYearValue = new URL(request.url).searchParams.get("financialYear") || "";
+    const searchParams = new URL(request.url).searchParams;
+    const financialYearValue = searchParams.get("financialYear") || "";
     const financialYear = financialYearFromValue(financialYearValue);
     if (!financialYear) return Response.json({ error: "A valid financial year is required" }, { status: 400 });
+    const requestedEmployeeId = searchParams.get("employeeId") || actor.employeeId;
+    if (requestedEmployeeId !== actor.employeeId && !isAdminLevelRole(actor.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
+    const fromMonth = searchParams.get("fromMonth") || financialYear.months[0];
+    const toMonth = searchParams.get("toMonth") || financialYear.months.at(-1)!;
+    const includedMonths = financialYear.months.filter((month) => month >= fromMonth && month <= toMonth);
+    if (!includedMonths.length || fromMonth > toMonth) return Response.json({ error: "A valid payroll month range is required" }, { status: 400 });
     const [result, company, employeeResult, financeResult, statutoryResult] = await Promise.all([
       actor.admin
         .from("payroll_entries")
         .select("*")
-        .eq("employee_id", actor.employeeId)
+        .eq("employee_id", requestedEmployeeId)
         .eq("status", "published")
         .not("published_at", "is", null)
-        .gte("payroll_month", financialYear.startDate)
-        .lte("payroll_month", financialYear.endDate)
+        .gte("payroll_month", `${includedMonths[0]}-01`)
+        .lte("payroll_month", `${includedMonths.at(-1)}-01`)
         .order("payroll_month", { ascending: true }),
       loadCompanySettings(actor.admin),
-      actor.admin.from("employees").select("name,role,date_of_joining").eq("id", actor.employeeId).maybeSingle(),
-      actor.admin.from("employee_finance_details").select("bank_name,bank_account_number,epf_number").eq("employee_id", actor.employeeId).maybeSingle(),
-      actor.admin.from("employee_statutory_details").select("pan_number").eq("employee_id", actor.employeeId).maybeSingle(),
+      actor.admin.from("employees").select("name,role,date_of_joining").eq("id", requestedEmployeeId).maybeSingle(),
+      actor.admin.from("employee_finance_details").select("bank_name,bank_account_number,epf_number").eq("employee_id", requestedEmployeeId).maybeSingle(),
+      actor.admin.from("employee_statutory_details").select("pan_number").eq("employee_id", requestedEmployeeId).maybeSingle(),
     ]);
     if (result.error) throw new Error(result.error.message);
     const entries = (result.data || []).map(toPayrollEntryDto);
@@ -45,7 +53,7 @@ export async function GET(request: Request) {
       pfNumber: financeResult.data?.epf_number || null,
       panNumber: statutoryResult.data?.pan_number || null,
     };
-    const document = createElement(YtdPayrollPdfDocument, { entries, financialYear: financialYear.value, logoSrc: logo.dataUrl, employee }) as ReactElement<DocumentProps>;
+    const document = createElement(YtdPayrollPdfDocument, { entries, financialYear: financialYear.value, includedMonths, logoSrc: logo.dataUrl, employee }) as ReactElement<DocumentProps>;
     const pdf = await renderToBuffer(document);
     return new Response(new Uint8Array(pdf), {
       headers: {

@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { calculatePayroll, payrollPeriod } from "./calculation";
 import { toPayrollEntryDto } from "./entry";
 import type { PayrollRun, PayrollSettings } from "./types";
+import { isAdminLevelRole, isFinanceAdminRole } from "@/lib/roles";
 
 export function payrollAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,8 +24,12 @@ export async function payrollActor(request: Request) {
   return { admin, userId: user.data.user.id, employeeId: profile.data.employee_id, role: String(profile.data.role || "").trim().toLowerCase(), name: profile.data.full_name || "User" };
 }
 
-const financeOnly = (role: string) => {
-  if (role !== "finance admin") throw new Error("Finance Admin access required");
+const payrollAdminOnly = (role: string) => {
+  if (!isAdminLevelRole(role)) throw new Error("Payroll administration access required");
+};
+
+export const financePayrollOnly = (role: string) => {
+  if (!isFinanceAdminRole(role)) throw new Error("Finance Admin access required");
 };
 
 async function settings(admin: SupabaseClient) {
@@ -43,10 +48,10 @@ export async function loadPayroll(request: Request, month?: string | null) {
   const ownEntries = await actor.admin.from("payroll_entries").select("*").eq("employee_id", actor.employeeId).eq("status", "published").not("published_at", "is", null).order("payroll_month", { ascending: false });
   if (ownEntries.error) throw new Error(ownEntries.error.message);
   const base = { role: actor.role, employeeId: actor.employeeId, ownEntries: (ownEntries.data || []).map(toPayrollEntryDto) };
-  if (actor.role !== "finance admin") return base;
+  if (!isAdminLevelRole(actor.role)) return base;
   const payrollMonth = month ? `${month.slice(0, 7)}-01` : null;
   const [runs, structures, payrollSettings, employees, auditRows] = await Promise.all([
-    actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(24),
+    actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(120),
     actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").eq("is_active", true).order("created_at", { ascending: false }),
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
     actor.admin.from("employees").select("id,employee_code,name,title,department,status").eq("status", "active").order("employee_code"),
@@ -71,6 +76,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     return {
       ...run,
       net_payroll: entries.reduce((sum, entry) => sum + entry.net_salary, 0),
+      entries,
     } as PayrollRun;
   });
   let selectedRun: PayrollRun | null = null;
@@ -78,8 +84,8 @@ export async function loadPayroll(request: Request, month?: string | null) {
   if (payrollMonth) {
     const run = runDtos.find((item) => item.payroll_month === payrollMonth);
     if (run) {
-      const entries = entriesByRun.get(run.id) || [];
-      selectedRun = { ...run, entries };
+      const entries = run.entries || [];
+      selectedRun = run;
       const bank = await actor.admin.from("employee_finance_details").select("employee_id,bank_account_number,bank_name,ifsc_code,branch_name").in("employee_id", entries.map((entry) => entry.employee_id));
       if (bank.error) throw new Error(bank.error.message);
       bankDetails = bank.data || [];
@@ -89,7 +95,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
 }
 
 export async function saveSalaryStructure(request: Request, input: { employeeId: string; grossSalary: number; effectiveFrom: string; notes?: string }) {
-  const actor = await payrollActor(request); financeOnly(actor.role);
+  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
   const active = await actor.admin.from("salary_structures").select("*").eq("employee_id", input.employeeId).eq("is_active", true).maybeSingle();
   if (active.error) throw new Error(active.error.message);
   const versions = await actor.admin.from("salary_structures").select("version").eq("employee_id", input.employeeId).order("version", { ascending: false }).limit(1);
@@ -105,15 +111,23 @@ export async function saveSalaryStructure(request: Request, input: { employeeId:
   return insert.data;
 }
 
-export async function generatePayroll(request: Request, payrollMonth: string) {
-  const actor = await payrollActor(request); financeOnly(actor.role);
+async function buildPayroll(request: Request, payrollMonth: string, preserveManualAdjustments: boolean) {
+  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
   const config = await settings(actor.admin);
   const month = `${payrollMonth.slice(0, 7)}-01`;
   const period = payrollPeriod(month, config.period_start_day, config.period_end_day);
   const existing = await actor.admin.from("payroll_runs").select("*").eq("payroll_month", month).maybeSingle();
   if (existing.error) throw new Error(existing.error.message);
-  if (existing.data && existing.data.status !== "draft") throw new Error("Only a Draft payroll can be regenerated");
+  if (existing.data && !preserveManualAdjustments) throw new Error("Payroll has already been generated for this month");
+  if (existing.data && !["draft", "under_review"].includes(existing.data.status)) throw new Error("Only Generated payroll can be reprocessed");
   let run = existing.data;
+  const existingEntries = run
+    ? await actor.admin.from("payroll_entries").select("*").eq("payroll_run_id", run.id)
+    : { data: [], error: null };
+  if (existingEntries.error) throw new Error(existingEntries.error.message);
+  const manualByEmployee = new Map(
+    (preserveManualAdjustments ? existingEntries.data || [] : []).map((entry) => [entry.employee_id, entry]),
+  );
   if (!run) {
     const created = await actor.admin.from("payroll_runs").insert({ payroll_month: month, period_start: period.start, period_end: period.end, generated_by: actor.userId, updated_by: actor.userId }).select("*").single();
     if (created.error) throw new Error(created.error.message); run = created.data;
@@ -129,19 +143,28 @@ export async function generatePayroll(request: Request, payrollMonth: string) {
   for (const item of lop.data || []) lopByEmployee.set(item.employee_id, (lopByEmployee.get(item.employee_id) || 0) + Number(item.lop_salary_deduction_days || 0));
   const rows = (structures.data || []).map((structure) => {
     const employee = Array.isArray(structure.employees) ? structure.employees[0] : structure.employees;
-    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), conveyanceAllowance: config.conveyance_allowance, lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
+    const manual = manualByEmployee.get(structure.employee_id);
+    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), conveyanceAllowance: config.conveyance_allowance, bonus: Number(manual?.bonus || 0), leaveEncashment: Number(manual?.leave_encashment || 0), lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, confirmedLopDeduction: manual ? Number(manual.lop_deduction || 0) : undefined, previousMonthAdjustment: Number(manual?.previous_month_adjustment || 0), tds: Number(manual?.tds || 0), professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
     return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, status: "draft" };
   });
   if (rows.length) { const inserted = await actor.admin.from("payroll_entries").insert(rows); if (inserted.error) throw new Error(inserted.error.message); }
   const totals = rows.reduce((sum, row) => ({ gross: sum.gross + row.gross_salary, net: sum.net + row.net_salary, pf: sum.pf + row.employer_pf, eps: sum.eps + row.employer_eps }), { gross: 0, net: 0, pf: 0, eps: 0 });
   const update = await actor.admin.from("payroll_runs").update({ employee_count: rows.length, gross_payroll: totals.gross, net_payroll: totals.net, employer_pf_total: totals.pf, employer_eps_total: totals.eps, generated_at: new Date().toISOString(), generated_by: actor.userId, updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("id", run.id).select("*").single();
   if (update.error) throw new Error(update.error.message);
-  await audit(actor.admin, actor, { action: existing.data ? "payroll_reprocessed" : "payroll_generated", runId: run.id, next: update.data });
+  await audit(actor.admin, actor, { action: preserveManualAdjustments ? "payroll_reprocessed" : "payroll_generated", runId: run.id, next: update.data });
   return update.data;
 }
 
+export function generatePayroll(request: Request, payrollMonth: string) {
+  return buildPayroll(request, payrollMonth, false);
+}
+
+export function reprocessPayroll(request: Request, payrollMonth: string) {
+  return buildPayroll(request, payrollMonth, true);
+}
+
 export async function updatePayrollEntry(request: Request, entryId: string, values: { bonus?: number; leaveEncashment?: number; lopDeduction?: number; previousMonthAdjustment?: number; tds?: number; notes?: string }) {
-  const actor = await payrollActor(request); financeOnly(actor.role);
+  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
   const current = await actor.admin.from("payroll_entries").select("*").eq("id", entryId).single();
   if (current.error) throw new Error(current.error.message);
   if (!['draft','under_review'].includes(current.data.status)) throw new Error("Manual fields are locked for this payroll");
@@ -165,30 +188,41 @@ async function refreshRunTotals(admin: SupabaseClient, runId: string) {
 }
 
 export async function transitionPayroll(request: Request, runId: string, action: string, reason?: string) {
-  const actor = await payrollActor(request); financeOnly(actor.role);
+  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
   const current = await actor.admin.from("payroll_runs").select("*").eq("id", runId).single();
   if (current.error) throw new Error(current.error.message);
-  const nextByAction: Record<string, { from: string[]; to: string }> = { review: { from: ["draft"], to: "under_review" }, approve: { from: ["under_review"], to: "approved" }, lock: { from: ["approved"], to: "locked" }, publish: { from: ["locked"], to: "published" }, cancel: { from: ["draft","under_review","approved","locked","published"], to: "draft" } };
+  const nextByAction: Record<string, { from: string[]; to: string }> = {
+    approve: { from: ["draft", "under_review"], to: "approved" },
+    submit: { from: ["approved", "locked"], to: "published" },
+  };
   const transition = nextByAction[action];
   if (!transition || !transition.from.includes(current.data.status)) throw new Error(`Cannot ${action} payroll in ${current.data.status} status`);
-  if (action === "cancel" && !reason?.trim()) throw new Error("A cancellation reason is required");
   const now = new Date().toISOString();
   const fields: Record<string, unknown> = { status: transition.to, updated_at: now, updated_by: actor.userId };
   if (action === "approve") Object.assign(fields, { approved_at: now, approved_by: actor.userId });
-  if (action === "lock") Object.assign(fields, { locked_at: now, locked_by: actor.userId });
-  if (action === "publish") Object.assign(fields, { published_at: now, published_by: actor.userId });
-  if (action === "cancel") Object.assign(fields, { cancellation_reason: reason, approved_at: null, approved_by: null, locked_at: null, locked_by: null, published_at: null, published_by: null });
+  if (action === "submit") Object.assign(fields, { locked_at: now, locked_by: actor.userId, published_at: now, published_by: actor.userId });
   const update = await actor.admin.from("payroll_runs").update(fields).eq("id", runId).select("*").single();
   if (update.error) throw new Error(update.error.message);
-  const entries = await actor.admin.from("payroll_entries").update({ status: transition.to, published_at: action === "publish" ? now : null, updated_at: now }).eq("payroll_run_id", runId);
+  const entries = await actor.admin.from("payroll_entries").update({ status: transition.to, published_at: action === "submit" ? now : null, updated_at: now }).eq("payroll_run_id", runId);
   if (entries.error) throw new Error(entries.error.message);
-  const auditAction: Record<string, string> = { review: "payroll_submitted_for_review", approve: "payroll_approved", lock: "payroll_locked", publish: "payroll_published", cancel: "payroll_cancelled" };
+  const auditAction: Record<string, string> = { approve: "payroll_approved", submit: "payroll_submitted" };
   await audit(actor.admin, actor, { action: auditAction[action], runId, reason, previous: current.data, next: update.data });
   return update.data;
 }
 
+export async function cancelPayroll(request: Request, runId: string, reason: string) {
+  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
+  if (!reason.trim()) throw new Error("A cancellation reason is required");
+  const current = await actor.admin.from("payroll_runs").select("*").eq("id", runId).single();
+  if (current.error) throw new Error(current.error.message);
+  await audit(actor.admin, actor, { action: "payroll_cancelled", runId, reason, previous: current.data });
+  const removed = await actor.admin.from("payroll_runs").delete().eq("id", runId);
+  if (removed.error) throw new Error(removed.error.message);
+  return { cancelled: true, runId };
+}
+
 export async function savePayrollSettings(request: Request, input: Partial<PayrollSettings>) {
-  const actor = await payrollActor(request); financeOnly(actor.role);
+  const actor = await payrollActor(request); payrollAdminOnly(actor.role);
   const previous = await settings(actor.admin);
   const update = await actor.admin.from("payroll_settings").update({ period_start_day: input.period_start_day, period_end_day: input.period_end_day, professional_tax_threshold: input.professional_tax_threshold, professional_tax_amount: input.professional_tax_amount, conveyance_allowance: input.conveyance_allowance, updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("singleton_key", true).select("*").single();
   if (update.error) throw new Error(update.error.message);
