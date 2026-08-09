@@ -13,6 +13,10 @@ import type {
 } from "./types";
 import { isAdminLevelRole, isFinanceAdminRole } from "@/lib/roles";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
+import { buildBankTransferFile } from "./exports";
+import { bankTransferFilename } from "./filenames";
+
+const payrollBankFields = "payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code,payroll_bank_branch_code,payroll_bank_currency";
 
 export function payrollAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -76,7 +80,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
     actor.admin.from("employees").select("id,employee_code,name,title,department,status").eq("status", "active").order("employee_code"),
     actor.admin.from("payroll_audit_log").select("*").order("created_at", { ascending: false }).limit(100),
-    actor.admin.from("company_settings").select("payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code").eq("singleton_key", true).maybeSingle(),
+    actor.admin.from("company_settings").select(payrollBankFields).eq("singleton_key", true).maybeSingle(),
   ]);
   const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error;
   if (failure) throw new Error(failure.message);
@@ -125,6 +129,8 @@ export async function loadPayroll(request: Request, month?: string | null) {
       payroll_bank_customer_id: null,
       payroll_bank_account_number: null,
       payroll_bank_ifsc_code: null,
+      payroll_bank_branch_code: null,
+      payroll_bank_currency: "INR",
     }) as CompanyPayrollBankDetails,
   };
 }
@@ -394,18 +400,56 @@ export async function savePayrollSettings(request: Request, input: Partial<Payro
 export async function savePayrollBankSettings(request: Request, input: CompanyPayrollBankDetails) {
   const actor = await payrollActor(request); financePayrollOnly(actor.role);
   const normalize = (value: string | null | undefined) => String(value || "").trim() || null;
-  const previous = await actor.admin.from("company_settings").select("payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code").eq("singleton_key", true).maybeSingle();
+  const branchCode = normalize(input.payroll_bank_branch_code);
+  const currency = normalize(input.payroll_bank_currency)?.toUpperCase() || "INR";
+  if (branchCode && /[|^\r\n]/.test(branchCode)) throw new Error("Branch Code contains an unsupported character");
+  if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Currency must be a three-letter code such as INR");
+  const previous = await actor.admin.from("company_settings").select(payrollBankFields).eq("singleton_key", true).maybeSingle();
   if (previous.error) throw new Error(previous.error.message);
   const payload = {
     singleton_key: true,
     payroll_bank_customer_id: normalize(input.payroll_bank_customer_id),
     payroll_bank_account_number: normalize(input.payroll_bank_account_number),
     payroll_bank_ifsc_code: normalize(input.payroll_bank_ifsc_code)?.toUpperCase() || null,
+    payroll_bank_branch_code: branchCode,
+    payroll_bank_currency: currency,
     updated_at: new Date().toISOString(),
     updated_by: actor.userId,
   };
-  const saved = await actor.admin.from("company_settings").upsert(payload, { onConflict: "singleton_key" }).select("payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code").single();
+  const saved = await actor.admin.from("company_settings").upsert(payload, { onConflict: "singleton_key" }).select(payrollBankFields).single();
   if (saved.error) throw new Error(saved.error.message);
   await audit(actor.admin, actor, { action: "payroll_bank_settings_changed", previous: previous.data, next: saved.data });
   return saved.data as CompanyPayrollBankDetails;
+}
+
+export async function exportPayrollBankTransfer(request: Request, runId: string) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const runResult = await actor.admin.from("payroll_runs").select("*").eq("id", runId).single();
+  if (runResult.error) throw new Error(runResult.error.message);
+  const entriesResult = await actor.admin.from("payroll_entries").select("*").eq("payroll_run_id", runId).order("employee_code");
+  if (entriesResult.error) throw new Error(entriesResult.error.message);
+  const entries = (entriesResult.data || []).map(toPayrollEntryDto);
+  const employeeIds = entries.map((entry) => entry.employee_id);
+  const [bankResult, companyResult] = await Promise.all([
+    employeeIds.length
+      ? actor.admin.from("employee_finance_details").select("employee_id,bank_account_number,bank_name,ifsc_code,branch_name").in("employee_id", employeeIds)
+      : Promise.resolve({ data: [], error: null }),
+    actor.admin.from("company_settings").select(payrollBankFields).eq("singleton_key", true).maybeSingle(),
+  ]);
+  const failure = bankResult.error || companyResult.error;
+  if (failure) throw new Error(failure.message);
+  const run = { ...runResult.data, entries } as PayrollRun;
+  const content = buildBankTransferFile(run, (bankResult.data || []) as EmployeeBankDetails[], (companyResult.data || {}) as CompanyPayrollBankDetails);
+  const total = entries.reduce((sum, entry) => sum + Math.round(Number(entry.net_salary || 0)), 0);
+  await audit(actor.admin, actor, {
+    action: "bank_transfer_file_exported",
+    runId,
+    next: {
+      payroll_month: run.payroll_month,
+      employee_count: entries.length,
+      total_amount: total,
+      salary_processing_date: run.processing_date,
+    },
+  });
+  return { content, filename: bankTransferFilename(run.payroll_month) };
 }

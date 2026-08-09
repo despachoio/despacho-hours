@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
-import { downloadPayrollSummary, downloadPayrollYtd, downloadPayslip } from "@/lib/payroll/client";
+import { downloadBankTransfer, downloadPayrollSummary, downloadPayrollYtd, downloadPayslip } from "@/lib/payroll/client";
 import { currentFinancialYear, financialYearFromValue, financialYearOptions } from "@/lib/payroll/financialYear";
 import {
   buildBankTransferFile,
+  bankTransferSummary,
   employeeBankDetailsMap,
   salaryRegisterHeaders,
   salaryRegisterRows,
@@ -39,14 +40,6 @@ function Metric({ label, value, colour }: { label: string; value: string; colour
   return <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{label}</p><p className={`mt-4 text-2xl font-bold capitalize ${colour}`}>{value}</p></Card>;
 }
 
-function saveBlob(blob: Blob, filename: string) {
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(link.href);
-}
-
 async function downloadSalaryRegister(run: PayrollRun, bankDetails: EmployeeBankDetails[]) {
   const XLSX = await import("xlsx");
   const sheet = XLSX.utils.aoa_to_sheet([salaryRegisterHeaders, ...salaryRegisterRows(run, bankDetails)]);
@@ -54,11 +47,6 @@ async function downloadSalaryRegister(run: PayrollRun, bankDetails: EmployeeBank
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "Salary Register");
   XLSX.writeFile(book, `Salary_Register_${run.payroll_month.slice(0, 7)}.xlsx`);
-}
-
-function downloadBankFile(run: PayrollRun, bankDetails: EmployeeBankDetails[], companyBankDetails: CompanyPayrollBankDetails) {
-  const content = buildBankTransferFile(run, bankDetails, companyBankDetails);
-  saveBlob(new Blob([content], { type: "text/plain;charset=utf-8" }), `Bank_Transfer_${run.payroll_month.slice(0, 7)}.txt`);
 }
 
 const localDateValue = () => {
@@ -71,6 +59,7 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
   const [busy, setBusy] = useState("");
   const [processingDate, setProcessingDate] = useState(run?.processing_date || localDateValue());
   const [exportError, setExportError] = useState("");
+  const [confirmingBankExport, setConfirmingBankExport] = useState(false);
 
   async function execute(name: string, payload: Record<string, unknown>) {
     if (busy) return;
@@ -83,11 +72,14 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
     if (!run) return;
     setExportError("");
     try {
-      downloadBankFile(run, data.bankDetails || [], data.companyBankDetails || {
+      buildBankTransferFile(run, data.bankDetails || [], data.companyBankDetails || {
         payroll_bank_customer_id: null,
         payroll_bank_account_number: null,
         payroll_bank_ifsc_code: null,
+        payroll_bank_branch_code: null,
+        payroll_bank_currency: null,
       });
+      setConfirmingBankExport(true);
     } catch (cause) {
       setExportError(cause instanceof Error ? cause.message : "Unable to create the bank transfer file.");
     }
@@ -111,15 +103,31 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
         {run && canApprovePayroll(run.status) ? <KairoButton type="button" disabled={Boolean(busy)} onClick={() => void execute("approve", { action: "approve", runId: run.id })}>{busy === "approve" ? "Approving..." : "Approve Payroll"}</KairoButton> : null}
         {run && canSubmitPayroll(run.status) ? <KairoButton type="button" disabled={Boolean(busy)} onClick={() => void execute("submit", { action: "submit", runId: run.id })}>{busy === "submit" ? "Submitting..." : "Submit Payroll"}</KairoButton> : null}
         {run ? <KairoButton type="button" variant="danger" disabled={Boolean(busy)} onClick={() => void cancel()}>{busy === "cancel" ? "Cancelling..." : "Cancel Payroll"}</KairoButton> : null}
-        {run && canExportPayroll(run.status) ? <div className="ml-auto flex flex-wrap gap-3"><KairoButton type="button" disabled={Boolean(busy)} onClick={() => void downloadSalaryRegister(run, data.bankDetails || [])}>Download Salary Register</KairoButton><KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={exportBankFile}>Export Bank Transfer File</KairoButton></div> : null}
+        {run && canExportPayroll(run.status) ? <div className="ml-auto flex flex-wrap gap-3"><KairoButton type="button" disabled={Boolean(busy)} onClick={() => void downloadSalaryRegister(run, data.bankDetails || [])}>Download Salary Register</KairoButton>{data.role === "finance admin" ? <KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={exportBankFile}>Export Bank Transfer File</KairoButton> : null}</div> : null}
       </div>
-      {exportError ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{exportError}</p> : null}
+      {exportError && !confirmingBankExport ? <p role="alert" className="mt-4 whitespace-pre-line rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{exportError}</p> : null}
     </Card>
     {run ? <>
       <div className="grid gap-4 md:grid-cols-4"><Metric label="Employees Processed" value={String(run.employee_count)} colour="text-[#153E90]"/><Metric label="Gross Payroll" value={money(run.gross_payroll)} colour="text-emerald-700"/><Metric label="Net Payroll" value={money(run.net_payroll)} colour="text-blue-700"/><Metric label="Status" value={lifecycle || "Generated"} colour="text-violet-700"/></div>
       <SalaryRegister run={run} bankDetails={data.bankDetails || []} editable={canEditPayroll(run.status)} onEdit={onEdit} />
     </> : null}
+    {run && confirmingBankExport ? <BankExportDialog run={run} bank={data.companyBankDetails!} busy={busy === "bank-export"} error={exportError} onClose={() => { setConfirmingBankExport(false); setExportError(""); }} onGenerate={async () => { setBusy("bank-export"); setExportError(""); try { await downloadBankTransfer(run.id); setConfirmingBankExport(false); } catch (cause) { setExportError(cause instanceof Error ? cause.message : "Unable to create the bank transfer file."); } finally { setBusy(""); } }} /> : null}
   </div>;
+}
+
+function BankExportDialog({ run, bank, busy, error, onClose, onGenerate }: { run: PayrollRun; bank: CompanyPayrollBankDetails; busy: boolean; error: string; onClose: () => void; onGenerate: () => Promise<void> }) {
+  const summary = bankTransferSummary(run, bank);
+  const displayDate = new Date(`${run.processing_date}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
+  const details = [
+    ["Payroll Month", payrollMonthLabel(run.payroll_month)],
+    ["Salary Processing Date", displayDate],
+    ["Employees", String(summary.employeeCount)],
+    ["Total Transfer", money(summary.total)],
+    ["Debit Account", summary.maskedDebitAccount],
+    ["Branch Code", bank.payroll_bank_branch_code || "-"],
+    ["Customer ID", bank.payroll_bank_customer_id || "-"],
+  ];
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-5"><section role="dialog" aria-modal="true" aria-labelledby="bank-export-title" className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl"><header className="bg-gradient-to-r from-[#0F172A] via-[#153E90] to-[#155E75] px-7 py-6 text-white"><p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-200">Secure payroll export</p><h2 id="bank-export-title" className="mt-2 text-2xl font-bold">Generate Bank Transfer TXT</h2><p className="mt-2 text-sm text-blue-100">Confirm the approved payroll and debit-account summary before download.</p></header><div className="grid gap-3 p-7 sm:grid-cols-2">{details.map(([label,value]) => <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className="mt-1 font-bold text-slate-900">{value}</p></div>)}</div>{error ? <p role="alert" className="mx-7 mb-5 whitespace-pre-line rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}<footer className="flex justify-end gap-3 border-t border-slate-100 px-7 py-5"><KairoButton type="button" variant="secondary" disabled={busy} onClick={onClose}>Cancel</KairoButton><KairoButton type="button" disabled={busy} onClick={() => void onGenerate()}>{busy ? "Generating..." : "Generate TXT File"}</KairoButton></footer></section></div>;
 }
 
 function SalaryRegister({ run, bankDetails, editable, onEdit }: { run: PayrollRun; bankDetails: EmployeeBankDetails[]; editable: boolean; onEdit: (entry: PayrollEntry) => void }) {

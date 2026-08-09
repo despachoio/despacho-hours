@@ -89,10 +89,13 @@ export type EmployeeBankDetails = {
   bank_name: string | null;
   ifsc_code: string | null;
   bank_account_number: string | null;
+  branch_name?: string | null;
 };
 
 export type CompanyPayrollBankDetails = {
   payroll_bank_customer_id: string | null;
   payroll_bank_account_number: string | null;
   payroll_bank_ifsc_code: string | null;
+  payroll_bank_branch_code: string | null;
+  payroll_bank_currency: string | null;
 };

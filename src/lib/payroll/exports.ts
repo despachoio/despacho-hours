@@ -5,6 +5,7 @@ import type {
   PayrollRun,
 } from "./types";
 import { PAYROLL_LABELS } from "./labels";
+import { canExportPayroll } from "./lifecycle";
 
 export const salaryRegisterHeaders = [
   "Employee Code", "Employee Name", "Bank Name", "IFSC Code", "Bank Account Number",
@@ -39,46 +40,96 @@ export function salaryRegisterRows(run: PayrollRun, bankDetails: EmployeeBankDet
   ]);
 }
 
-const requiredCompanyBankValue = (value: string | null | undefined, label: string) => {
+const unsafeBankText = /[|^\r\n]/;
+const exportError = (message: string) => new Error(`Bank transfer file cannot be generated. ${message}`);
+
+function requiredBankValue(value: string | null | undefined, label: string) {
   const normalized = String(value || "").trim();
-  if (!normalized) throw new Error(`${label} is missing in Company Settings.`);
+  if (!normalized) throw exportError(`Payroll Bank Account ${label} is missing.`);
+  if (unsafeBankText.test(normalized)) throw exportError(`Payroll Bank Account ${label} contains an unsupported character.`);
   return normalized;
-};
+}
+
+function bankProcessingDate(value: string | null | undefined) {
+  const normalized = String(value || "").trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+  if (!match) throw new Error("Salary Processing Date is missing for this payroll. Please correct the payroll processing details before exporting the bank transfer file.");
+  const date = new Date(`${normalized}T00:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) {
+    throw new Error("Salary Processing Date is missing for this payroll. Please correct the payroll processing details before exporting the bank transfer file.");
+  }
+  return `${match[2]}/${match[3]}/${match[1]}`;
+}
+
+function safeEmployeeName(entry: PayrollEntry) {
+  const name = stripEmployeeTitle(String(entry.employee_name || ""));
+  if (!name) throw exportError(`${entry.employee_code || "Unknown employee"} – Employee Name missing.`);
+  if (unsafeBankText.test(name)) throw exportError(`${entry.employee_code} – ${name} – Employee Name contains an unsupported character.`);
+  return name;
+}
+
+function wholeRupees(value: unknown, employeeCode: string, employeeName: string) {
+  if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value)) || Number(value) < 0) {
+    throw exportError(`${employeeCode} – ${employeeName} – Net Pay missing or invalid.`);
+  }
+  return Math.round(Number(value));
+}
 
 export function buildBankTransferFile(
   run: PayrollRun,
   bankDetails: EmployeeBankDetails[],
   companyBankDetails: CompanyPayrollBankDetails,
 ) {
-  const customerId = requiredCompanyBankValue(companyBankDetails.payroll_bank_customer_id, "Customer ID");
-  const debitAccount = requiredCompanyBankValue(companyBankDetails.payroll_bank_account_number, "Company bank account number");
-  const debitIfsc = requiredCompanyBankValue(companyBankDetails.payroll_bank_ifsc_code, "Company IFSC code");
-  const processingDate = requiredCompanyBankValue(run.processing_date, "Payroll processing date");
+  if (!canExportPayroll(run.status)) throw exportError("Payroll must be Approved or Submitted before export.");
+  const customerId = requiredBankValue(companyBankDetails.payroll_bank_customer_id, "Customer ID");
+  const debitAccount = requiredBankValue(companyBankDetails.payroll_bank_account_number, "Debit Account Number");
+  const debitIfsc = requiredBankValue(companyBankDetails.payroll_bank_ifsc_code, "Debit IFSC").toUpperCase();
+  const branchCode = requiredBankValue(companyBankDetails.payroll_bank_branch_code, "Branch Code");
+  const currency = requiredBankValue(companyBankDetails.payroll_bank_currency, "Currency").toUpperCase();
+  const processingDate = bankProcessingDate(run.processing_date);
   const detailsByEmployee = employeeBankDetailsMap(bankDetails);
-  const paymentRows = (run.entries || []).map((entry) => {
+  const monthDate = new Date(`${run.payroll_month.slice(0, 7)}-01T00:00:00Z`);
+  if (Number.isNaN(monthDate.getTime())) throw exportError("Payroll Month is invalid.");
+  const narration = `Despacho Salary ${monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}`;
+  if (unsafeBankText.test(narration)) throw exportError("Narration contains an unsupported character.");
+  const employeeErrors: string[] = [];
+  const paymentRows = (run.entries || []).flatMap((entry) => {
+    let name = "Employee Name";
+    try { name = safeEmployeeName(entry); } catch (cause) { employeeErrors.push(cause instanceof Error ? cause.message.replace(/^Bank transfer file cannot be generated\. /, "") : `${entry.employee_code} – Employee Name missing.`); return []; }
     const details = detailsByEmployee.get(entry.employee_id);
-    if (!details?.bank_account_number || !details.ifsc_code) {
-      throw new Error(`Bank account number and IFSC code are required for ${stripEmployeeTitle(entry.employee_name)}.`);
-    }
-    return [
-      entry.employee_code,
-      stripEmployeeTitle(entry.employee_name),
-      details.bank_name || "",
-      details.bank_account_number,
-      details.ifsc_code,
-      Math.round(Number(entry.net_salary || 0)),
-    ].join("\t");
+    const account = String(details?.bank_account_number || "").trim();
+    const ifsc = String(details?.ifsc_code || "").trim().toUpperCase();
+    if (!account) employeeErrors.push(`${entry.employee_code} – ${name} – Bank Account Number missing.`);
+    if (!ifsc) employeeErrors.push(`${entry.employee_code} – ${name} – IFSC missing.`);
+    if (unsafeBankText.test(account) || unsafeBankText.test(ifsc)) employeeErrors.push(`${entry.employee_code} – ${name} – Bank details contain an unsupported character.`);
+    let amount = 0;
+    try { amount = wholeRupees(entry.net_salary, entry.employee_code, name); } catch (cause) { employeeErrors.push(cause instanceof Error ? cause.message.replace(/^Bank transfer file cannot be generated\. /, "") : `${entry.employee_code} – ${name} – Net Pay missing or invalid.`); }
+    if (!account || !ifsc || unsafeBankText.test(account) || unsafeBankText.test(ifsc) || !Number.isFinite(Number(entry.net_salary)) || Number(entry.net_salary) < 0) return [];
+    return [{
+      amount,
+      record: ifsc.startsWith("ICIC")
+        ? ["MCW", account, branchCode, name, amount, currency, narration, ifsc, "WIB"].join("|") + "^"
+        : ["MCO", account, branchCode, name, amount, currency, narration, "NFT", ifsc].join("|") + "^",
+    }];
   });
-  const metadata = [
-    ["Customer ID", customerId],
-    ["Debit Account Number", debitAccount],
-    ["Debit IFSC", debitIfsc],
-    ["Processing Date", processingDate],
-    ["Payroll Month", run.payroll_month.slice(0, 7)],
-    ["Total Amount", Math.round(Number(run.net_payroll || 0))],
-  ].map((row) => row.join("\t"));
-  const header = ["Employee Code", "Beneficiary", "Bank Name", "Account Number", "IFSC", "Amount"].join("\t");
-  return [...metadata, "", header, ...paymentRows].join("\n");
+  if (employeeErrors.length) {
+    const employeeCount = new Set(employeeErrors.map((message) => message.split(" – ")[0])).size;
+    throw exportError(`${employeeCount} ${employeeCount === 1 ? "employee has" : "employees have"} incomplete bank details.\n${employeeErrors.join("\n")}`);
+  }
+  const total = paymentRows.reduce((sum, row) => sum + row.amount, 0);
+  const fhr = ["FHR", paymentRows.length + 1, processingDate, "Cut-off", total, currency, debitAccount, branchCode].join("|") + "^";
+  const mdr = ["MDR", debitAccount, branchCode, customerId, total, currency, narration, debitIfsc, "WIB"].join("|") + "^";
+  return [fhr, mdr, ...paymentRows.map((row) => row.record)].join("\n");
+}
+
+export function bankTransferSummary(run: PayrollRun, companyBankDetails: CompanyPayrollBankDetails) {
+  const total = (run.entries || []).reduce((sum, entry) => sum + Math.round(Number(entry.net_salary || 0)), 0);
+  const account = String(companyBankDetails.payroll_bank_account_number || "").trim();
+  return {
+    employeeCount: (run.entries || []).length,
+    total,
+    maskedDebitAccount: account ? `${"X".repeat(Math.max(account.length - 4, 4))}${account.slice(-4)}` : "Not configured",
+  };
 }
 
 export type PayrollSummary = {

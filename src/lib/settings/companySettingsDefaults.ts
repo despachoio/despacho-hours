@@ -31,6 +31,8 @@ export type CompanySettings = {
   payroll_bank_customer_id: string | null;
   payroll_bank_account_number: string | null;
   payroll_bank_ifsc_code: string | null;
+  payroll_bank_branch_code: string | null;
+  payroll_bank_currency: string | null;
   payment_instructions: string | null;
   default_invoice_notes: string | null;
   default_reminder_before_due_days: number[];
@@ -80,6 +82,8 @@ export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   payroll_bank_customer_id: null,
   payroll_bank_account_number: null,
   payroll_bank_ifsc_code: null,
+  payroll_bank_branch_code: null,
+  payroll_bank_currency: "INR",
   payment_instructions: "Thank you for choosing Despacho.",
   default_invoice_notes: null,
   default_reminder_before_due_days: [7, 3, 1],

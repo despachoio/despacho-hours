@@ -36,6 +36,8 @@ const EDITABLE_FIELDS = [
   "payroll_bank_customer_id",
   "payroll_bank_account_number",
   "payroll_bank_ifsc_code",
+  "payroll_bank_branch_code",
+  "payroll_bank_currency",
   "payment_instructions",
   "default_invoice_notes",
   "default_reminder_before_due_days",
