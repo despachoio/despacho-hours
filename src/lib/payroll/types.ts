@@ -56,7 +56,31 @@ export type PayrollEntry = {
   status: PayrollStatus;
   published_at: string | null;
   manual_notes: string | null;
+  recurring_adjustment_snapshot: RecurringAdjustmentSnapshot[];
+  manual_override_fields: string[];
 };
+
+export type RecurringAdjustmentType = "earning" | "deduction";
+export type RecurringAdjustmentComponent = "bonus" | "tds";
+
+export type RecurringPayrollAdjustment = {
+  id: string;
+  employee_id: string;
+  adjustment_type: RecurringAdjustmentType;
+  component: RecurringAdjustmentComponent;
+  amount: number;
+  from_month: string;
+  to_month: string | null;
+  enabled: boolean;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_by: string | null;
+  updated_at: string;
+  employees?: { id: string; employee_code: string; name: string; title?: string | null; status: string } | null;
+};
+
+export type RecurringAdjustmentSnapshot = Pick<RecurringPayrollAdjustment, "id" | "adjustment_type" | "component" | "amount" | "from_month" | "to_month">;
 
 export type PayrollRun = {
   id: string;

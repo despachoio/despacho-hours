@@ -9,7 +9,8 @@ import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
 import { buildBankTransferFile, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
 import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus, selectEffectiveSalaryStructures } from "../src/lib/payroll/salaryStructures";
-import type { SalaryStructure } from "../src/lib/payroll/types";
+import { applicableRecurringAdjustments, payrollMonthDate, recurringAdjustmentStatus, recurringComponentTotal } from "../src/lib/payroll/recurringAdjustments";
+import type { RecurringPayrollAdjustment, SalaryStructure } from "../src/lib/payroll/types";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -105,6 +106,42 @@ describe("Effective-dated salary structure selection", () => {
   });
 });
 
+describe("Recurring payroll adjustments", () => {
+  const tds = { id: "tds-1", employee_id: "employee-1", adjustment_type: "deduction", component: "tds", amount: 82_000, from_month: "2026-04-01", to_month: "2027-03-01", enabled: true } as RecurringPayrollAdjustment;
+
+  it("normalizes stable payroll months and derives scheduled, active, expired, and disabled status", () => {
+    expect(payrollMonthDate("2026-04")).toBe("2026-04-01");
+    expect(recurringAdjustmentStatus(tds, "2026-03")).toBe("scheduled");
+    expect(recurringAdjustmentStatus(tds, "2026-07")).toBe("active");
+    expect(recurringAdjustmentStatus(tds, "2027-04")).toBe("expired");
+    expect(recurringAdjustmentStatus({ ...tds, enabled: false }, "2026-07")).toBe("disabled");
+  });
+
+  it("applies TDS inside its range and excludes it after March 2027", () => {
+    const july = applicableRecurringAdjustments([tds], "employee-1", "2026-07");
+    expect(recurringComponentTotal(july, "tds")).toBe(82_000);
+    expect(applicableRecurringAdjustments([tds], "employee-1", "2027-04")).toEqual([]);
+    expect(calculatePayroll({ grossSalary: 384_000, employeePf: 1_800, tds: recurringComponentTotal(july, "tds") }).tds).toBe(82_000);
+  });
+
+  it("supports indefinite ranges while disabled and future rules never apply", () => {
+    const indefinite = { ...tds, to_month: null };
+    expect(applicableRecurringAdjustments([indefinite], "employee-1", "2030-08")).toHaveLength(1);
+    expect(applicableRecurringAdjustments([{ ...indefinite, enabled: false }], "employee-1", "2026-07")).toEqual([]);
+    expect(applicableRecurringAdjustments([{ ...tds, from_month: "2026-09-01" }], "employee-1", "2026-07")).toEqual([]);
+  });
+
+  it("snapshots recurring sources and preserves only deliberate month overrides during reprocessing", () => {
+    const server = source("src/lib/payroll/server.ts");
+    expect(server).toContain('recurring_adjustment_snapshot: recurringSnapshot');
+    expect(server).toContain('overrideFields.includes("tds")');
+    expect(server).toContain('overrideFields.includes("bonus")');
+    expect(server).toContain('manual_override_fields: [...manualOverrideFields]');
+    expect(server).toContain('if (existing.data && !["draft", "under_review"].includes(existing.data.status))');
+    expect(server).toContain('const recurringTds = recurringComponentTotal(applicable, "tds")');
+  });
+});
+
 describe("Payroll financial year", () => {
   it("uses April through March without changing monthly payroll values", () => {
     const financialYear = currentFinancialYear(new Date(2026, 7, 2));
@@ -136,12 +173,14 @@ describe("Payroll security and snapshot contracts", () => {
   const bankTransferMigration = source("supabase/migrations/202608090002_payroll_bank_transfer_details.sql");
   const salaryVersionMigration = source("supabase/migrations/202608090003_salary_structure_effective_versions.sql");
   const bankFormatMigration = source("supabase/migrations/202608090004_payroll_bank_export_format.sql");
-  it("allows Finance Admin, Super Admin, and Admin administration while employees retain published snapshots", () => {
+  const recurringMigration = source("supabase/migrations/202608090005_recurring_payroll_adjustments.sql");
+  it("restricts administration to Finance Admin while employees retain published snapshots", () => {
     expect(migration).toContain("public.get_my_actual_role() = 'finance admin'");
     expect(migration).toContain("employee_id = public.get_my_employee_id() and published_at is not null and status = 'published'");
-    expect(lifecycleMigration).toContain("('finance admin', 'super admin', 'admin')");
     expect(lifecycleMigration).toContain("payroll_runs_admin_all");
     expect(lifecycleMigration).toContain("payroll_entries_admin_all");
+    expect(recurringMigration).toContain("drop policy if exists payroll_runs_admin_all");
+    expect(recurringMigration).toContain("create policy payroll_runs_finance_all");
   });
   it("stores every required payslip snapshot component", () => {
     for (const column of ["gross_salary","basic_pay","hra","conveyance_allowance","other_allowance","bonus","leave_encashment","employee_pf","employer_pf","employer_eps","professional_tax","lop_deduction","previous_month_adjustment","tds","net_salary","salary_structure_version"]) expect(migration).toContain(column);
@@ -152,9 +191,33 @@ describe("Payroll security and snapshot contracts", () => {
     expect(workspace).toContain("Download Payslip");
     expect(workspace).toContain('setTab("administration")');
     expect(workspace).toContain('aria-label="Payroll administration sections"');
-    for (const section of ["Payroll Dashboard", "Salary Structures", "Payroll Processing", "Reports", "Settings"]) expect(workspace).toContain(section);
+    for (const section of ["Payroll Dashboard", "Salary Structures", "Recurring Adjustments", "Payroll Processing", "Reports", "Settings"]) expect(workspace).toContain(section);
     expect(workspace).not.toContain('["register", "Salary Register"]');
     expect(source("src/app/api/payroll/payslip/[id]/route.ts")).toContain("entry.employee_id !== actor.employeeId");
+  });
+
+  it("protects recurring payroll administration for Finance Admin only", () => {
+    const server = source("src/lib/payroll/server.ts");
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    const recurringUi = source("src/components/payroll/RecurringAdjustments.tsx");
+    expect(recurringMigration).toContain("create table if not exists public.recurring_payroll_adjustments");
+    expect(recurringMigration).toContain("public.get_my_actual_role() = 'finance admin'");
+    expect(recurringMigration).toContain("recurring_adjustment_snapshot jsonb");
+    expect(recurringMigration).toContain("manual_override_fields text[]");
+    for (const action of ["recurring_adjustment_created", "recurring_adjustment_updated", "recurring_adjustment_duplicated", "recurring_adjustment_enabled", "recurring_adjustment_disabled"]) expect(server).toContain(action);
+    expect(workspace).toContain("const administrationAccess = isFinanceAdminRole(data?.role)");
+    expect(recurringUi).toContain('role !== "finance admin"');
+  });
+
+  it("places the organization-wide active structures action in the compensation header", () => {
+    const structures = source("src/components/payroll/SalaryStructures.tsx");
+    expect(structures.indexOf("View Active Salary Structures")).toBeLessThan(structures.indexOf('Employee<select'));
+    expect(structures.indexOf("Add Salary Structure")).toBeGreaterThan(structures.indexOf('Employee<select'));
+  });
+
+  it("does not modify the approved Payslip or YTD PDF components", () => {
+    expect(source("src/components/payroll/PayslipPdfDocument.tsx")).toContain("PAYSLIP");
+    expect(source("src/components/payroll/YtdPayrollPdfDocument.tsx")).toContain("YTD Summary");
   });
 
   it("implements the Generated, Approved, Submitted lifecycle", () => {

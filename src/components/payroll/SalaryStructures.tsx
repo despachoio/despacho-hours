@@ -54,13 +54,12 @@ export default function SalaryStructures({ data, onRefresh }: { data: StructureD
   return <div className="space-y-5">
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 px-6 py-5">
-        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Effective-dated compensation</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Salary Structures</h2><p className="mt-1 text-sm text-slate-500">Search an employee to review every salary version without changing historical payroll.</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Effective-dated compensation</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Salary Structures</h2><p className="mt-1 text-sm text-slate-500">Search an employee to review every salary version without changing historical payroll.</p></div><KairoButton type="button" variant="secondary" onClick={() => { setViewingAllActive(true); setAppliedEmployeeId(""); setDialog(null); setDeleting(null); setError(""); }}>View Active Salary Structures</KairoButton>
       </div>
       <div className="flex flex-wrap items-end gap-3 p-6">
         <label className="w-full text-sm font-bold text-slate-700 sm:w-72">Employee<select value={selectedEmployeeId} onChange={(event) => { setSelectedEmployeeId(event.target.value); setViewingAllActive(false); }} className={inputClass}><option value="">Select active employee</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_code} – {employee.name}</option>)}</select></label>
         <KairoButton type="button" disabled={!selectedEmployeeId} onClick={() => { setAppliedEmployeeId(selectedEmployeeId); setViewingAllActive(false); setDialog(null); setDeleting(null); setError(""); }}>Search</KairoButton>
         <KairoButton type="button" disabled={!appliedEmployeeId || appliedEmployeeId !== selectedEmployeeId || viewingAllActive} onClick={() => { setError(""); setDialog({ mode: "create" }); }}>Add Salary Structure</KairoButton>
-        <KairoButton type="button" variant="secondary" onClick={() => { setViewingAllActive(true); setAppliedEmployeeId(""); setDialog(null); setDeleting(null); setError(""); }}>View Active Salary Structures</KairoButton>
         <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
       </div>
       {error ? <p role="alert" className="mx-6 mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}

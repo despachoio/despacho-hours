@@ -9,12 +9,16 @@ import type {
   EmployeeBankDetails,
   PayrollRun,
   PayrollSettings,
+  RecurringAdjustmentComponent,
+  RecurringAdjustmentType,
+  RecurringPayrollAdjustment,
   SalaryStructure,
 } from "./types";
-import { isAdminLevelRole, isFinanceAdminRole } from "@/lib/roles";
+import { isFinanceAdminRole } from "@/lib/roles";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
 import { buildBankTransferFile } from "./exports";
 import { bankTransferFilename } from "./filenames";
+import { applicableRecurringAdjustments, payrollMonthDate, recurringComponentTotal } from "./recurringAdjustments";
 
 const payrollBankFields = "payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code,payroll_bank_branch_code,payroll_bank_currency";
 
@@ -37,7 +41,7 @@ export async function payrollActor(request: Request) {
 }
 
 const payrollAdminOnly = (role: string) => {
-  if (!isAdminLevelRole(role)) throw new Error("Payroll administration access required");
+  if (!isFinanceAdminRole(role)) throw new Error("Finance Admin access required");
 };
 
 export const financePayrollOnly = (role: string) => {
@@ -69,20 +73,21 @@ export async function loadPayroll(request: Request, month?: string | null) {
   const ownEntries = await actor.admin.from("payroll_entries").select("*").eq("employee_id", actor.employeeId).eq("status", "published").not("published_at", "is", null).order("payroll_month", { ascending: false });
   if (ownEntries.error) throw new Error(ownEntries.error.message);
   const base = { role: actor.role, employeeId: actor.employeeId, ownEntries: (ownEntries.data || []).map(toPayrollEntryDto) };
-  if (!isAdminLevelRole(actor.role)) return base;
+  if (!isFinanceAdminRole(actor.role)) return base;
   const payrollMonth = month ? `${month.slice(0, 7)}-01` : null;
   const salaryStructures = isFinanceAdminRole(actor.role)
     ? actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").order("effective_from", { ascending: false }).order("version", { ascending: false })
     : Promise.resolve({ data: [], error: null });
-  const [runs, structures, payrollSettings, employees, auditRows, companyBank] = await Promise.all([
+  const [runs, structures, payrollSettings, employees, auditRows, companyBank, recurringAdjustments] = await Promise.all([
     actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(120),
     salaryStructures,
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
     actor.admin.from("employees").select("id,employee_code,name,title,department,status").eq("status", "active").order("employee_code"),
     actor.admin.from("payroll_audit_log").select("*").order("created_at", { ascending: false }).limit(100),
     actor.admin.from("company_settings").select(payrollBankFields).eq("singleton_key", true).maybeSingle(),
+    actor.admin.from("recurring_payroll_adjustments").select("*,employees(id,employee_code,name,title,status)").order("from_month", { ascending: false }).order("created_at", { ascending: false }),
   ]);
-  const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error;
+  const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error || recurringAdjustments.error;
   if (failure) throw new Error(failure.message);
   const runIds = (runs.data || []).map((run) => run.id);
   const runEntries = runIds.length
@@ -123,6 +128,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     settings: payrollSettings.data,
     employees: employees.data || [],
     audit: auditRows.data || [],
+    recurringAdjustments: recurringAdjustments.data || [],
     selectedRun,
     bankDetails,
     companyBankDetails: (companyBank.data || {
@@ -133,6 +139,72 @@ export async function loadPayroll(request: Request, month?: string | null) {
       payroll_bank_currency: "INR",
     }) as CompanyPayrollBankDetails,
   };
+}
+
+type RecurringAdjustmentInput = {
+  employeeId: string;
+  adjustmentType: RecurringAdjustmentType;
+  component: RecurringAdjustmentComponent;
+  amount: number;
+  fromMonth: string;
+  toMonth?: string | null;
+  enabled?: boolean;
+  notes?: string;
+};
+
+function recurringAdjustmentValues(input: RecurringAdjustmentInput) {
+  const adjustmentType = String(input.adjustmentType || "").trim().toLowerCase() as RecurringAdjustmentType;
+  const component = String(input.component || "").trim().toLowerCase() as RecurringAdjustmentComponent;
+  if (!((adjustmentType === "earning" && component === "bonus") || (adjustmentType === "deduction" && component === "tds"))) throw new Error("Select a supported recurring payroll component");
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount < 0) throw new Error("Enter a valid non-negative recurring amount");
+  const fromMonth = payrollMonthDate(input.fromMonth);
+  const toMonth = input.toMonth ? payrollMonthDate(input.toMonth) : null;
+  if (toMonth && toMonth < fromMonth) throw new Error("To Month cannot be before From Month");
+  return { adjustment_type: adjustmentType, component, amount, from_month: fromMonth, to_month: toMonth, enabled: input.enabled ?? true, notes: String(input.notes || "").trim() || null };
+}
+
+export async function createRecurringAdjustment(request: Request, input: RecurringAdjustmentInput) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const employee = await activeEmployee(actor.admin, input.employeeId);
+  const values = recurringAdjustmentValues(input);
+  const inserted = await actor.admin.from("recurring_payroll_adjustments").insert({ employee_id: input.employeeId, ...values, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
+  if (inserted.error) throw new Error(inserted.error.message);
+  await audit(actor.admin, actor, { action: "recurring_adjustment_created", next: { ...inserted.data, employee } });
+  return inserted.data as RecurringPayrollAdjustment;
+}
+
+export async function updateRecurringAdjustment(request: Request, adjustmentId: string, input: RecurringAdjustmentInput) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const current = await actor.admin.from("recurring_payroll_adjustments").select("*").eq("id", adjustmentId).single();
+  if (current.error) throw new Error(current.error.message);
+  const values = recurringAdjustmentValues({ ...input, employeeId: current.data.employee_id });
+  const updated = await actor.admin.from("recurring_payroll_adjustments").update({ ...values, updated_by: actor.userId, updated_at: new Date().toISOString() }).eq("id", adjustmentId).select("*").single();
+  if (updated.error) throw new Error(updated.error.message);
+  await audit(actor.admin, actor, { action: "recurring_adjustment_updated", previous: current.data, next: updated.data });
+  return updated.data as RecurringPayrollAdjustment;
+}
+
+export async function duplicateRecurringAdjustment(request: Request, adjustmentId: string, fromMonth: string, toMonth?: string | null) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const source = await actor.admin.from("recurring_payroll_adjustments").select("*").eq("id", adjustmentId).single();
+  if (source.error) throw new Error(source.error.message);
+  await activeEmployee(actor.admin, source.data.employee_id);
+  const values = recurringAdjustmentValues({ employeeId: source.data.employee_id, adjustmentType: source.data.adjustment_type, component: source.data.component, amount: Number(source.data.amount), fromMonth, toMonth, enabled: true, notes: source.data.notes || "" });
+  const inserted = await actor.admin.from("recurring_payroll_adjustments").insert({ employee_id: source.data.employee_id, ...values, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
+  if (inserted.error) throw new Error(inserted.error.message);
+  await audit(actor.admin, actor, { action: "recurring_adjustment_duplicated", previous: source.data, next: inserted.data });
+  return inserted.data as RecurringPayrollAdjustment;
+}
+
+export async function toggleRecurringAdjustment(request: Request, adjustmentId: string, enabled: boolean) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const current = await actor.admin.from("recurring_payroll_adjustments").select("*").eq("id", adjustmentId).single();
+  if (current.error) throw new Error(current.error.message);
+  const updated = await actor.admin.from("recurring_payroll_adjustments").update({ enabled, updated_by: actor.userId, updated_at: new Date().toISOString() }).eq("id", adjustmentId).select("*").single();
+  if (updated.error) throw new Error(updated.error.message);
+  await audit(actor.admin, actor, { action: enabled ? "recurring_adjustment_enabled" : "recurring_adjustment_disabled", previous: current.data, next: updated.data });
+  return updated.data as RecurringPayrollAdjustment;
 }
 
 const processedPayrollMessage = "Payroll has already been processed for a period affected by this effective date. Please choose a later effective date.";
@@ -162,7 +234,7 @@ async function activeEmployee(admin: SupabaseClient, employeeId: string) {
   const employee = await admin.from("employees").select("id,employee_code,name,status").eq("id", employeeId).maybeSingle();
   if (employee.error) throw new Error(employee.error.message);
   if (!employee.data) throw new Error("Employee could not be found.");
-  if (employee.data.status !== "active") throw new Error("Salary structures can be managed only for active employees.");
+  if (employee.data.status !== "active") throw new Error("Payroll administration can be managed only for active employees.");
   return employee.data;
 }
 
@@ -304,6 +376,9 @@ async function buildPayroll(request: Request, payrollMonth: string, preserveManu
   const structureCandidates = await actor.admin.from("salary_structures").select("*,employees!inner(id,employee_code,name,title,department,status)").eq("employees.status", "active").lte("effective_from", month).order("effective_from", { ascending: false }).order("version", { ascending: false });
   if (structureCandidates.error) throw new Error(structureCandidates.error.message);
   const structures = selectEffectiveSalaryStructures(structureCandidates.data || [], month);
+  const recurringResult = await actor.admin.from("recurring_payroll_adjustments").select("*").eq("enabled", true).lte("from_month", month).or(`to_month.is.null,to_month.gte.${month}`);
+  if (recurringResult.error) throw new Error(recurringResult.error.message);
+  const recurringAdjustments = (recurringResult.data || []) as RecurringPayrollAdjustment[];
   const lop = await actor.admin.from("leave_requests").select("employee_id,lop_salary_deduction_days,leave_types!inner(code)").in("status", ["approved", "cancellation_rejected"]).eq("leave_types.code", "LOP").lte("start_date", period.end).gte("end_date", period.start);
   if (lop.error) throw new Error(lop.error.message);
   const lopByEmployee = new Map<string, number>();
@@ -311,8 +386,15 @@ async function buildPayroll(request: Request, payrollMonth: string, preserveManu
   const rows = structures.map((structure) => {
     const employee = Array.isArray(structure.employees) ? structure.employees[0] : structure.employees;
     const manual = manualByEmployee.get(structure.employee_id);
-    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), basicPay: Number(structure.basic_pay), hra: Number(structure.hra), conveyanceAllowance: Number(structure.conveyance_allowance), otherAllowance: Number(structure.other_allowance), epfSalary: Number(structure.epf_salary), employeePf: Number(structure.employee_pf), employerPf: Number(structure.employer_pf), employerEps: Number(structure.employer_eps), bonus: Number(manual?.bonus || 0), leaveEncashment: Number(manual?.leave_encashment || 0), lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, confirmedLopDeduction: manual ? Number(manual.lop_deduction || 0) : undefined, previousMonthAdjustment: Number(manual?.previous_month_adjustment || 0), tds: Number(manual?.tds || 0), professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
-    return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, status: "draft" };
+    const applicable = applicableRecurringAdjustments(recurringAdjustments, structure.employee_id, month);
+    const overrideFields = Array.isArray(manual?.manual_override_fields) ? manual.manual_override_fields.map(String) : [];
+    const recurringBonus = recurringComponentTotal(applicable, "bonus");
+    const recurringTds = recurringComponentTotal(applicable, "tds");
+    const bonus = manual && overrideFields.includes("bonus") ? Number(manual.bonus || 0) : recurringBonus;
+    const tds = manual && overrideFields.includes("tds") ? Number(manual.tds || 0) : recurringTds;
+    const calculated = calculatePayroll({ grossSalary: Number(structure.gross_salary), basicPay: Number(structure.basic_pay), hra: Number(structure.hra), conveyanceAllowance: Number(structure.conveyance_allowance), otherAllowance: Number(structure.other_allowance), epfSalary: Number(structure.epf_salary), employeePf: Number(structure.employee_pf), employerPf: Number(structure.employer_pf), employerEps: Number(structure.employer_eps), bonus, leaveEncashment: Number(manual?.leave_encashment || 0), lopDays: lopByEmployee.get(structure.employee_id) || 0, periodDays: period.days, confirmedLopDeduction: manual ? Number(manual.lop_deduction || 0) : undefined, previousMonthAdjustment: Number(manual?.previous_month_adjustment || 0), tds, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
+    const recurringSnapshot = applicable.map(({ id, adjustment_type, component, amount, from_month, to_month }) => ({ id, adjustment_type, component, amount: Number(amount), from_month, to_month }));
+    return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, recurring_adjustment_snapshot: recurringSnapshot, manual_override_fields: overrideFields, status: "draft" };
   });
   if (rows.length) { const inserted = await actor.admin.from("payroll_entries").insert(rows); if (inserted.error) throw new Error(inserted.error.message); }
   const totals = rows.reduce((sum, row) => ({ gross: sum.gross + row.gross_salary, net: sum.net + row.net_salary, pf: sum.pf + row.employer_pf, eps: sum.eps + row.employer_eps }), { gross: 0, net: 0, pf: 0, eps: 0 });
@@ -338,7 +420,10 @@ export async function updatePayrollEntry(request: Request, entryId: string, valu
   const config = await settings(actor.admin);
   const periodDays = Math.round((new Date(current.data.period_end).getTime() - new Date(current.data.period_start).getTime()) / 86_400_000) + 1;
   const calculated = calculatePayroll({ grossSalary: current.data.gross_salary, conveyanceAllowance: current.data.conveyance_allowance, bonus: values.bonus ?? current.data.bonus, leaveEncashment: values.leaveEncashment ?? current.data.leave_encashment, lopDays: current.data.lop_days, periodDays, confirmedLopDeduction: values.lopDeduction ?? current.data.lop_deduction, previousMonthAdjustment: values.previousMonthAdjustment ?? current.data.previous_month_adjustment, tds: values.tds ?? current.data.tds, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
-  const updateValues = { bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, professional_tax: calculated.professionalTax, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, manual_notes: values.notes ?? current.data.manual_notes, updated_at: new Date().toISOString() };
+  const manualOverrideFields = new Set<string>(Array.isArray(current.data.manual_override_fields) ? current.data.manual_override_fields.map(String) : []);
+  const changedFields: Array<[string, number | undefined, unknown]> = [["bonus", values.bonus, current.data.bonus], ["leave_encashment", values.leaveEncashment, current.data.leave_encashment], ["lop_deduction", values.lopDeduction, current.data.lop_deduction], ["previous_month_adjustment", values.previousMonthAdjustment, current.data.previous_month_adjustment], ["tds", values.tds, current.data.tds]];
+  for (const [field, next, previous] of changedFields) if (next !== undefined && Number(next) !== Number(previous)) manualOverrideFields.add(field);
+  const updateValues = { bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, professional_tax: calculated.professionalTax, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, manual_override_fields: [...manualOverrideFields], manual_notes: values.notes ?? current.data.manual_notes, updated_at: new Date().toISOString() };
   const update = await actor.admin.from("payroll_entries").update(updateValues).eq("id", entryId).select("*").single();
   if (update.error) throw new Error(update.error.message);
   await refreshRunTotals(actor.admin, current.data.payroll_run_id);
