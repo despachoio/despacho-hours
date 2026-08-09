@@ -284,7 +284,13 @@ describe("Payroll security and snapshot contracts", () => {
 
   it("shows the latest payroll first as executive cards followed by financial-year performance", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
-    for (const label of ["Recently Processed Payroll", "Summary of the latest payroll processed.", "View Payroll Processing", "Payroll Month", "Status", "Salary Processing Date", "Employees Processed", "Gross Payroll", "Total Deductions", "Net Payroll", "Average Net Salary", "Financial Year Performance", "Payroll Runs", "Employees Paid", "Average Monthly Payroll", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
+    for (const label of ["Recently Processed Payroll", "Summary of the latest payroll processed.", "View Payroll Processing", "Payroll Month", "Status", "Salary Processing Date", "Employees Processed", "Gross Payroll", "Total TDS Amount", "Net Payroll", "Total Professional Tax Amount", "Financial Year Performance", "Payroll Runs", "Average Monthly Payroll", "Total PF Amount", "Total Professional Tax", "Total TDS", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
+    const recentSection = workspace.slice(workspace.indexOf("Latest payroll snapshot"), workspace.indexOf("Executive performance"));
+    const performanceSection = workspace.slice(workspace.indexOf("Executive performance"), workspace.indexOf("Statutory overview"));
+    expect(recentSection).not.toContain('label="Total Deductions"');
+    expect(recentSection).not.toContain("Average Net Salary");
+    expect(performanceSection).not.toContain("Employees Paid");
+    expect(performanceSection).toContain("totals.employeePf + totals.employerPf + totals.employerEps");
     expect(workspace.indexOf("Recently Processed Payroll")).toBeLessThan(workspace.indexOf("Financial Year Performance"));
     expect(workspace).toContain('onViewProcessing={() => setAdministrationTab("process")}');
     expect(workspace).toContain("grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4");
