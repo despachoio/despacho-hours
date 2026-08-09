@@ -28,6 +28,9 @@ export type CompanySettings = {
   transit_number: string | null;
   account_number: string | null;
   account_name: string | null;
+  payroll_bank_customer_id: string | null;
+  payroll_bank_account_number: string | null;
+  payroll_bank_ifsc_code: string | null;
   payment_instructions: string | null;
   default_invoice_notes: string | null;
   default_reminder_before_due_days: number[];
@@ -74,6 +77,9 @@ export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   transit_number: "01549",
   account_number: "4002036",
   account_name: "Despacho Inc",
+  payroll_bank_customer_id: null,
+  payroll_bank_account_number: null,
+  payroll_bank_ifsc_code: null,
   payment_instructions: "Thank you for choosing Despacho.",
   default_invoice_notes: null,
   default_reminder_before_due_days: [7, 3, 1],

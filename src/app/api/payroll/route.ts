@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const action = String(body.action || "");
     if (action === "save_structure") return Response.json(await saveSalaryStructure(request, { employeeId: String(body.employeeId), grossSalary: normalizePayrollNumber(body.grossSalary as string | number | null | undefined), effectiveFrom: String(body.effectiveFrom), notes: String(body.notes || "") }));
-    if (action === "generate") return Response.json(await generatePayroll(request, String(body.payrollMonth)));
+    if (action === "generate") return Response.json(await generatePayroll(request, String(body.payrollMonth), String(body.processingDate || "")));
     if (action === "reprocess") return Response.json(await reprocessPayroll(request, String(body.payrollMonth)));
     if (action === "update_entry") return Response.json(await updatePayrollEntry(request, String(body.entryId), { bonus: normalizePayrollNumber(body.bonus as string | number | null | undefined), leaveEncashment: normalizePayrollNumber(body.leaveEncashment as string | number | null | undefined), lopDeduction: normalizePayrollNumber(body.lopDeduction as string | number | null | undefined), previousMonthAdjustment: normalizePayrollNumber(body.previousMonthAdjustment as string | number | null | undefined), tds: normalizePayrollNumber(body.tds as string | number | null | undefined), notes: String(body.notes || "") }));
     if (["approve", "submit"].includes(action)) return Response.json(await transitionPayroll(request, String(body.runId), action));

@@ -52,6 +52,7 @@ export type PayrollEntry = {
 export type PayrollRun = {
   id: string;
   payroll_month: string;
+  processing_date: string;
   period_start: string;
   period_end: string;
   status: PayrollStatus;
@@ -72,4 +73,17 @@ export type PayrollSettings = {
   professional_tax_threshold: number;
   professional_tax_amount: number;
   conveyance_allowance: number;
+};
+
+export type EmployeeBankDetails = {
+  employee_id: string;
+  bank_name: string | null;
+  ifsc_code: string | null;
+  bank_account_number: string | null;
+};
+
+export type CompanyPayrollBankDetails = {
+  payroll_bank_customer_id: string | null;
+  payroll_bank_account_number: string | null;
+  payroll_bank_ifsc_code: string | null;
 };

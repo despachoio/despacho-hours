@@ -4,14 +4,31 @@ import { useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
 import { downloadPayrollSummary, downloadPayrollYtd, downloadPayslip } from "@/lib/payroll/client";
 import { currentFinancialYear, financialYearFromValue, financialYearOptions } from "@/lib/payroll/financialYear";
-import { salaryRegisterHeaders, salaryRegisterRows } from "@/lib/payroll/exports";
+import {
+  buildBankTransferFile,
+  employeeBankDetailsMap,
+  salaryRegisterHeaders,
+  salaryRegisterRows,
+  stripEmployeeTitle,
+} from "@/lib/payroll/exports";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "@/lib/payroll/lifecycle";
 import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
-import { PAYROLL_LABELS } from "@/lib/payroll/labels";
-import type { PayrollEntry, PayrollRun } from "@/lib/payroll/types";
+import type {
+  CompanyPayrollBankDetails,
+  EmployeeBankDetails,
+  PayrollEntry,
+  PayrollRun,
+} from "@/lib/payroll/types";
 
 type Employee = { id: string; employee_code: string; name: string };
-type PayrollData = { role: string; runs?: PayrollRun[]; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: Array<Record<string, unknown>> };
+type PayrollData = {
+  role: string;
+  runs?: PayrollRun[];
+  employees?: Employee[];
+  selectedRun?: PayrollRun | null;
+  bankDetails?: EmployeeBankDetails[];
+  companyBankDetails?: CompanyPayrollBankDetails;
+};
 type Action = (payload: Record<string, unknown>) => Promise<void>;
 
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -30,32 +47,50 @@ function saveBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(link.href);
 }
 
-async function downloadSalaryRegister(run: PayrollRun) {
+async function downloadSalaryRegister(run: PayrollRun, bankDetails: EmployeeBankDetails[]) {
   const XLSX = await import("xlsx");
-  const sheet = XLSX.utils.aoa_to_sheet([salaryRegisterHeaders, ...salaryRegisterRows(run)]);
+  const sheet = XLSX.utils.aoa_to_sheet([salaryRegisterHeaders, ...salaryRegisterRows(run, bankDetails)]);
+  sheet["!cols"] = [12, 24, 22, 16, 22, 14, 18, 16, 12, 14, 14, 12, 16].map((wch) => ({ wch }));
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "Salary Register");
   XLSX.writeFile(book, `Salary_Register_${run.payroll_month.slice(0, 7)}.xlsx`);
 }
 
-function downloadBankFile(run: PayrollRun, bankDetails: Array<Record<string, unknown>>) {
-  const details = new Map(bankDetails.map((row) => [String(row.employee_id), row]));
-  const rows = (run.entries || []).map((entry) => {
-    const bank = details.get(entry.employee_id) || {};
-    return [entry.employee_code, entry.employee_name, bank.bank_account_number || "", bank.ifsc_code || "", entry.net_salary].join("\t");
-  });
-  const content = [["Employee Code", "Beneficiary", "Account Number", "IFSC", "Amount"].join("\t"), ...rows].join("\n");
+function downloadBankFile(run: PayrollRun, bankDetails: EmployeeBankDetails[], companyBankDetails: CompanyPayrollBankDetails) {
+  const content = buildBankTransferFile(run, bankDetails, companyBankDetails);
   saveBlob(new Blob([content], { type: "text/plain;charset=utf-8" }), `Bank_Transfer_${run.payroll_month.slice(0, 7)}.txt`);
 }
+
+const localDateValue = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: { data: PayrollData; month: string; setMonth: (value: string) => void; onAction: Action; onEdit: (entry: PayrollEntry) => void }) {
   const run = data.selectedRun || null;
   const [busy, setBusy] = useState("");
+  const [processingDate, setProcessingDate] = useState(run?.processing_date || localDateValue());
+  const [exportError, setExportError] = useState("");
 
   async function execute(name: string, payload: Record<string, unknown>) {
     if (busy) return;
     setBusy(name);
+    setExportError("");
     try { await onAction(payload); } finally { setBusy(""); }
+  }
+
+  function exportBankFile() {
+    if (!run) return;
+    setExportError("");
+    try {
+      downloadBankFile(run, data.bankDetails || [], data.companyBankDetails || {
+        payroll_bank_customer_id: null,
+        payroll_bank_account_number: null,
+        payroll_bank_ifsc_code: null,
+      });
+    } catch (cause) {
+      setExportError(cause instanceof Error ? cause.message : "Unable to create the bank transfer file.");
+    }
   }
 
   async function cancel() {
@@ -70,24 +105,27 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
     <Card className="p-6">
       <div className="flex flex-wrap items-end gap-3">
         <label className="w-52 text-sm font-bold">Payroll Month<input type="month" value={month} onChange={(event) => setMonth(event.target.value)} className={fieldClass} /></label>
-        {!run ? <KairoButton type="button" disabled={Boolean(busy)} onClick={() => void execute("generate", { action: "generate", payrollMonth: month })}>{busy === "generate" ? "Generating..." : "Generate Payroll"}</KairoButton> : null}
+        <label className="w-56 text-sm font-bold">Payroll Processing Date<input type="date" required disabled={Boolean(run)} value={processingDate} onChange={(event) => setProcessingDate(event.target.value)} className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500`} /></label>
+        {!run ? <KairoButton type="button" disabled={Boolean(busy) || !processingDate} onClick={() => void execute("generate", { action: "generate", payrollMonth: month, processingDate })}>{busy === "generate" ? "Generating..." : "Generate Payroll"}</KairoButton> : null}
         {run && canEditPayroll(run.status) ? <KairoButton type="button" disabled={Boolean(busy)} onClick={() => void execute("reprocess", { action: "reprocess", payrollMonth: month })}>{busy === "reprocess" ? "Reprocessing..." : "Reprocess Payroll"}</KairoButton> : null}
         {run && canApprovePayroll(run.status) ? <KairoButton type="button" disabled={Boolean(busy)} onClick={() => void execute("approve", { action: "approve", runId: run.id })}>{busy === "approve" ? "Approving..." : "Approve Payroll"}</KairoButton> : null}
         {run && canSubmitPayroll(run.status) ? <KairoButton type="button" disabled={Boolean(busy)} onClick={() => void execute("submit", { action: "submit", runId: run.id })}>{busy === "submit" ? "Submitting..." : "Submit Payroll"}</KairoButton> : null}
         {run ? <KairoButton type="button" variant="danger" disabled={Boolean(busy)} onClick={() => void cancel()}>{busy === "cancel" ? "Cancelling..." : "Cancel Payroll"}</KairoButton> : null}
-        {run && canExportPayroll(run.status) ? <div className="ml-auto flex flex-wrap gap-3"><KairoButton type="button" disabled={Boolean(busy)} onClick={() => void downloadSalaryRegister(run)}>Download Salary Register</KairoButton><KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={() => downloadBankFile(run, data.bankDetails || [])}>Export Bank Transfer File</KairoButton></div> : null}
+        {run && canExportPayroll(run.status) ? <div className="ml-auto flex flex-wrap gap-3"><KairoButton type="button" disabled={Boolean(busy)} onClick={() => void downloadSalaryRegister(run, data.bankDetails || [])}>Download Salary Register</KairoButton><KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={exportBankFile}>Export Bank Transfer File</KairoButton></div> : null}
       </div>
+      {exportError ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{exportError}</p> : null}
     </Card>
     {run ? <>
       <div className="grid gap-4 md:grid-cols-4"><Metric label="Employees Processed" value={String(run.employee_count)} colour="text-[#153E90]"/><Metric label="Gross Payroll" value={money(run.gross_payroll)} colour="text-emerald-700"/><Metric label="Net Payroll" value={money(run.net_payroll)} colour="text-blue-700"/><Metric label="Status" value={lifecycle || "Generated"} colour="text-violet-700"/></div>
-      <SalaryRegister run={run} editable={canEditPayroll(run.status)} onEdit={onEdit} />
+      <SalaryRegister run={run} bankDetails={data.bankDetails || []} editable={canEditPayroll(run.status)} onEdit={onEdit} />
     </> : null}
   </div>;
 }
 
-function SalaryRegister({ run, editable, onEdit }: { run: PayrollRun; editable: boolean; onEdit: (entry: PayrollEntry) => void }) {
-  const headers = ["Employee Code", "Employee Name", "Department", "Bonus", "Leave Encashment", "Gross Pay", "PT", PAYROLL_LABELS.lop, "Previous Month Adjustment", PAYROLL_LABELS.tds, "Net Pay", ...(editable ? ["Actions"] : [])];
-  return <Card><div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5"><h2 className="text-xl font-bold">Salary Register</h2><p className="mt-1 text-sm text-slate-500">Payroll snapshot for {payrollMonthLabel(run.payroll_month)}.</p></div><div className="overflow-x-auto"><table className="min-w-[1350px] text-sm"><thead className="bg-[#0F172A] text-left text-xs uppercase text-slate-300"><tr>{headers.map((header) => <th key={header} className="px-4 py-4">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{run.entries?.map((entry) => <tr key={entry.id} className="hover:bg-blue-50/40"><td className="px-4 py-4 font-bold text-[#153E90]">{entry.employee_code}</td><td className="px-4 py-4 font-bold">{entry.employee_name}</td><td className="px-4 py-4">{entry.department || "-"}</td><td className="px-4 py-4">{money(entry.bonus)}</td><td className="px-4 py-4">{money(entry.leave_encashment)}</td><td className="px-4 py-4">{money(entry.gross_salary)}</td><td className="px-4 py-4">{money(entry.professional_tax)}</td><td className="px-4 py-4" title={`Recommended ${money(entry.lop_recommended)}`}>{money(entry.lop_deduction)}</td><td className="px-4 py-4">{money(entry.previous_month_adjustment)}</td><td className="px-4 py-4">{money(entry.tds)}</td><td className="px-4 py-4 font-bold text-[#153E90]">{money(entry.net_salary)}</td>{editable ? <td className="px-4 py-4"><button type="button" onClick={() => onEdit(entry)} className="font-bold text-[#153E90] hover:underline">Edit</button></td> : null}</tr>)}</tbody></table></div></Card>;
+function SalaryRegister({ run, bankDetails, editable, onEdit }: { run: PayrollRun; bankDetails: EmployeeBankDetails[]; editable: boolean; onEdit: (entry: PayrollEntry) => void }) {
+  const detailsByEmployee = useMemo(() => employeeBankDetailsMap(bankDetails), [bankDetails]);
+  const headers = [...salaryRegisterHeaders, ...(editable ? ["Actions"] : [])];
+  return <Card><div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5"><h2 className="text-xl font-bold">Salary Register</h2><p className="mt-1 text-sm text-slate-500">Payroll snapshot for {payrollMonthLabel(run.payroll_month)}.</p></div><div className="overflow-x-auto"><table className="min-w-[1750px] text-sm"><thead className="bg-[#0F172A] text-left text-xs uppercase text-slate-300"><tr>{headers.map((header) => <th key={header} className="px-4 py-4">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{run.entries?.map((entry) => { const bank = detailsByEmployee.get(entry.employee_id); return <tr key={entry.id} className="hover:bg-blue-50/40"><td className="px-4 py-4 font-bold text-[#153E90]">{entry.employee_code}</td><td className="px-4 py-4 font-bold">{stripEmployeeTitle(entry.employee_name)}</td><td className="px-4 py-4">{bank?.bank_name || "-"}</td><td className="px-4 py-4 font-mono">{bank?.ifsc_code || "-"}</td><td className="px-4 py-4 font-mono">{bank?.bank_account_number || "-"}</td><td className="px-4 py-4">{money(entry.bonus)}</td><td className="px-4 py-4">{money(entry.leave_encashment)}</td><td className="px-4 py-4">{money(entry.gross_salary)}</td><td className="px-4 py-4">{money(entry.professional_tax)}</td><td className="px-4 py-4" title={`Recommended ${money(entry.lop_recommended)}`}>{money(entry.lop_deduction)}</td><td className="px-4 py-4">{money(entry.previous_month_adjustment)}</td><td className="px-4 py-4">{money(entry.tds)}</td><td className="px-4 py-4 font-bold text-[#153E90]">{money(entry.net_salary)}</td>{editable ? <td className="px-4 py-4"><button type="button" onClick={() => onEdit(entry)} className="font-bold text-[#153E90] hover:underline">Edit</button></td> : null}</tr>; })}</tbody></table></div></Card>;
 }
 
 type ReportFilters = { financialYear: string; fromMonth: string; toMonth: string; employeeId: string };

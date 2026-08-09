@@ -8,11 +8,11 @@ import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
 import { MANUAL_PAYROLL_FIELDS, type ManualPayrollField } from "@/lib/payroll/labels";
 import { normalizePayrollNumber } from "@/lib/payroll/numbers";
 import { isAdminLevelRole } from "@/lib/roles";
-import type { PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
+import type { CompanyPayrollBankDetails, EmployeeBankDetails, PayrollEntry, PayrollRun, PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
 import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollAdministration";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
-type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun[]; structures?: SalaryStructure[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: Array<Record<string, unknown>>; audit?: Array<Record<string, unknown>> };
+type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun[]; structures?: SalaryStructure[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "process" | "reports" | "settings";
 const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"]];
@@ -44,7 +44,7 @@ export default function PayrollWorkspace() {
         </nav>
         {administrationTab === "dashboard" ? <FinanceDashboard data={data} /> : null}
         {administrationTab === "structures" ? <Structures data={data} onSave={action} /> : null}
-        {administrationTab === "process" ? <PayrollProcessing data={data} month={month} setMonth={setMonth} onAction={action} onEdit={setEditing} /> : null}
+        {administrationTab === "process" ? <PayrollProcessing key={`${month}:${data.selectedRun?.id || "new"}`} data={data} month={month} setMonth={setMonth} onAction={action} onEdit={setEditing} /> : null}
         {administrationTab === "reports" ? <PayrollReports data={data} /> : null}
         {administrationTab === "settings" && data.settings ? <Settings value={data.settings} onSave={action} /> : null}
       </div> : null}

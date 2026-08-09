@@ -7,7 +7,7 @@ import { payslipFilename, ytdFilename } from "../src/lib/payroll/filenames";
 import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels";
 import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
-import { summarizePayroll } from "../src/lib/payroll/exports";
+import { buildBankTransferFile, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -93,6 +93,7 @@ describe("Payroll financial year", () => {
 describe("Payroll security and snapshot contracts", () => {
   const migration = source("supabase/migrations/202608020001_payroll_module.sql");
   const lifecycleMigration = source("supabase/migrations/202608090001_payroll_admin_lifecycle.sql");
+  const bankTransferMigration = source("supabase/migrations/202608090002_payroll_bank_transfer_details.sql");
   it("allows Finance Admin, Super Admin, and Admin administration while employees retain published snapshots", () => {
     expect(migration).toContain("public.get_my_actual_role() = 'finance admin'");
     expect(migration).toContain("employee_id = public.get_my_employee_id() and published_at is not null and status = 'published'");
@@ -138,6 +139,63 @@ describe("Payroll security and snapshot contracts", () => {
     expect(administration).toContain("Download Salary Register");
     expect(administration).toContain("Export Bank Transfer File");
     expect(administration).toContain("editable={canEditPayroll(run.status)}");
+  });
+
+  it("captures a processing date before payroll generation", () => {
+    const administration = source("src/components/payroll/PayrollAdministration.tsx");
+    const route = source("src/app/api/payroll/route.ts");
+    const server = source("src/lib/payroll/server.ts");
+    expect(administration).toContain("Payroll Processing Date");
+    expect(administration).toContain("payrollMonth: month, processingDate");
+    expect(route).toContain('String(body.processingDate || "")');
+    expect(server).toContain("processing_date: processingDate(requestedProcessingDate");
+    expect(bankTransferMigration).toContain("add column if not exists processing_date date");
+    expect(bankTransferMigration).toContain("alter column processing_date set not null");
+  });
+
+  it("adds protected company payroll bank settings", () => {
+    const settingsPage = source("src/app/(app)/settings/page.tsx");
+    const settingsRoute = source("src/app/api/settings/company/route.ts");
+    for (const field of ["payroll_bank_customer_id", "payroll_bank_account_number", "payroll_bank_ifsc_code"]) {
+      expect(settingsPage).toContain(field);
+      expect(settingsRoute).toContain(field);
+      expect(bankTransferMigration).toContain(field);
+    }
+    expect(settingsPage).toContain("Payroll bank account");
+  });
+
+  it("exports the bank-enriched salary register without titles or department", () => {
+    expect(salaryRegisterHeaders).toEqual([
+      "Employee Code", "Employee Name", "Bank Name", "IFSC Code", "Bank Account Number",
+      "Bonus", "Leave Encashment", "Gross Pay", "PT", "LOP", "Adjustment", "TDS", "Net Pay",
+    ]);
+    expect(stripEmployeeTitle("Mrs. Riya Kumar")).toBe("Riya Kumar");
+    const run = {
+      payroll_month: "2026-08-01",
+      processing_date: "2026-08-25",
+      net_payroll: 48_000,
+      entries: [{ employee_id: "employee-1", employee_code: "90001", employee_name: "Mr. Ajay Kumar", bonus: 0, leave_encashment: 0, gross_salary: 50_000, professional_tax: 200, lop_deduction: 0, previous_month_adjustment: 0, tds: 0, net_salary: 48_000 }],
+    } as never;
+    const bankDetails = [{ employee_id: "employee-1", bank_name: "ICICI Bank", ifsc_code: "ICIC0001234", bank_account_number: "1234567890" }];
+    expect(salaryRegisterRows(run, bankDetails)[0].slice(0, 5)).toEqual(["90001", "Ajay Kumar", "ICICI Bank", "ICIC0001234", "1234567890"]);
+    expect(salaryRegisterHeaders).not.toContain("Department");
+    expect(salaryRegisterHeaders).not.toContain("Previous Month Adjustment");
+  });
+
+  it("builds a bank transfer file from the payroll date and company debit account", () => {
+    const content = buildBankTransferFile({
+      payroll_month: "2026-08-01",
+      processing_date: "2026-08-25",
+      net_payroll: 48_000,
+      entries: [{ employee_id: "employee-1", employee_code: "90001", employee_name: "Ms. Riya Kumar", net_salary: 48_000 }],
+    } as never, [{ employee_id: "employee-1", bank_name: "HDFC Bank", ifsc_code: "HDFC0001234", bank_account_number: "1234567890" }], {
+      payroll_bank_customer_id: "CUST-01",
+      payroll_bank_account_number: "9876543210",
+      payroll_bank_ifsc_code: "ICIC0000001",
+    });
+    expect(content).toContain("Customer ID\tCUST-01");
+    expect(content).toContain("Processing Date\t2026-08-25");
+    expect(content).toContain("90001\tRiya Kumar\tHDFC Bank\t1234567890\tHDFC0001234\t48000");
   });
 
   it("reprocesses with manual adjustments and cancellation deletes only the payroll run", () => {

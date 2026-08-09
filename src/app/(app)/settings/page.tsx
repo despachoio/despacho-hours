@@ -508,6 +508,21 @@ function PaymentSection(props: SectionProps) {
         <Field {...props} label="Account Number" field="account_number" />
         <Field {...props} label="Account Name" field="account_name" />
       </Grid>
+      <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 p-5">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#153E90]">
+          Payroll bank account
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Debit-account identifiers used when Finance exports a payroll bank transfer file.
+        </p>
+        <div className="mt-5">
+          <Grid>
+            <Field {...props} label="Customer ID" field="payroll_bank_customer_id" />
+            <Field {...props} label="Bank Account Number" field="payroll_bank_account_number" />
+            <Field {...props} label="IFSC Code" field="payroll_bank_ifsc_code" />
+          </Grid>
+        </div>
+      </div>
       <Textarea
         {...props}
         label="Payment Instructions"

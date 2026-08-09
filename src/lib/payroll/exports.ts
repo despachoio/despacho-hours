@@ -1,16 +1,33 @@
-import type { PayrollEntry, PayrollRun } from "./types";
+import type {
+  CompanyPayrollBankDetails,
+  EmployeeBankDetails,
+  PayrollEntry,
+  PayrollRun,
+} from "./types";
 import { PAYROLL_LABELS } from "./labels";
 
 export const salaryRegisterHeaders = [
-  "Employee Code", "Employee Name", "Department", "Bonus", "Leave Encashment",
-  "Gross Pay", "PT", PAYROLL_LABELS.lop, "Previous Month Adjustment", PAYROLL_LABELS.tds, "Net Pay",
+  "Employee Code", "Employee Name", "Bank Name", "IFSC Code", "Bank Account Number",
+  "Bonus", "Leave Encashment", "Gross Pay", "PT", PAYROLL_LABELS.lop,
+  "Adjustment", PAYROLL_LABELS.tds, "Net Pay",
 ];
 
-export function salaryRegisterRows(run: PayrollRun) {
+export function stripEmployeeTitle(name: string) {
+  return name.replace(/^(?:mr|mrs|ms|miss|dr)\.?\s+/i, "").trim();
+}
+
+export function employeeBankDetailsMap(bankDetails: EmployeeBankDetails[]) {
+  return new Map(bankDetails.map((details) => [details.employee_id, details]));
+}
+
+export function salaryRegisterRows(run: PayrollRun, bankDetails: EmployeeBankDetails[] = []) {
+  const detailsByEmployee = employeeBankDetailsMap(bankDetails);
   return (run.entries || []).map((entry) => [
     entry.employee_code,
-    entry.employee_name,
-    entry.department || "",
+    stripEmployeeTitle(entry.employee_name),
+    detailsByEmployee.get(entry.employee_id)?.bank_name || "",
+    detailsByEmployee.get(entry.employee_id)?.ifsc_code || "",
+    detailsByEmployee.get(entry.employee_id)?.bank_account_number || "",
     entry.bonus,
     entry.leave_encashment,
     entry.gross_salary,
@@ -20,6 +37,48 @@ export function salaryRegisterRows(run: PayrollRun) {
     entry.tds,
     entry.net_salary,
   ]);
+}
+
+const requiredCompanyBankValue = (value: string | null | undefined, label: string) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) throw new Error(`${label} is missing in Company Settings.`);
+  return normalized;
+};
+
+export function buildBankTransferFile(
+  run: PayrollRun,
+  bankDetails: EmployeeBankDetails[],
+  companyBankDetails: CompanyPayrollBankDetails,
+) {
+  const customerId = requiredCompanyBankValue(companyBankDetails.payroll_bank_customer_id, "Customer ID");
+  const debitAccount = requiredCompanyBankValue(companyBankDetails.payroll_bank_account_number, "Company bank account number");
+  const debitIfsc = requiredCompanyBankValue(companyBankDetails.payroll_bank_ifsc_code, "Company IFSC code");
+  const processingDate = requiredCompanyBankValue(run.processing_date, "Payroll processing date");
+  const detailsByEmployee = employeeBankDetailsMap(bankDetails);
+  const paymentRows = (run.entries || []).map((entry) => {
+    const details = detailsByEmployee.get(entry.employee_id);
+    if (!details?.bank_account_number || !details.ifsc_code) {
+      throw new Error(`Bank account number and IFSC code are required for ${stripEmployeeTitle(entry.employee_name)}.`);
+    }
+    return [
+      entry.employee_code,
+      stripEmployeeTitle(entry.employee_name),
+      details.bank_name || "",
+      details.bank_account_number,
+      details.ifsc_code,
+      Math.round(Number(entry.net_salary || 0)),
+    ].join("\t");
+  });
+  const metadata = [
+    ["Customer ID", customerId],
+    ["Debit Account Number", debitAccount],
+    ["Debit IFSC", debitIfsc],
+    ["Processing Date", processingDate],
+    ["Payroll Month", run.payroll_month.slice(0, 7)],
+    ["Total Amount", Math.round(Number(run.net_payroll || 0))],
+  ].map((row) => row.join("\t"));
+  const header = ["Employee Code", "Beneficiary", "Bank Name", "Account Number", "IFSC", "Amount"].join("\t");
+  return [...metadata, "", header, ...paymentRows].join("\n");
 }
 
 export type PayrollSummary = {
