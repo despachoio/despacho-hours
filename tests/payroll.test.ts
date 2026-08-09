@@ -282,9 +282,14 @@ describe("Payroll security and snapshot contracts", () => {
     expect(workspace).toContain("Debit IFSC");
   });
 
-  it("shows financial-year payroll totals and recently processed payroll details", () => {
+  it("shows the latest payroll first as executive cards followed by financial-year performance", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
-    for (const label of ["Recently Processed Payroll", "Processed Month", "Total Processed Payrolls", "Employees Processed", "Gross Payroll", "Net Payroll", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
+    for (const label of ["Recently Processed Payroll", "Summary of the latest payroll processed.", "View Payroll Processing", "Payroll Month", "Status", "Salary Processing Date", "Employees Processed", "Gross Payroll", "Total Deductions", "Net Payroll", "Average Net Salary", "Financial Year Performance", "Payroll Runs", "Employees Paid", "Average Monthly Payroll", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
+    expect(workspace.indexOf("Recently Processed Payroll")).toBeLessThan(workspace.indexOf("Financial Year Performance"));
+    expect(workspace).toContain('onViewProcessing={() => setAdministrationTab("process")}');
+    expect(workspace).toContain("grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4");
+    expect(workspace).toContain("payrollStatusPresentation");
+    expect(workspace).toContain("payrollDateLabel");
     expect(workspace).toContain("currentFinancialYear()");
     expect(workspace).toContain("isInFinancialYear(run.payroll_month, selectedYear)");
     expect(workspace).toContain("payrollRunBreakdown");

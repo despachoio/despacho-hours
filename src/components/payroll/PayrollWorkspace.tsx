@@ -45,7 +45,7 @@ export default function PayrollWorkspace() {
         <nav aria-label="Payroll administration sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 p-2 shadow-sm">
           {administrationTabs.filter(([value]) => value !== "structures" || salaryStructureAccess).map(([value, label]) => <button key={value} onClick={() => setAdministrationTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${administrationTab === value ? "bg-[#0F172A] text-white shadow" : "text-slate-600 hover:bg-white hover:text-[#153E90]"}`}>{label}</button>)}
         </nav>
-        {administrationTab === "dashboard" ? <FinanceDashboard data={data} /> : null}
+        {administrationTab === "dashboard" ? <FinanceDashboard data={data} onViewProcessing={() => setAdministrationTab("process")} /> : null}
         {administrationTab === "structures" && salaryStructureAccess ? <SalaryStructures data={data} onRefresh={load} /> : null}
         {administrationTab === "recurring" && salaryStructureAccess ? <RecurringAdjustments role={data.role} employees={data.employees || []} adjustments={data.recurringAdjustments || []} onRefresh={load} /> : null}
         {administrationTab === "process" ? <PayrollProcessing key={`${month}:${data.selectedRun?.id || "new"}`} data={data} month={month} setMonth={setMonth} onAction={action} onEdit={setEditing} /> : null}
@@ -312,48 +312,124 @@ function payrollRunBreakdown(run: PayrollRun) {
     employerEps: entries.reduce((sum, entry) => sum + Number(entry.employer_eps || 0), 0),
     professionalTax: entries.reduce((sum, entry) => sum + Number(entry.professional_tax || 0), 0),
     tds: entries.reduce((sum, entry) => sum + Number(entry.tds || 0), 0),
+    totalDeductions: entries.reduce((sum, entry) => sum + Number(entry.total_deductions || 0), 0),
   };
 }
 
-function FinanceDashboard({ data }: { data: PayrollData }) {
+type PayrollDashboardIconName = "calendar" | "status" | "processing-date" | "employees" | "gross" | "deductions" | "net" | "average";
+type PayrollDashboardTone = "blue" | "cyan" | "emerald" | "violet" | "rose" | "amber" | "slate";
+
+const dashboardToneClasses: Record<PayrollDashboardTone, { icon: string; value: string; accent: string }> = {
+  blue: { icon: "bg-blue-50 text-[#153E90] ring-blue-100", value: "text-[#153E90]", accent: "from-[#153E90] to-blue-500" },
+  cyan: { icon: "bg-cyan-50 text-cyan-700 ring-cyan-100", value: "text-cyan-800", accent: "from-cyan-600 to-sky-400" },
+  emerald: { icon: "bg-emerald-50 text-emerald-700 ring-emerald-100", value: "text-emerald-800", accent: "from-emerald-600 to-teal-400" },
+  violet: { icon: "bg-violet-50 text-violet-700 ring-violet-100", value: "text-violet-800", accent: "from-violet-600 to-fuchsia-400" },
+  rose: { icon: "bg-rose-50 text-rose-700 ring-rose-100", value: "text-rose-800", accent: "from-rose-600 to-pink-400" },
+  amber: { icon: "bg-amber-50 text-amber-700 ring-amber-100", value: "text-amber-800", accent: "from-amber-500 to-orange-400" },
+  slate: { icon: "bg-slate-100 text-slate-700 ring-slate-200", value: "text-slate-900", accent: "from-slate-600 to-slate-400" },
+};
+
+function PayrollDashboardIcon({ name }: { name: PayrollDashboardIconName }) {
+  const paths: Record<PayrollDashboardIconName, React.ReactNode> = {
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></>,
+    status: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></>,
+    "processing-date": <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M9 16l2 2 4-4"/></>,
+    employees: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    gross: <><path d="M3 7h18v12H3zM3 10h18"/><path d="M7 15h4"/></>,
+    deductions: <><path d="M4 7h16v12H4zM7 4h10v3"/><path d="M8 13h8M12 10v6"/></>,
+    net: <><path d="M3 6h18v13H3zM3 10h18"/><path d="M7 15h2M15 15h2"/></>,
+    average: <><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 7 6-4 6 6 5-5"/></>,
+  };
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">{paths[name]}</svg>;
+}
+
+function ExecutiveMetricCard({ label, value, helper, icon, tone = "blue", badge }: { label: string; value: string; helper: string; icon: PayrollDashboardIconName; tone?: PayrollDashboardTone; badge?: { label: string; className: string } }) {
+  const classes = dashboardToneClasses[tone];
+  return <article className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_16px_35px_-28px_rgba(15,23,42,.55)] transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_20px_45px_-28px_rgba(21,62,144,.35)]">
+    <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${classes.accent}`} />
+    <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 ${classes.icon}`}><PayrollDashboardIcon name={icon}/></span>
+    <p className="mt-5 text-[10px] font-bold uppercase tracking-[.17em] text-slate-400">{label}</p>
+    {badge ? <span className={`mt-2 inline-flex rounded-full border px-3 py-1.5 text-sm font-bold ${badge.className}`}>{badge.label}</span> : <p className={`mt-2 break-words text-2xl font-bold tracking-tight ${classes.value}`}>{value}</p>}
+    <p className="mt-2 text-xs leading-5 text-slate-500">{helper}</p>
+  </article>;
+}
+
+function payrollStatusPresentation(status: PayrollRun["status"]) {
+  if (status === "published") return { label: "Submitted", className: "border-emerald-200 bg-emerald-50 text-emerald-700", tone: "emerald" as const };
+  if (status === "approved" || status === "locked") return { label: "Approved", className: "border-blue-200 bg-blue-50 text-[#153E90]", tone: "blue" as const };
+  if (status === "under_review") return { label: "Processing", className: "border-amber-200 bg-amber-50 text-amber-700", tone: "amber" as const };
+  return { label: "Generated", className: "border-slate-200 bg-slate-100 text-slate-700", tone: "slate" as const };
+}
+
+function payrollDateLabel(value: string) {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onViewProcessing: () => void }) {
   const currentYear = useMemo(() => currentFinancialYear(), []);
   const years = useMemo(() => financialYearOptions((data.runs || []).map((run) => run.payroll_month), currentYear), [currentYear, data.runs]);
   const [selectedYear, setSelectedYear] = useState(currentYear.value);
   const runs = useMemo(() => (data.runs || []).filter((run) => isInFinancialYear(run.payroll_month, selectedYear)), [data.runs, selectedYear]);
+  const latestRun = data.runs?.[0] || null;
+  const latestBreakdown = useMemo(() => latestRun ? payrollRunBreakdown(latestRun) : null, [latestRun]);
   const totals = useMemo(() => runs.reduce((sum, run) => {
     const deductions = payrollRunBreakdown(run);
     return {
       processed: sum.processed + 1,
+      employees: sum.employees + Number(run.employee_count || 0),
       gross: sum.gross + Number(run.gross_payroll || 0),
       net: sum.net + Number(run.net_payroll || 0),
+      deductions: sum.deductions + deductions.totalDeductions,
       employeePf: sum.employeePf + deductions.employeePf,
       employerPf: sum.employerPf + deductions.employerPf,
       employerEps: sum.employerEps + deductions.employerEps,
       professionalTax: sum.professionalTax + deductions.professionalTax,
       tds: sum.tds + deductions.tds,
     };
-  }, { processed: 0, gross: 0, net: 0, employeePf: 0, employerPf: 0, employerEps: 0, professionalTax: 0, tds: 0 }), [runs]);
+  }, { processed: 0, employees: 0, gross: 0, net: 0, deductions: 0, employeePf: 0, employerPf: 0, employerEps: 0, professionalTax: 0, tds: 0 }), [runs]);
+  const latestStatus = latestRun ? payrollStatusPresentation(latestRun.status) : null;
 
-  return <div className="space-y-5">
+  return <div className="space-y-8">
     <Card>
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 px-6 py-5">
-        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Financial-year performance</p><h2 className="mt-2 text-2xl font-bold">Payroll Dashboard</h2><p className="mt-1 text-sm text-slate-500">Processed payroll totals and recently processed months.</p></div>
-        <label className="w-44 text-sm font-bold text-slate-700">Financial Year<select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">{years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}</select></label>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 px-6 py-6">
+        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Latest payroll snapshot</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Recently Processed Payroll</h2><p className="mt-1 text-sm text-slate-500">Summary of the latest payroll processed.</p></div>
+        <KairoButton type="button" className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68]" onClick={onViewProcessing}>View Payroll Processing</KairoButton>
       </div>
-      <div className="grid gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Total Processed Payrolls" value={String(totals.processed)} colour="text-[#153E90]" />
-        <Metric label="Gross Payroll" value={money(totals.gross)} colour="text-emerald-700" />
-        <Metric label="Net Payroll" value={money(totals.net)} colour="text-blue-700" />
-        <Metric label="Employee PF" value={money(totals.employeePf)} colour="text-cyan-700" />
-        <Metric label="Employer PF" value={money(totals.employerPf)} colour="text-violet-700" />
-        <Metric label="Employer EPS" value={money(totals.employerEps)} colour="text-indigo-700" />
-        <Metric label="Professional Tax" value={money(totals.professionalTax)} colour="text-rose-700" />
-        <Metric label="TDS" value={money(totals.tds)} colour="text-amber-700" />
+      {latestRun && latestBreakdown && latestStatus ? <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
+        <ExecutiveMetricCard label="Payroll Month" value={payrollMonthLabel(latestRun.payroll_month)} helper="Latest payroll period" icon="calendar" tone="blue"/>
+        <ExecutiveMetricCard label="Status" value={latestStatus.label} helper="Current payroll lifecycle status" icon="status" tone={latestStatus.tone} badge={{ label: latestStatus.label, className: latestStatus.className }}/>
+        <ExecutiveMetricCard label="Salary Processing Date" value={payrollDateLabel(latestRun.processing_date)} helper="Scheduled bank processing date" icon="processing-date" tone="cyan"/>
+        <ExecutiveMetricCard label="Employees Processed" value={String(latestRun.employee_count)} helper="Employees included in this run" icon="employees" tone="violet"/>
+        <ExecutiveMetricCard label="Gross Payroll" value={money(latestRun.gross_payroll)} helper="Total earnings before deductions" icon="gross" tone="emerald"/>
+        <ExecutiveMetricCard label="Total Deductions" value={money(latestBreakdown.totalDeductions)} helper="Employee deductions for this run" icon="deductions" tone="rose"/>
+        <ExecutiveMetricCard label="Net Payroll" value={money(latestRun.net_payroll)} helper="Total amount payable to employees" icon="net" tone="blue"/>
+        <ExecutiveMetricCard label="Average Net Salary" value={money(latestRun.employee_count ? latestRun.net_payroll / latestRun.employee_count : 0)} helper="Average payable amount per employee" icon="average" tone="amber"/>
+      </div> : <Empty text="No payroll has been processed yet." />}
+    </Card>
+
+    <Card>
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/60 px-6 py-6">
+        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Executive performance</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Financial Year Performance</h2><p className="mt-1 text-sm text-slate-500">Consolidated payroll performance for the selected financial year.</p></div>
+        <label className="w-48 text-sm font-bold text-slate-700">Financial Year<select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">{years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}</select></label>
+      </div>
+      <div className="px-6 pt-6"><div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{selectedYear === currentYear.value ? "Current" : "Selected"} Financial Year · {financialYearFromValue(selectedYear)?.label || selectedYear}</div></div>
+      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-3">
+        <ExecutiveMetricCard label="Payroll Runs" value={String(totals.processed)} helper="Payroll months processed" icon="calendar" tone="blue"/>
+        <ExecutiveMetricCard label="Employees Paid" value={String(totals.employees)} helper="Employee payments across all runs" icon="employees" tone="violet"/>
+        <ExecutiveMetricCard label="Gross Payroll" value={money(totals.gross)} helper="Financial-year gross earnings" icon="gross" tone="emerald"/>
+        <ExecutiveMetricCard label="Total Deductions" value={money(totals.deductions)} helper="Financial-year employee deductions" icon="deductions" tone="rose"/>
+        <ExecutiveMetricCard label="Net Payroll" value={money(totals.net)} helper="Financial-year employee payouts" icon="net" tone="blue"/>
+        <ExecutiveMetricCard label="Average Monthly Payroll" value={money(totals.processed ? totals.net / totals.processed : 0)} helper="Average net payroll per processed month" icon="average" tone="amber"/>
       </div>
     </Card>
+
     <Card>
-      <div className="border-b border-slate-100 px-6 py-5"><h3 className="text-xl font-bold">Recently Processed Payroll</h3><p className="mt-1 text-sm text-slate-500">Payroll months within {financialYearFromValue(selectedYear)?.label || selectedYear}, newest first.</p></div>
-      {runs.length ? <div className="overflow-x-auto"><table className="min-w-[1250px] text-sm"><thead className="bg-[#0F172A] text-left text-xs uppercase tracking-wide text-slate-300"><tr>{["Processed Month", "Employees Processed", "Gross Payroll", "Net Payroll", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"].map((header) => <th key={header} className="px-4 py-4">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{runs.slice(0, 12).map((run) => { const detail = payrollRunBreakdown(run); return <tr key={run.id} className="hover:bg-blue-50/40"><td className="whitespace-nowrap px-4 py-4 font-bold text-[#153E90]">{payrollMonthLabel(run.payroll_month)}</td><td className="px-4 py-4 font-bold">{run.employee_count}</td><td className="px-4 py-4">{money(run.gross_payroll)}</td><td className="px-4 py-4 font-bold text-[#153E90]">{money(run.net_payroll)}</td><td className="px-4 py-4">{money(detail.employeePf)}</td><td className="px-4 py-4">{money(detail.employerPf)}</td><td className="px-4 py-4">{money(detail.employerEps)}</td><td className="px-4 py-4">{money(detail.professionalTax)}</td><td className="px-4 py-4">{money(detail.tds)}</td></tr>; })}</tbody></table></div> : <Empty text="No payroll has been processed for this financial year." />}
+      <div className="border-b border-slate-100 px-6 py-5"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Statutory overview</p><h3 className="mt-2 text-xl font-bold text-slate-950">Financial Year Contributions &amp; Taxes</h3><p className="mt-1 text-sm text-slate-500">Supporting statutory totals for {financialYearFromValue(selectedYear)?.label || selectedYear}.</p></div>
+      <div className="grid grid-cols-1 gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-5">
+        {[["Employee PF", totals.employeePf, "text-cyan-700"], ["Employer PF", totals.employerPf, "text-violet-700"], ["Employer EPS", totals.employerEps, "text-indigo-700"], ["Professional Tax", totals.professionalTax, "text-rose-700"], ["TDS", totals.tds, "text-amber-700"]].map(([label, value, colour]) => <div key={String(label)} className="bg-white px-6 py-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className={`mt-2 text-xl font-bold ${colour}`}>{money(Number(value))}</p></div>)}
+      </div>
     </Card>
   </div>;
 }
