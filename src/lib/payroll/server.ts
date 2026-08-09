@@ -12,6 +12,7 @@ import type {
   SalaryStructure,
 } from "./types";
 import { isAdminLevelRole, isFinanceAdminRole } from "@/lib/roles";
+import { businessDateKey } from "@/lib/metrics/date-ranges";
 
 export function payrollAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -240,6 +241,9 @@ export async function duplicateSalaryStructure(request: Request, structureId: st
   const source = await actor.admin.from("salary_structures").select("*").eq("id", structureId).single();
   if (source.error) throw new Error(source.error.message);
   await activeEmployee(actor.admin, source.data.employee_id);
+  const structures = await employeeStructures(actor.admin, source.data.employee_id);
+  const active = selectEffectiveSalaryStructures(structures, businessDateKey())[0];
+  if (active?.id !== structureId) throw new Error("Only the active salary structure can be duplicated.");
   const effectiveFrom = validEffectiveDate(effectiveDate);
   await ensureUniqueEffectiveDate(actor.admin, source.data.employee_id, effectiveFrom);
   await ensureNoAffectedPayroll(actor.admin, effectiveFrom);
@@ -385,4 +389,23 @@ export async function savePayrollSettings(request: Request, input: Partial<Payro
   if (update.error) throw new Error(update.error.message);
   await audit(actor.admin, actor, { action: "payroll_settings_changed", previous, next: update.data });
   return update.data;
+}
+
+export async function savePayrollBankSettings(request: Request, input: CompanyPayrollBankDetails) {
+  const actor = await payrollActor(request); financePayrollOnly(actor.role);
+  const normalize = (value: string | null | undefined) => String(value || "").trim() || null;
+  const previous = await actor.admin.from("company_settings").select("payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code").eq("singleton_key", true).maybeSingle();
+  if (previous.error) throw new Error(previous.error.message);
+  const payload = {
+    singleton_key: true,
+    payroll_bank_customer_id: normalize(input.payroll_bank_customer_id),
+    payroll_bank_account_number: normalize(input.payroll_bank_account_number),
+    payroll_bank_ifsc_code: normalize(input.payroll_bank_ifsc_code)?.toUpperCase() || null,
+    updated_at: new Date().toISOString(),
+    updated_by: actor.userId,
+  };
+  const saved = await actor.admin.from("company_settings").upsert(payload, { onConflict: "singleton_key" }).select("payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code").single();
+  if (saved.error) throw new Error(saved.error.message);
+  await audit(actor.admin, actor, { action: "payroll_bank_settings_changed", previous: previous.data, next: saved.data });
+  return saved.data as CompanyPayrollBankDetails;
 }

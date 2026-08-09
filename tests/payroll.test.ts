@@ -197,12 +197,38 @@ describe("Payroll security and snapshot contracts", () => {
   it("adds protected company payroll bank settings", () => {
     const settingsPage = source("src/app/(app)/settings/page.tsx");
     const settingsRoute = source("src/app/api/settings/company/route.ts");
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    const payrollRoute = source("src/app/api/payroll/route.ts");
+    const server = source("src/lib/payroll/server.ts");
     for (const field of ["payroll_bank_customer_id", "payroll_bank_account_number", "payroll_bank_ifsc_code"]) {
-      expect(settingsPage).toContain(field);
       expect(settingsRoute).toContain(field);
       expect(bankTransferMigration).toContain(field);
+      expect(workspace).toContain(field);
     }
-    expect(settingsPage).toContain("Payroll bank account");
+    expect(settingsPage).not.toContain("Payroll bank account");
+    expect(workspace).toContain("Payroll Bank Account");
+    expect(workspace).toContain('action:"save_payroll_bank_settings"');
+    expect(payrollRoute).toContain('action === "save_payroll_bank_settings"');
+    expect(server).toContain("savePayrollBankSettings");
+    expect(server).toContain("financePayrollOnly(actor.role)");
+  });
+
+  it("shows financial-year payroll totals and recently processed payroll details", () => {
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    for (const label of ["Recently Processed Payroll", "Processed Month", "Total Processed Payrolls", "Employees Processed", "Gross Payroll", "Net Payroll", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
+    expect(workspace).toContain("currentFinancialYear()");
+    expect(workspace).toContain("isInFinancialYear(run.payroll_month, selectedYear)");
+    expect(workspace).toContain("payrollRunBreakdown");
+  });
+
+  it("uses pill register actions and greys the payroll breakdown while recalculating", () => {
+    const administration = source("src/components/payroll/PayrollAdministration.tsx");
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    expect(administration).toContain("inline-flex rounded-full");
+    expect(workspace).toContain("aria-busy={busy}");
+    expect(workspace).toContain("pointer-events-none select-none grayscale opacity-60");
+    expect(workspace).toContain("Recalculating payroll…");
+    expect(workspace).toContain('busy ? "Recalculating..." : "Recalculate & Save"');
   });
 
   it("exports the bank-enriched salary register without titles or department", () => {
@@ -253,8 +279,11 @@ describe("Payroll security and snapshot contracts", () => {
     const structures = source("src/components/payroll/SalaryStructures.tsx");
     expect(workspace).toContain('value !== "structures" || salaryStructureAccess');
     expect(workspace).toContain("isFinanceAdminRole");
-    for (const label of ["Add Salary Structure", "Select active employee", "Search", "Reset", "Salary Structure History", "Effective Date", "Monthly Gross Salary", "Basic Pay", "HRA", "Conveyance Allowance", "Other Allowance", "EPF Salary", "Employee PF", "Employer PF", "Employer EPS", "Created At"]) expect(structures).toContain(label);
+    for (const label of ["Add Salary Structure", "Select active employee", "View Active Salary Structures", "Active Salary Structures", "Search", "Reset", "Salary Structure History", "Effective Date", "Monthly Gross Salary", "Basic Pay", "HRA", "Conveyance Allowance", "Other Allowance", "EPF Salary", "Employee PF", "Employer PF", "Employer EPS", "Created At"]) expect(structures).toContain(label);
     expect(structures).toContain("setAppliedEmployeeId(selectedEmployeeId)");
+    expect(structures).toContain("appliedEmployeeId !== selectedEmployeeId || viewingAllActive");
+    expect(structures).toContain("inline-flex rounded-full border border-blue-200");
+    expect(structures).toContain('status === "active"');
     expect(structures).toContain("No salary structure exists for this employee.");
   });
 
@@ -271,6 +300,7 @@ describe("Payroll security and snapshot contracts", () => {
     expect(structures).toContain("Deleting this version will reactivate the previous salary structure.");
     expect(server).toContain("Only the latest salary structure version can be edited.");
     expect(server).toContain("Only the latest salary structure version can be deleted.");
+    expect(server).toContain("Only the active salary structure can be duplicated.");
     expect(server).toContain("At least one salary structure must remain for this employee.");
   });
 

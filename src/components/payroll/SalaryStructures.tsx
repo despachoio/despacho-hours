@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
 import { payrollRequest } from "@/lib/payroll/client";
-import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus } from "@/lib/payroll/salaryStructures";
+import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus, selectEffectiveSalaryStructures } from "@/lib/payroll/salaryStructures";
 import type { PayrollSettings, SalaryStructure } from "@/lib/payroll/types";
 
 type Employee = { id: string; employee_code: string; name: string; status?: string };
@@ -28,16 +28,22 @@ function StatusBadge({ status }: { status: "active" | "scheduled" | "historical"
 export default function SalaryStructures({ data, onRefresh }: { data: StructureData; onRefresh: () => Promise<void> }) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [appliedEmployeeId, setAppliedEmployeeId] = useState("");
+  const [viewingAllActive, setViewingAllActive] = useState(false);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [deleting, setDeleting] = useState<SalaryStructure | null>(null);
   const [error, setError] = useState("");
   const employees = useMemo(() => [...(data.employees || [])].sort((left, right) => left.employee_code.localeCompare(right.employee_code)), [data.employees]);
+  const employeeById = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const history = useMemo(() => (data.structures || []).filter((structure) => structure.employee_id === appliedEmployeeId).sort((left, right) => right.effective_from.localeCompare(left.effective_from) || right.version - left.version), [appliedEmployeeId, data.structures]);
-  const latest = latestSalaryStructure(history);
+  const activeStructures = useMemo(() => {
+    const employeeIds = new Set(employees.map((employee) => employee.id));
+    return selectEffectiveSalaryStructures(data.structures || [], todayValue()).filter((structure) => employeeIds.has(structure.employee_id)).sort((left, right) => (employeeById.get(left.employee_id)?.employee_code || "").localeCompare(employeeById.get(right.employee_id)?.employee_code || ""));
+  }, [data.structures, employeeById, employees]);
 
   function reset() {
     setSelectedEmployeeId("");
     setAppliedEmployeeId("");
+    setViewingAllActive(false);
     setDialog(null);
     setDeleting(null);
     setError("");
@@ -49,24 +55,43 @@ export default function SalaryStructures({ data, onRefresh }: { data: StructureD
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 px-6 py-5">
         <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Effective-dated compensation</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Salary Structures</h2><p className="mt-1 text-sm text-slate-500">Search an employee to review every salary version without changing historical payroll.</p></div>
-        <KairoButton type="button" onClick={() => { setError(""); setDialog({ mode: "create" }); }}>Add Salary Structure</KairoButton>
       </div>
       <div className="flex flex-wrap items-end gap-3 p-6">
-        <label className="min-w-[280px] flex-1 text-sm font-bold text-slate-700">Employee<select value={selectedEmployeeId} onChange={(event) => setSelectedEmployeeId(event.target.value)} className={inputClass}><option value="">Select active employee</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_code} – {employee.name}</option>)}</select></label>
-        <KairoButton type="button" disabled={!selectedEmployeeId} onClick={() => { setAppliedEmployeeId(selectedEmployeeId); setDialog(null); setDeleting(null); setError(""); }}>Search</KairoButton>
+        <label className="w-full text-sm font-bold text-slate-700 sm:w-72">Employee<select value={selectedEmployeeId} onChange={(event) => { setSelectedEmployeeId(event.target.value); setViewingAllActive(false); }} className={inputClass}><option value="">Select active employee</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_code} – {employee.name}</option>)}</select></label>
+        <KairoButton type="button" disabled={!selectedEmployeeId} onClick={() => { setAppliedEmployeeId(selectedEmployeeId); setViewingAllActive(false); setDialog(null); setDeleting(null); setError(""); }}>Search</KairoButton>
+        <KairoButton type="button" disabled={!appliedEmployeeId || appliedEmployeeId !== selectedEmployeeId || viewingAllActive} onClick={() => { setError(""); setDialog({ mode: "create" }); }}>Add Salary Structure</KairoButton>
+        <KairoButton type="button" variant="secondary" onClick={() => { setViewingAllActive(true); setAppliedEmployeeId(""); setDialog(null); setDeleting(null); setError(""); }}>View Active Salary Structures</KairoButton>
         <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
       </div>
       {error ? <p role="alert" className="mx-6 mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
     </Card>
 
-    {appliedEmployeeId ? <Card>
+    {viewingAllActive ? <Card>
+      <div className="border-b border-slate-100 px-6 py-5"><h3 className="text-xl font-bold">Active Salary Structures</h3><p className="mt-1 text-sm text-slate-500">Current applicable structure for every active employee, ordered by employee code.</p></div>
+      {activeStructures.length ? <StructureTable structures={activeStructures} allStructures={data.structures || []} employees={employeeById} showEmployee onEdit={(structure) => setDialog({ mode: "edit", structure })} onDuplicate={(structure) => setDialog({ mode: "duplicate", structure })} onDelete={setDeleting} /> : <EmptyStructures text="No active salary structures are available for active employees." />}
+    </Card> : appliedEmployeeId ? <Card>
       <div className="border-b border-slate-100 px-6 py-5"><h3 className="text-xl font-bold">Salary Structure History</h3><p className="mt-1 text-sm text-slate-500">Newest effective date first. Scheduled versions apply only when their payroll month is reached.</p></div>
-      {!history.length ? <div className="px-6 py-14 text-center"><p className="text-sm text-slate-400">No salary structure exists for this employee.</p><KairoButton type="button" className="mt-5" onClick={() => setDialog({ mode: "create" })}>Create First Structure</KairoButton></div> : <div className="overflow-x-auto"><table className="min-w-[1750px] text-sm"><thead className="bg-[#0F172A] text-left text-xs uppercase tracking-wide text-slate-300"><tr>{["Effective Date", "Monthly Gross Salary", "Basic Pay", "HRA", "Conveyance Allowance", "Other Allowance", "EPF Salary", "Employee PF", "Employer PF", "Employer EPS", "Status", "Created At", "Actions"].map((header) => <th key={header} className="px-4 py-4">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{history.map((structure) => { const status = salaryStructureDisplayStatus(structure, history, todayValue()); const isLatest = latest?.id === structure.id; return <tr key={structure.id} className="hover:bg-blue-50/40"><td className="whitespace-nowrap px-4 py-4 font-bold text-[#153E90]">{displayDate(structure.effective_from)}</td><td className="px-4 py-4 font-bold">{money(structure.gross_salary)}</td><td className="px-4 py-4">{money(structure.basic_pay)}</td><td className="px-4 py-4">{money(structure.hra)}</td><td className="px-4 py-4">{money(structure.conveyance_allowance)}</td><td className="px-4 py-4">{money(structure.other_allowance)}</td><td className="px-4 py-4">{money(structure.epf_salary)}</td><td className="px-4 py-4">{money(structure.employee_pf)}</td><td className="px-4 py-4">{money(structure.employer_pf)}</td><td className="px-4 py-4">{money(structure.employer_eps)}</td><td className="px-4 py-4"><StatusBadge status={status} /></td><td className="whitespace-nowrap px-4 py-4 text-slate-500">{createdDate(structure.created_at)}</td><td className="whitespace-nowrap px-4 py-4"><div className="flex gap-3">{isLatest ? <button type="button" className="font-bold text-[#153E90] hover:underline" onClick={() => setDialog({ mode: "edit", structure })}>Edit</button> : null}<button type="button" className="font-bold text-violet-700 hover:underline" onClick={() => setDialog({ mode: "duplicate", structure })}>Duplicate</button>{isLatest ? <button type="button" className="font-bold text-red-600 hover:underline" onClick={() => setDeleting(structure)}>Delete</button> : null}</div></td></tr>; })}</tbody></table></div>}
+      {!history.length ? <div className="px-6 py-14 text-center"><p className="text-sm text-slate-400">No salary structure exists for this employee.</p><KairoButton type="button" className="mt-5" onClick={() => setDialog({ mode: "create" })}>Create First Structure</KairoButton></div> : <StructureTable structures={history} allStructures={data.structures || []} employees={employeeById} onEdit={(structure) => setDialog({ mode: "edit", structure })} onDuplicate={(structure) => setDialog({ mode: "duplicate", structure })} onDelete={setDeleting} />}
     </Card> : <Card className="px-6 py-16 text-center"><p className="font-semibold text-slate-400">Select an active employee and click Search to view salary structure history.</p></Card>}
 
     {dialog ? <StructureDialog key={`${dialog.mode}:${dialog.structure?.id || appliedEmployeeId || "new"}`} state={dialog} employees={employees} preselectedEmployeeId={appliedEmployeeId || selectedEmployeeId} conveyanceAllowance={Number(data.settings?.conveyance_allowance || 1_600)} onClose={() => setDialog(null)} onSaved={async (employeeId) => { setSelectedEmployeeId(employeeId); setAppliedEmployeeId(employeeId); await onRefresh(); setDialog(null); }} /> : null}
     {deleting ? <DeleteDialog structure={deleting} onClose={() => setDeleting(null)} onDeleted={async () => { await onRefresh(); setDeleting(null); }} /> : null}
   </div>;
+}
+
+function EmptyStructures({ text }: { text: string }) {
+  return <p className="px-6 py-14 text-center text-sm font-medium text-slate-400">{text}</p>;
+}
+
+function StructureTable({ structures, allStructures, employees, showEmployee = false, onEdit, onDuplicate, onDelete }: { structures: SalaryStructure[]; allStructures: SalaryStructure[]; employees: Map<string, Employee>; showEmployee?: boolean; onEdit: (structure: SalaryStructure) => void; onDuplicate: (structure: SalaryStructure) => void; onDelete: (structure: SalaryStructure) => void }) {
+  const headers = [...(showEmployee ? ["Employee Code", "Employee Name"] : []), "Effective Date", "Monthly Gross Salary", "Basic Pay", "HRA", "Conveyance Allowance", "Other Allowance", "EPF Salary", "Employee PF", "Employer PF", "Employer EPS", "Status", "Created At", "Actions"];
+  return <div className="overflow-x-auto"><table className={showEmployee ? "min-w-[1950px] text-sm" : "min-w-[1750px] text-sm"}><thead className="bg-[#0F172A] text-left text-xs uppercase tracking-wide text-slate-300"><tr>{headers.map((header) => <th key={header} className="px-4 py-4">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{structures.map((structure) => {
+    const employeeStructures = allStructures.filter((item) => item.employee_id === structure.employee_id);
+    const status = salaryStructureDisplayStatus(structure, employeeStructures, todayValue());
+    const isLatest = latestSalaryStructure(employeeStructures)?.id === structure.id;
+    const employee = employees.get(structure.employee_id);
+    return <tr key={structure.id} className="hover:bg-blue-50/40">{showEmployee ? <><td className="whitespace-nowrap px-4 py-4 font-bold text-[#153E90]">{employee?.employee_code || "—"}</td><td className="whitespace-nowrap px-4 py-4 font-bold">{employee?.name || "Unknown employee"}</td></> : null}<td className="whitespace-nowrap px-4 py-4 font-bold text-[#153E90]">{displayDate(structure.effective_from)}</td><td className="px-4 py-4 font-bold">{money(structure.gross_salary)}</td><td className="px-4 py-4">{money(structure.basic_pay)}</td><td className="px-4 py-4">{money(structure.hra)}</td><td className="px-4 py-4">{money(structure.conveyance_allowance)}</td><td className="px-4 py-4">{money(structure.other_allowance)}</td><td className="px-4 py-4">{money(structure.epf_salary)}</td><td className="px-4 py-4">{money(structure.employee_pf)}</td><td className="px-4 py-4">{money(structure.employer_pf)}</td><td className="px-4 py-4">{money(structure.employer_eps)}</td><td className="px-4 py-4"><StatusBadge status={status} /></td><td className="whitespace-nowrap px-4 py-4 text-slate-500">{createdDate(structure.created_at)}</td><td className="whitespace-nowrap px-4 py-4"><div className="flex gap-2">{isLatest ? <button type="button" className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#153E90] transition hover:bg-[#153E90] hover:text-white" onClick={() => onEdit(structure)}>Edit</button> : null}{status === "active" ? <button type="button" className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 transition hover:bg-violet-700 hover:text-white" onClick={() => onDuplicate(structure)}>Duplicate</button> : null}{isLatest ? <button type="button" className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-700 hover:text-white" onClick={() => onDelete(structure)}>Delete</button> : null}</div></td></tr>;
+  })}</tbody></table></div>;
 }
 
 type StructureForm = { employeeId: string; grossSalary: string; basicPay: string; hra: string; conveyanceAllowance: string; otherAllowance: string; epfSalary: string; employeePf: string; employerPf: string; employerEps: string; effectiveFrom: string; notes: string };

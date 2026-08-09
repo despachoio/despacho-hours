@@ -1,4 +1,4 @@
-import { cancelPayroll, createSalaryStructure, deleteSalaryStructure, duplicateSalaryStructure, generatePayroll, loadPayroll, reprocessPayroll, savePayrollSettings, transitionPayroll, updatePayrollEntry, updateSalaryStructure } from "@/lib/payroll/server";
+import { cancelPayroll, createSalaryStructure, deleteSalaryStructure, duplicateSalaryStructure, generatePayroll, loadPayroll, reprocessPayroll, savePayrollBankSettings, savePayrollSettings, transitionPayroll, updatePayrollEntry, updateSalaryStructure } from "@/lib/payroll/server";
 import { normalizePayrollNumber } from "@/lib/payroll/numbers";
 
 export async function GET(request: Request) {
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     if (["approve", "submit"].includes(action)) return Response.json(await transitionPayroll(request, String(body.runId), action));
     if (action === "cancel") return Response.json(await cancelPayroll(request, String(body.runId), String(body.reason || "")));
     if (action === "save_settings") return Response.json(await savePayrollSettings(request, { period_start_day: normalizePayrollNumber(body.periodStartDay as string | number | null | undefined), period_end_day: normalizePayrollNumber(body.periodEndDay as string | number | null | undefined), professional_tax_threshold: normalizePayrollNumber(body.professionalTaxThreshold as string | number | null | undefined), professional_tax_amount: normalizePayrollNumber(body.professionalTaxAmount as string | number | null | undefined), conveyance_allowance: normalizePayrollNumber(body.conveyanceAllowance as string | number | null | undefined) }));
+    if (action === "save_payroll_bank_settings") return Response.json(await savePayrollBankSettings(request, { payroll_bank_customer_id: String(body.customerId || ""), payroll_bank_account_number: String(body.bankAccountNumber || ""), payroll_bank_ifsc_code: String(body.ifscCode || "") }));
     return Response.json({ error: "Unsupported payroll action" }, { status: 400 });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Payroll action failed";
