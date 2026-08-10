@@ -397,9 +397,9 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <ExecutiveMetricCard label="Status" value={latestStatus.label} helper="Current payroll lifecycle status" icon="status" tone={latestStatus.tone} badge={{ label: latestStatus.label, className: latestStatus.className }}/>
         <ExecutiveMetricCard label="Salary Processing Date" value={payrollDateLabel(latestRun.processing_date)} helper="Scheduled bank processing date" icon="processing-date" tone="cyan"/>
         <ExecutiveMetricCard label="Employees Processed" value={String(latestRun.employee_count)} helper="Employees included in this run" icon="employees" tone="violet"/>
+        <ExecutiveMetricCard label="Net Payroll" value={money(latestRun.net_payroll)} helper="Total amount payable to employees" icon="net" tone="blue"/>
         <ExecutiveMetricCard label="Total PF Amount" value={money(latestBreakdown.employeePf + latestBreakdown.employerPf + latestBreakdown.employerEps)} helper="Employee PF, Employer PF, and Employer EPS" icon="gross" tone="emerald"/>
         <ExecutiveMetricCard label="Total TDS Amount" value={money(latestBreakdown.tds)} helper="Tax deducted at source for this run" icon="deductions" tone="rose"/>
-        <ExecutiveMetricCard label="Net Payroll" value={money(latestRun.net_payroll)} helper="Total amount payable to employees" icon="net" tone="blue"/>
         <ExecutiveMetricCard label="Total Professional Tax Amount" value={money(latestBreakdown.professionalTax)} helper="Professional tax for this run" icon="deductions" tone="amber"/>
       </div> : <Empty text="No payroll has been processed yet." />}
     </Card>

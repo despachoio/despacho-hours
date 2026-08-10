@@ -109,7 +109,7 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
       {exportError && !confirmingBankExport ? <p role="alert" className="mt-4 whitespace-pre-line rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{exportError}</p> : null}
     </Card>
     {run ? <>
-      <div className="grid gap-4 md:grid-cols-4"><Metric label="Employees Processed" value={String(run.employee_count)} colour="text-[#153E90]"/><Metric label="Gross Payroll" value={money(run.gross_payroll)} colour="text-emerald-700"/><Metric label="Net Payroll" value={money(run.net_payroll)} colour="text-blue-700"/><Metric label="Status" value={lifecycle || "Generated"} colour="text-violet-700"/></div>
+      <div className="grid gap-3 md:grid-cols-3"><Metric label="Employees Processed" value={String(run.employee_count)} colour="text-[#153E90]"/><Metric label="Net Payroll" value={money(run.net_payroll)} colour="text-emerald-700"/><Metric label="Status" value={lifecycle || "Generated"} colour="text-violet-700"/></div>
       <SalaryRegister run={run} bankDetails={data.bankDetails || []} editable={canEditPayroll(run.status)} onEdit={onEdit} />
     </> : null}
     {run && confirmingBankExport ? <BankExportDialog run={run} bank={data.companyBankDetails!} busy={busy === "bank-export"} error={exportError} onClose={() => { setConfirmingBankExport(false); setExportError(""); }} onGenerate={async () => { setBusy("bank-export"); setExportError(""); try { await downloadBankTransfer(run.id); setConfirmingBankExport(false); } catch (cause) { setExportError(cause instanceof Error ? cause.message : "Unable to create the bank transfer file."); } finally { setBusy(""); } }} /> : null}
