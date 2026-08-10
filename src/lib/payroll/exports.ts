@@ -21,6 +21,10 @@ export function employeeBankDetailsMap(bankDetails: EmployeeBankDetails[]) {
   return new Map(bankDetails.map((details) => [details.employee_id, details]));
 }
 
+export function salaryRegisterGrossPay(entry: Pick<PayrollEntry, "gross_salary" | "bonus" | "leave_encashment">) {
+  return Number(entry.gross_salary || 0) + Number(entry.bonus || 0) + Number(entry.leave_encashment || 0);
+}
+
 export function salaryRegisterRows(run: PayrollRun, bankDetails: EmployeeBankDetails[] = []) {
   const detailsByEmployee = employeeBankDetailsMap(bankDetails);
   return (run.entries || []).map((entry) => [
@@ -31,7 +35,7 @@ export function salaryRegisterRows(run: PayrollRun, bankDetails: EmployeeBankDet
     detailsByEmployee.get(entry.employee_id)?.bank_account_number || "",
     entry.bonus,
     entry.leave_encashment,
-    entry.gross_salary,
+    salaryRegisterGrossPay(entry),
     entry.professional_tax,
     entry.lop_deduction,
     entry.previous_month_adjustment,

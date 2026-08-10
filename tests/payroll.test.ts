@@ -7,7 +7,7 @@ import { bankTransferFilename, payslipFilename, ytdFilename } from "../src/lib/p
 import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels";
 import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
-import { buildBankTransferFile, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
+import { buildBankTransferFile, salaryRegisterGrossPay, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
 import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus, selectEffectiveSalaryStructures } from "../src/lib/payroll/salaryStructures";
 import { applicableRecurringAdjustments, payrollMonthDate, recurringAdjustmentStatus, recurringComponentTotal } from "../src/lib/payroll/recurringAdjustments";
 import type { RecurringPayrollAdjustment, SalaryStructure } from "../src/lib/payroll/types";
@@ -284,12 +284,17 @@ describe("Payroll security and snapshot contracts", () => {
 
   it("shows the latest payroll first as executive cards followed by financial-year performance", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
-    for (const label of ["Recently Processed Payroll", "Summary of the latest payroll processed.", "View Payroll Processing", "Payroll Month", "Status", "Salary Processing Date", "Employees Processed", "Gross Payroll", "Total TDS Amount", "Net Payroll", "Total Professional Tax Amount", "Financial Year Performance", "Payroll Runs", "Average Monthly Payroll", "Total PF Amount", "Total Professional Tax", "Total TDS", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
+    for (const label of ["Recently Processed Payroll", "Summary of the latest payroll processed.", "View Payroll Processing", "Payroll Month", "Status", "Salary Processing Date", "Employees Processed", "Total PF Amount", "Total TDS Amount", "Net Payroll", "Total Professional Tax Amount", "Financial Year Performance", "Payroll Runs", "Latest Payroll Period", "Total Professional Tax", "Total TDS", "Employee PF", "Employer PF", "Employer EPS", "Professional Tax", "TDS"]) expect(workspace).toContain(label);
     const recentSection = workspace.slice(workspace.indexOf("Latest payroll snapshot"), workspace.indexOf("Executive performance"));
     const performanceSection = workspace.slice(workspace.indexOf("Executive performance"), workspace.indexOf("Statutory overview"));
     expect(recentSection).not.toContain('label="Total Deductions"');
     expect(recentSection).not.toContain("Average Net Salary");
+    expect(recentSection).not.toContain('label="Gross Payroll"');
     expect(performanceSection).not.toContain("Employees Paid");
+    expect(performanceSection).not.toContain('label="Gross Payroll"');
+    expect(performanceSection).not.toContain('label="Total Deductions"');
+    expect(performanceSection).not.toContain("Average Monthly Payroll");
+    expect(performanceSection).toContain("Latest Payroll Period");
     expect(performanceSection).toContain("totals.employeePf + totals.employerPf + totals.employerEps");
     expect(workspace.indexOf("Recently Processed Payroll")).toBeLessThan(workspace.indexOf("Financial Year Performance"));
     expect(workspace).toContain('onViewProcessing={() => setAdministrationTab("process")}');
@@ -317,14 +322,17 @@ describe("Payroll security and snapshot contracts", () => {
       "Bonus", "Leave Encashment", "Gross Pay", "PT", "LOP", "Adjustment", "TDS", "Net Pay",
     ]);
     expect(stripEmployeeTitle("Mrs. Riya Kumar")).toBe("Riya Kumar");
+    const entry = { employee_id: "employee-1", employee_code: "90001", employee_name: "Mr. Ajay Kumar", bonus: 5_000, leave_encashment: 2_500, gross_salary: 50_000, professional_tax: 200, lop_deduction: 0, previous_month_adjustment: 0, tds: 0, net_salary: 55_500 } as never;
     const run = {
       payroll_month: "2026-08-01",
       processing_date: "2026-08-25",
       net_payroll: 48_000,
-      entries: [{ employee_id: "employee-1", employee_code: "90001", employee_name: "Mr. Ajay Kumar", bonus: 0, leave_encashment: 0, gross_salary: 50_000, professional_tax: 200, lop_deduction: 0, previous_month_adjustment: 0, tds: 0, net_salary: 48_000 }],
+      entries: [entry],
     } as never;
     const bankDetails = [{ employee_id: "employee-1", bank_name: "ICICI Bank", ifsc_code: "ICIC0001234", bank_account_number: "1234567890" }];
     expect(salaryRegisterRows(run, bankDetails)[0].slice(0, 5)).toEqual(["90001", "Ajay Kumar", "ICICI Bank", "ICIC0001234", "1234567890"]);
+    expect(salaryRegisterGrossPay(entry)).toBe(57_500);
+    expect(salaryRegisterRows(run, bankDetails)[0][7]).toBe(57_500);
     expect(salaryRegisterHeaders).not.toContain("Department");
     expect(salaryRegisterHeaders).not.toContain("Previous Month Adjustment");
   });

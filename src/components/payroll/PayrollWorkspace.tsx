@@ -312,11 +312,10 @@ function payrollRunBreakdown(run: PayrollRun) {
     employerEps: entries.reduce((sum, entry) => sum + Number(entry.employer_eps || 0), 0),
     professionalTax: entries.reduce((sum, entry) => sum + Number(entry.professional_tax || 0), 0),
     tds: entries.reduce((sum, entry) => sum + Number(entry.tds || 0), 0),
-    totalDeductions: entries.reduce((sum, entry) => sum + Number(entry.total_deductions || 0), 0),
   };
 }
 
-type PayrollDashboardIconName = "calendar" | "status" | "processing-date" | "employees" | "gross" | "deductions" | "net" | "average";
+type PayrollDashboardIconName = "calendar" | "status" | "processing-date" | "employees" | "gross" | "deductions" | "net";
 type PayrollDashboardTone = "blue" | "cyan" | "emerald" | "violet" | "rose" | "amber" | "slate";
 
 const dashboardToneClasses: Record<PayrollDashboardTone, { icon: string; value: string; accent: string }> = {
@@ -338,7 +337,6 @@ function PayrollDashboardIcon({ name }: { name: PayrollDashboardIconName }) {
     gross: <><path d="M3 7h18v12H3zM3 10h18"/><path d="M7 15h4"/></>,
     deductions: <><path d="M4 7h16v12H4zM7 4h10v3"/><path d="M8 13h8M12 10v6"/></>,
     net: <><path d="M3 6h18v13H3zM3 10h18"/><path d="M7 15h2M15 15h2"/></>,
-    average: <><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 7 6-4 6 6 5-5"/></>,
   };
   return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">{paths[name]}</svg>;
 }
@@ -378,16 +376,14 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
     const deductions = payrollRunBreakdown(run);
     return {
       processed: sum.processed + 1,
-      gross: sum.gross + Number(run.gross_payroll || 0),
       net: sum.net + Number(run.net_payroll || 0),
-      deductions: sum.deductions + deductions.totalDeductions,
       employeePf: sum.employeePf + deductions.employeePf,
       employerPf: sum.employerPf + deductions.employerPf,
       employerEps: sum.employerEps + deductions.employerEps,
       professionalTax: sum.professionalTax + deductions.professionalTax,
       tds: sum.tds + deductions.tds,
     };
-  }, { processed: 0, gross: 0, net: 0, deductions: 0, employeePf: 0, employerPf: 0, employerEps: 0, professionalTax: 0, tds: 0 }), [runs]);
+  }, { processed: 0, net: 0, employeePf: 0, employerPf: 0, employerEps: 0, professionalTax: 0, tds: 0 }), [runs]);
   const latestStatus = latestRun ? payrollStatusPresentation(latestRun.status) : null;
 
   return <div className="space-y-8">
@@ -401,7 +397,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <ExecutiveMetricCard label="Status" value={latestStatus.label} helper="Current payroll lifecycle status" icon="status" tone={latestStatus.tone} badge={{ label: latestStatus.label, className: latestStatus.className }}/>
         <ExecutiveMetricCard label="Salary Processing Date" value={payrollDateLabel(latestRun.processing_date)} helper="Scheduled bank processing date" icon="processing-date" tone="cyan"/>
         <ExecutiveMetricCard label="Employees Processed" value={String(latestRun.employee_count)} helper="Employees included in this run" icon="employees" tone="violet"/>
-        <ExecutiveMetricCard label="Gross Payroll" value={money(latestRun.gross_payroll)} helper="Total earnings before deductions" icon="gross" tone="emerald"/>
+        <ExecutiveMetricCard label="Total PF Amount" value={money(latestBreakdown.employeePf + latestBreakdown.employerPf + latestBreakdown.employerEps)} helper="Employee PF, Employer PF, and Employer EPS" icon="gross" tone="emerald"/>
         <ExecutiveMetricCard label="Total TDS Amount" value={money(latestBreakdown.tds)} helper="Tax deducted at source for this run" icon="deductions" tone="rose"/>
         <ExecutiveMetricCard label="Net Payroll" value={money(latestRun.net_payroll)} helper="Total amount payable to employees" icon="net" tone="blue"/>
         <ExecutiveMetricCard label="Total Professional Tax Amount" value={money(latestBreakdown.professionalTax)} helper="Professional tax for this run" icon="deductions" tone="amber"/>
@@ -414,12 +410,10 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <label className="w-48 text-sm font-bold text-slate-700">Financial Year<select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">{years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}</select></label>
       </div>
       <div className="px-6 pt-6"><div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{selectedYear === currentYear.value ? "Current" : "Selected"} Financial Year · {financialYearFromValue(selectedYear)?.label || selectedYear}</div></div>
-      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-3">
         <ExecutiveMetricCard label="Payroll Runs" value={String(totals.processed)} helper="Payroll months processed" icon="calendar" tone="blue"/>
-        <ExecutiveMetricCard label="Gross Payroll" value={money(totals.gross)} helper="Financial-year gross earnings" icon="gross" tone="emerald"/>
-        <ExecutiveMetricCard label="Total Deductions" value={money(totals.deductions)} helper="Financial-year employee deductions" icon="deductions" tone="rose"/>
+        <ExecutiveMetricCard label="Latest Payroll Period" value={runs[0] ? payrollMonthLabel(runs[0].payroll_month) : "—"} helper="Most recent payroll in this financial year" icon="calendar" tone="emerald"/>
         <ExecutiveMetricCard label="Net Payroll" value={money(totals.net)} helper="Financial-year employee payouts" icon="net" tone="blue"/>
-        <ExecutiveMetricCard label="Average Monthly Payroll" value={money(totals.processed ? totals.net / totals.processed : 0)} helper="Average net payroll per processed month" icon="average" tone="amber"/>
         <ExecutiveMetricCard label="Total PF Amount" value={money(totals.employeePf + totals.employerPf + totals.employerEps)} helper="Employee PF, Employer PF, and Employer EPS" icon="gross" tone="cyan"/>
         <ExecutiveMetricCard label="Total Professional Tax" value={money(totals.professionalTax)} helper="Financial-year professional tax" icon="deductions" tone="violet"/>
         <ExecutiveMetricCard label="Total TDS" value={money(totals.tds)} helper="Financial-year tax deducted at source" icon="deductions" tone="rose"/>
