@@ -41,7 +41,7 @@ function clientInitials(name: string) {
     .join("");
 }
 
-export default function ClientsPage() {
+export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [role, setRole] = useState("");
   const [search, setSearch] = useState("");
@@ -160,10 +160,11 @@ export default function ClientsPage() {
     setStatusFilter("active");
   }
 
+  const Root = embedded ? "div" : "main";
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <section className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+    <Root className={embedded ? "" : "min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8"}>
+      <div className={embedded ? "" : "mx-auto max-w-7xl"}>
+        {!embedded ? <section className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
           <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
           <div className="relative flex items-center justify-between gap-6">
@@ -189,7 +190,7 @@ export default function ClientsPage() {
               </button>
             ) : null}
           </div>
-        </section>
+        </section> : <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Client portfolio</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Clients</h2><p className="mt-1 text-sm text-slate-500">Manage client relationships, contacts, and active projects.</p></div>{isAdmin ? <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center justify-center gap-2 self-start rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm sm:self-auto"><span className="text-base leading-none">+</span>New Client</button> : null}</div>}
 
         <section className="relative z-10 -mt-3 grid grid-cols-3 gap-4 px-3 lg:px-6">
           {[
@@ -353,6 +354,10 @@ export default function ClientsPage() {
           </section>
         ) : null}
       </div>
-    </main>
+    </Root>
   );
+}
+
+export default function ClientsPage() {
+  return <ClientsWorkspace />;
 }

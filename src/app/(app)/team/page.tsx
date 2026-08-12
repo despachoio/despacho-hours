@@ -297,6 +297,14 @@ export default function WorkforcePage() {
     window.location.reload();
   }
 
+  function closeNewMemberForm() {
+    setMemberDraft(emptyEmployeeProfileChanges());
+    setReportingManagerId("");
+    setAccessRole("Employee");
+    setError("");
+    setShowNewMember(false);
+  }
+
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
@@ -330,11 +338,23 @@ export default function WorkforcePage() {
         ) : null}
         {tab === "overview" && showNewMember && isAdmin ? (
           <section className="relative z-10 -mt-4 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:mx-5">
-            <h2 className="text-xl font-bold">Add workforce member</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Add employment details now so the profile is ready for future
-              time-off and payroll workflows.
-            </p>
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <h2 className="text-xl font-bold">Add workforce member</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Add employment details now so the profile is ready for future
+                  time-off and payroll workflows.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeNewMemberForm}
+                aria-label="Close new workforce member form"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+              >
+                ×
+              </button>
+            </div>
             <div className="mt-6">
               <EmployeeProfileFormSections
                 value={memberDraft}
@@ -379,15 +399,24 @@ export default function WorkforcePage() {
                 }
               />
             </div>
-            <button
-              type="button"
-              data-shortcut-primary
-              aria-keyshortcuts="Control+Enter Meta+Enter"
-              onClick={() => void addTeamMember()}
-              className="mt-5 rounded-2xl bg-[#153E90] px-6 py-3 font-bold text-white"
-            >
-              Send Invitation
-            </button>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                data-shortcut-primary
+                aria-keyshortcuts="Control+Enter Meta+Enter"
+                onClick={() => void addTeamMember()}
+                className="rounded-2xl bg-[#153E90] px-6 py-3 font-bold text-white"
+              >
+                Send Invitation
+              </button>
+              <button
+                type="button"
+                onClick={closeNewMemberForm}
+                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
           </section>
         ) : null}
         {tab === "overview" ? <div className="mt-8 space-y-7">
@@ -421,7 +450,7 @@ export default function WorkforcePage() {
                       Manage active and inactive workforce accounts.
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => setShowNewMember((value) => !value)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Workforce Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => showNewMember ? closeNewMemberForm() : setShowNewMember(true)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Workforce Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
                     {(["active", "inactive", "all"] as const).map((view) => (
                       <button
                         key={view}

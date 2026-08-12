@@ -17,8 +17,8 @@ describe("Team HR workspace", () => {
 
   it("keeps the new-member action contextual to Employees", () => {
     const page = source("src/app/(app)/team/page.tsx");
-    expect(page.indexOf("<h2 className=\"font-bold text-slate-950\">Employees")).toBeLessThan(page.indexOf("+ New Team Member"));
-    expect(page.indexOf("+ New Team Member")).toBeLessThan(page.indexOf('(["active", "inactive", "all"]'));
+    expect(page.indexOf("<h2 className=\"font-bold text-slate-950\">Employees")).toBeLessThan(page.indexOf("+ New Workforce Member"));
+    expect(page.indexOf("+ New Workforce Member")).toBeLessThan(page.indexOf('(["active", "inactive", "all"]'));
   });
 
   it("builds the organization hierarchy dynamically from reporting managers", () => {

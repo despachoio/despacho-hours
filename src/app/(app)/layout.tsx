@@ -43,70 +43,66 @@ const allMenu: MenuItem[] = [
     shortcutNumber: 0,
   },
   {
-    name: "Timer",
-    path: "/timer",
+    name: "Accounts",
+    path: "/accounts",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "time",
+    icon: "clients",
     shortcutNumber: 1,
   },
   {
-    name: "Workforce",
-    path: "/team",
+    name: "Time",
+    path: "/timer",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "team",
+    icon: "time",
     shortcutNumber: 2,
-  },
-  {
-    name: "Time Off",
-    path: "/time-off",
-    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "timeOff",
-    shortcutNumber: 3,
-  },
-  {
-    name: "Payroll",
-    path: "/payroll",
-    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "payroll",
-    shortcutNumber: 4,
   },
   {
     name: "Invoices",
     path: "/invoices",
     roles: ["Finance Admin", "Super Admin"],
     icon: "invoices",
+    shortcutNumber: 3,
+  },
+  {
+    name: "Workforce",
+    path: "/team",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+    icon: "team",
+    shortcutNumber: 4,
+  },
+  {
+    name: "Payroll",
+    path: "/payroll",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+    icon: "payroll",
     shortcutNumber: 5,
   },
-  
   {
-    name: "Clients",
-    path: "/clients",
-    roles: ["Finance Admin", "Super Admin", "Admin", "Manager"],
-    icon: "clients",
+    name: "Time Off",
+    path: "/time-off",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+    icon: "timeOff",
     shortcutNumber: 6,
-  },
-  {
-    name: "Projects",
-    path: "/projects",
-    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "projects",
-    shortcutNumber: 7,
-  },
-  {
-    name: "Reports",
-    path: "/reports",
-    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
-    icon: "reports",
-    shortcutNumber: 8,
   },
   {
     name: "Settings",
     path: "/settings",
     roles: ["Finance Admin", "Super Admin", "Admin"],
     icon: "settings",
-    shortcutNumber: 9,
+    shortcutNumber: 7,
   },
 ];
+
+const legacyRouteAccess = [
+  {
+    path: "/clients",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager"],
+  },
+  {
+    path: "/projects",
+    roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
+  },
+] as const;
 
 const iconPaths: Record<IconName, ReactNode> = {
   dashboard: (
@@ -247,8 +243,10 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!userRole || accessState !== "allowed") return;
-    const allowed = allMenu.find((item) => item.path === pathname);
-    if (allowed && !allowed.roles.includes(userRole))
+    const allowed = [...allMenu, ...legacyRouteAccess].find(
+      (item) => item.path === pathname,
+    );
+    if (allowed && !allowed.roles.some((role) => role === userRole))
       router.replace("/timer");
   }, [accessState, pathname, router, userRole]);
 
@@ -289,6 +287,15 @@ export default function DashboardLayout({
   }
 
   function isActive(path: string) {
+    if (path === "/accounts")
+      return (
+        pathname === path ||
+        pathname.startsWith(`${path}/`) ||
+        pathname === "/clients" ||
+        pathname.startsWith("/clients/") ||
+        pathname === "/projects" ||
+        pathname.startsWith("/projects/")
+      );
     return path === "/dashboard"
       ? pathname === path
       : pathname === path || pathname.startsWith(`${path}/`);

@@ -43,7 +43,7 @@ function projectInitials(name: string) {
     .join("");
 }
 
-export default function ProjectsPage() {
+export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -197,10 +197,11 @@ export default function ProjectsPage() {
       }),
     );
 
+  const Root = embedded ? "div" : "main";
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
-      <div className="mx-auto max-w-7xl">
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+    <Root className={embedded ? "" : "min-h-screen bg-[#f8fafc] px-8 py-7"}>
+      <div className={embedded ? "" : "mx-auto max-w-7xl"}>
+        {!embedded ? <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
           <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
           <div className="relative flex items-center justify-between gap-6">
@@ -226,7 +227,7 @@ export default function ProjectsPage() {
               </Link>
             )}
           </div>
-        </div>
+        </div> : <div className="mb-6"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Delivery portfolio</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Projects</h2><p className="mt-1 text-sm text-slate-500">Manage projects and hour banks.</p>{canAdministerProjects ? <Link href="/projects/new" className="mt-4 inline-flex rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white">+ New Project</Link> : null}</div>}
 
         <section className="relative z-10 -mt-3 grid grid-cols-3 gap-4 px-3 lg:px-6">
           {[
@@ -489,6 +490,10 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
-    </main>
+    </Root>
   );
+}
+
+export default function ProjectsPage() {
+  return <ProjectsWorkspace />;
 }
