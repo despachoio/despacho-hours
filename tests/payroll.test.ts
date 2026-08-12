@@ -495,9 +495,9 @@ describe("Payroll security and snapshot contracts", () => {
   it("publishes payroll and rewards policies to every payroll user", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
     const policy = source("src/components/payroll/PayrollPolicy.tsx");
-    expect(workspace).toContain('["policy", "Policy"]');
+    expect(workspace).toContain('["policy", "Policies"]');
     expect(workspace).toContain('tab === "policy" ? <PayrollPolicy />');
-    expect(workspace.indexOf('["policy", "Policy"]')).toBeLessThan(workspace.indexOf("administrationTabs"));
+    expect(workspace.indexOf('["policy", "Policies"]')).toBeLessThan(workspace.indexOf("administrationTabs"));
     for (const section of ["Payroll Access and Records", "Processing Period and Financial Year", "Salary Structure Policy", "Payroll Calculation Rules", "Payroll Processing and Adjustments", "Performance and Growth Rewards"]) expect(policy).toContain(section);
     for (const reward of ["Client Retention Bonus", "₹5,000", "₹10,000", "₹20,000", "Leadership Bonus", "₹30,000", "Client Scale-ups", "Client Referral", "₹3,000"]) expect(policy).toContain(reward);
     expect(policy).toContain("total billing hours are divided by the number of employees");

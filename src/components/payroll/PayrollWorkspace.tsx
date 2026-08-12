@@ -19,7 +19,7 @@ type Employee = { id: string; employee_code: string; name: string; title: string
 type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
-const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"], ["policy", "Policy"]];
+const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"], ["policy", "Policies"]];
 const administrationTabs: Array<[AdministrationTab, string]> = [["dashboard", "Payroll Dashboard"], ["structures", "Salary Structures"], ["recurring", "Recurring Adjustments"], ["process", "Payroll Processing"], ["reports", "Reports"], ["settings", "Settings"]];
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const monthValue = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; };
