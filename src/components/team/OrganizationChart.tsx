@@ -3,22 +3,18 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { TeamEmployee } from "./types";
-import { initials } from "./utils";
 import styles from "./OrganizationChart.module.css";
 
 type ChartNode = TeamEmployee & { children: ChartNode[] };
 
-const rootTone = [
-  "border-[#153E90] from-[#153E90] via-[#194CA8] to-[#0F766E]",
-  "bg-white/15 text-white ring-white/20",
-  "bg-white/15 text-blue-50",
-] as const;
+const rootTone =
+  "border-[#0B1F3A] from-[#0B1F3A] via-[#153E90] to-[#2563A6]";
 
 const nodeTones = [
-  ["border-blue-700 from-[#153E90] to-blue-600", "bg-gradient-to-br from-[#153E90] to-cyan-600", "bg-white/15 text-blue-50"],
-  ["border-violet-700 from-violet-700 to-fuchsia-500", "bg-gradient-to-br from-violet-700 to-fuchsia-500", "bg-white/15 text-violet-50"],
-  ["border-emerald-700 from-emerald-700 to-teal-500", "bg-gradient-to-br from-emerald-700 to-teal-500", "bg-white/15 text-emerald-50"],
-  ["border-amber-600 from-amber-600 to-orange-500", "bg-gradient-to-br from-amber-600 to-orange-500", "bg-white/15 text-amber-50"],
+  "border-[#173B70] from-[#173B70] to-[#2F66B3]",
+  "border-[#0F5F66] from-[#0F5F66] to-[#2B8C88]",
+  "border-[#563D7C] from-[#563D7C] to-[#7C5AA6]",
+  "border-[#7A4E28] from-[#7A4E28] to-[#A96F3B]",
 ] as const;
 
 export function organizationChartEmployeeName(name: string) {
@@ -95,31 +91,18 @@ function OrgNode({
     <li className={`${styles.node} ${depth === 0 ? styles.rootNode : ""}`}>
       <article
         id={`org-node-${node.id}`}
-        className={`relative z-10 w-64 overflow-hidden rounded-[1.35rem] border bg-gradient-to-br text-center text-white shadow-[0_18px_40px_-20px_rgba(15,23,42,.65)] transition duration-300 hover:-translate-y-1 hover:shadow-2xl ${tone[0]} ${selectedId === node.id ? "ring-4 ring-cyan-300/50" : ""}`}
+        className={`relative z-10 w-64 overflow-hidden rounded-[1.35rem] border bg-gradient-to-br text-center text-white shadow-[0_18px_40px_-20px_rgba(15,23,42,.65)] transition duration-300 hover:-translate-y-1 hover:shadow-2xl ${tone} ${selectedId === node.id ? "ring-4 ring-cyan-300/50" : ""}`}
       >
         <Link
           href={`/team/${node.id}`}
-          className="block px-5 pb-5 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-white/60"
+          className="block px-5 pb-5 pt-5 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-white/60"
           aria-label={`Open ${name}'s employee profile`}
         >
-          <span
-            className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xs font-black ring-1 ${tone[1]}`}
-          >
-            {initials(name)}
-          </span>
-          <span className="mt-3 block truncate text-base font-black tracking-wide">
+          <span className="block truncate text-base font-black tracking-wide">
             {name}
           </span>
           <span className="mt-1 block truncate text-[10px] font-bold uppercase tracking-[0.24em] text-white/80">
             {node.role || "Workforce Member"}
-          </span>
-          <span
-            className={`mx-auto mt-3 inline-flex max-w-full rounded-full px-3 py-1 text-[10px] font-bold ${tone[2]}`}
-          >
-            <span className="truncate">
-              {node.employee_code || "No code"}
-              {node.department ? ` · ${node.department}` : ""}
-            </span>
           </span>
         </Link>
         {node.children.length ? (
@@ -274,21 +257,9 @@ export default function OrganizationChart({
       </section>
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.45)]">
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-blue-50 px-6 py-6 text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#153E90]">
-            Active reporting hierarchy
-          </p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-800">
-            Company Organization
-          </h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-500">
-            Select a card to open the employee profile. Use the control on a
-            manager card to collapse or reveal its reporting branch.
-          </p>
-        </div>
         <div
           ref={viewport}
-          className="max-h-[760px] overflow-auto bg-[radial-gradient(circle_at_top,_rgba(219,234,254,.55),_transparent_40%),linear-gradient(#fff,#f8fafc)] px-8 py-10"
+          className="max-h-[760px] overflow-auto bg-[radial-gradient(circle_at_top,_rgba(219,234,254,.45),_transparent_42%),linear-gradient(#fff,#f8fafc)] px-8 py-12"
         >
           {forest.length ? (
             <div

@@ -16,16 +16,22 @@ describe("Workforce organization chart", () => {
 
   it("uses premium color-coded cards", () => {
     expect(chart).toContain("nodeTones");
-    expect(chart).toContain("from-violet-700");
-    expect(chart).toContain("from-emerald-700");
-    expect(chart).toContain("from-amber-600");
+    expect(chart).toContain("from-[#173B70]");
+    expect(chart).toContain("from-[#0F5F66]");
+    expect(chart).toContain("from-[#563D7C]");
+    expect(chart).toContain("from-[#7A4E28]");
+    expect(chart).not.toContain('import { initials }');
+    expect(chart).not.toContain("initials(name)");
+    expect(chart).not.toContain("{node.employee_code");
+    expect(chart).not.toContain("{node.department");
   });
 
   it("renders a classic connected hierarchy with inherited branch colours", () => {
     const styles = source(
       "src/components/team/OrganizationChart.module.css",
     );
-    expect(chart).toContain("Company Organization");
+    expect(chart).not.toContain("Company Organization");
+    expect(chart).not.toContain("Active reporting hierarchy");
     expect(chart).toContain("branchIndex");
     expect(chart).toContain("depth === 0 ? childIndex : branchIndex");
     expect(chart).toContain("aria-expanded={!isCollapsed}");
