@@ -1,0 +1,103 @@
+.canvas {
+  display: flex;
+  min-width: max-content;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+}
+
+.tree,
+.children {
+  display: flex;
+  min-width: max-content;
+  justify-content: center;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.tree {
+  padding-top: 0;
+}
+
+.children {
+  position: relative;
+  padding-top: 1.75rem;
+}
+
+.children::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 1.75rem;
+  border-left: 2px solid #94a3b8;
+  content: "";
+}
+
+.node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.75rem 0.75rem 0;
+  text-align: center;
+}
+
+.node::before,
+.node::after {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 1.75rem;
+  border-top: 2px solid #94a3b8;
+  content: "";
+}
+
+.node::before {
+  right: 50%;
+}
+
+.node::after {
+  left: 50%;
+  border-left: 2px solid #94a3b8;
+}
+
+.node:only-child::before,
+.node:only-child::after {
+  display: none;
+}
+
+.node:only-child {
+  padding-top: 0;
+}
+
+.node:first-child::before,
+.node:last-child::after {
+  border: 0;
+}
+
+.node:last-child::before {
+  border-right: 2px solid #94a3b8;
+  border-radius: 0 0.75rem 0 0;
+}
+
+.node:first-child::after {
+  border-radius: 0.75rem 0 0 0;
+}
+
+.rootNode {
+  padding-top: 0;
+}
+
+.rootNode::before,
+.rootNode::after {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .node {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
+}

@@ -20,6 +20,19 @@ describe("Workforce organization chart", () => {
     expect(chart).toContain("from-emerald-700");
     expect(chart).toContain("from-amber-600");
   });
+
+  it("renders a classic connected hierarchy with inherited branch colours", () => {
+    const styles = source(
+      "src/components/team/OrganizationChart.module.css",
+    );
+    expect(chart).toContain("Company Organization");
+    expect(chart).toContain("branchIndex");
+    expect(chart).toContain("depth === 0 ? childIndex : branchIndex");
+    expect(chart).toContain("aria-expanded={!isCollapsed}");
+    expect(styles).toContain(".children::before");
+    expect(styles).toContain(".node::before");
+    expect(styles).toContain(".node::after");
+  });
 });
 
 describe("Workforce terminology", () => {
