@@ -1152,8 +1152,6 @@ async function stopTimer() {
     return;
   }
 
-  await recalculateProjectHours(latestTimer.project_id);
-
   setActiveTimer(null);
   setElapsedSeconds(0);
   setTimerClient("");
@@ -1183,8 +1181,6 @@ async function stopTimer() {
       );
       return;
     }
-
-    await recalculateProjectHours(latestTimer.project_id);
 
     setActiveTimer(null);
     setElapsedSeconds(0);
@@ -1269,7 +1265,6 @@ async function adminStopTimer(timer: LiveTimer) {
     return;
   }
 
-  await recalculateProjectHours(latestTimer.project_id);
   await loadData();
   return;
 }
@@ -1294,7 +1289,6 @@ async function adminStopTimer(timer: LiveTimer) {
       return;
     }
 
-    await recalculateProjectHours(latestTimer.project_id);
     await loadData();
   } finally {
     finishTimerAction(timer.id);
@@ -1302,51 +1296,6 @@ async function adminStopTimer(timer: LiveTimer) {
 
   }
 }
-async function recalculateProjectHours(projectId: string) {
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("purchased_hours")
-    .eq("id", projectId)
-    .single();
-
-  if (projectError) {
-    alert(projectError.message);
-    return;
-  }
-
-  const { data: entries, error: entriesError } = await supabase
-    .from("time_entries")
-    .select("hours")
-    .eq("project_id", projectId);
-
-  if (entriesError) {
-    alert(entriesError.message);
-    return;
-  }
-
-  const totalUsed =
-    entries?.reduce((sum, entry) => {
-      return sum + Number(entry.hours || 0);
-    }, 0) || 0;
-
-  const usedHours = Number(totalUsed.toFixed(2));
-  const remainingHours = Number(
-    (Number(project?.purchased_hours || 0) - usedHours).toFixed(2)
-  );
-
-  const { error: updateError } = await supabase
-    .from("projects")
-    .update({
-      used_hours: usedHours,
-      remaining_hours: remainingHours,
-    })
-    .eq("id", projectId);
-
-  if (updateError) {
-    alert(updateError.message);
-  }
-}
-
 async function deleteTimeEntry(entry: TimeEntry) {
   if (!confirm("Are you sure you want to delete this time entry?")) return;
 
@@ -1354,18 +1303,6 @@ async function deleteTimeEntry(entry: TimeEntry) {
 
   if (!projectId) {
     alert("Project not found for this entry.");
-    return;
-  }
-
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("used_hours, remaining_hours")
-    .eq("id", projectId)
-    .single();
-
-  if (projectError) {
-    alert(projectError.message);
-    console.error(projectError);
     return;
   }
 
@@ -1379,8 +1316,6 @@ async function deleteTimeEntry(entry: TimeEntry) {
     console.error(deleteError);
     return;
   }
-
-  await recalculateProjectHours(projectId);
 
   alert("Time entry deleted and project hours updated.");
 
@@ -1444,8 +1379,6 @@ async function saveManualEntry() {
       alert(error.message);
       return;
     }
-
-    await recalculateProjectHours(manualProjectId);
 
     setShowManualEntry(false);
     setManualClient("");
@@ -1515,12 +1448,6 @@ async function saveEditedEntry() {
     if (updateError) {
       alert(updateError.message);
       return;
-    }
-
-    await recalculateProjectHours(oldProjectId);
-
-    if (oldProjectId !== editProjectId) {
-      await recalculateProjectHours(editProjectId);
     }
 
     setEditingEntry(null);
