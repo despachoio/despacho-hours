@@ -12,12 +12,13 @@ import type { CompanyPayrollBankDetails, EmployeeBankDetails, PayrollEntry, Payr
 import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollAdministration";
 import SalaryStructures from "@/components/payroll/SalaryStructures";
 import RecurringAdjustments from "@/components/payroll/RecurringAdjustments";
+import PayrollPolicy from "@/components/payroll/PayrollPolicy";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
 type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
-type Tab = "overview" | "history" | "administration";
+type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
-const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"]];
+const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"], ["policy", "Policy"]];
 const administrationTabs: Array<[AdministrationTab, string]> = [["dashboard", "Payroll Dashboard"], ["structures", "Salary Structures"], ["recurring", "Recurring Adjustments"], ["process", "Payroll Processing"], ["reports", "Reports"], ["settings", "Settings"]];
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const monthValue = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; };
@@ -41,6 +42,7 @@ export default function PayrollWorkspace() {
     {loading ? <div className="grid gap-4 md:grid-cols-3">{[1,2,3].map((item) => <div key={item} className="h-36 animate-pulse rounded-3xl bg-slate-200" />)}</div> : !data ? null : <>
       {tab === "overview" ? <EmployeeOverview entry={latest} entries={data.ownEntries} /> : null}
       {tab === "history" ? <PayrollHistory entries={data.ownEntries} /> : null}
+      {tab === "policy" ? <PayrollPolicy /> : null}
       {tab === "administration" && administrationAccess ? <div className="space-y-5">
         <nav aria-label="Payroll administration sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 p-2 shadow-sm">
           {administrationTabs.filter(([value]) => value !== "structures" || salaryStructureAccess).map(([value, label]) => <button key={value} onClick={() => setAdministrationTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${administrationTab === value ? "bg-[#0F172A] text-white shadow" : "text-slate-600 hover:bg-white hover:text-[#153E90]"}`}>{label}</button>)}

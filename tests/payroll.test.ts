@@ -491,6 +491,20 @@ describe("Payroll security and snapshot contracts", () => {
     expect(summaryRoute).toContain("PayrollSummaryPdfDocument");
   });
 
+  it("publishes payroll and rewards policies to every payroll user", () => {
+    const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
+    const policy = source("src/components/payroll/PayrollPolicy.tsx");
+    expect(workspace).toContain('["policy", "Policy"]');
+    expect(workspace).toContain('tab === "policy" ? <PayrollPolicy />');
+    expect(workspace.indexOf('["policy", "Policy"]')).toBeLessThan(workspace.indexOf("administrationTabs"));
+    for (const section of ["Payroll Access and Records", "Processing Period and Financial Year", "Salary Structure Policy", "Payroll Calculation Rules", "Payroll Processing and Adjustments", "Performance and Growth Rewards"]) expect(policy).toContain(section);
+    for (const reward of ["Client Retention Bonus", "₹5,000", "₹10,000", "₹20,000", "Leadership Bonus", "₹30,000", "Client Scale-ups", "Client Referral", "₹3,000"]) expect(policy).toContain(reward);
+    expect(policy).toContain("total billing hours are divided by the number of employees");
+    expect(policy).toContain("ended their contract with the company on any day during the year");
+    expect(policy).toContain("team’s total utilisation must be 90% or higher");
+    expect(policy).toContain("transferred directly to the VA’s bank account along with wages");
+  });
+
   it("aggregates Finance payroll summary values without changing calculations", () => {
     const summary = summarizePayroll([{ employee_id: "one", basic_pay: 10, hra: 5, conveyance_allowance: 2, other_allowance: 3, bonus: 1, leave_encashment: 4, gross_salary: 20, employee_pf: 2, employer_pf: 1, employer_eps: 1, professional_tax: 1, lop_deduction: 2, previous_month_adjustment: 3, tds: 4, net_salary: 14 } as never]);
     expect(summary.employeesProcessed).toBe(1);
