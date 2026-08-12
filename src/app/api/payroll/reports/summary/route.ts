@@ -9,8 +9,8 @@ import { financePayrollOnly, payrollActor } from "@/lib/payroll/server";
 
 const labels: Record<string, string> = {
   basicPay: "Basic Pay", hra: "HRA", conveyanceAllowance: "Conveyance Allowance", otherAllowance: "Other Allowance",
-  bonus: "Bonus", leaveEncashment: "Leave Encashment", grossSalary: "Gross Salary", employeePf: "Employee PF",
-  employerPf: "Employer PF", employerEps: "Employer EPS", professionalTax: "Professional Tax", lop: "LOP",
+  bonus: "Bonus", leaveEncashment: "Leave Encashment", grossSalary: "Gross Pay", employeePf: "Employee PF",
+  employerPf: "Employer PF", employerEps: "Employer EPS", administrationCharges: "Administration Charges", edliCharges: "EDLI Charges", totalPf: "Total PF Amount", professionalTax: "Professional Tax", lop: "LOP",
   previousMonthAdjustment: "Previous Month Adjustment", tds: "TDS", netSalary: "Net Salary",
   employeesProcessed: "Employees Processed", grossPayroll: "Gross Payroll", netPayroll: "Net Payroll",
 };

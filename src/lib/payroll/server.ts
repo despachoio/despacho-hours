@@ -16,7 +16,7 @@ import type {
 } from "./types";
 import { isFinanceAdminRole } from "@/lib/roles";
 import { businessDateKey } from "@/lib/metrics/date-ranges";
-import { buildBankTransferFile } from "./exports";
+import { buildBankTransferFile, salaryRegisterGrossPay } from "./exports";
 import { bankTransferFilename } from "./filenames";
 import { applicableRecurringAdjustments, payrollMonthDate, recurringComponentTotal } from "./recurringAdjustments";
 
@@ -105,6 +105,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     const entries = entriesByRun.get(run.id) || [];
     return {
       ...run,
+      gross_payroll: entries.reduce((sum, entry) => sum + salaryRegisterGrossPay(entry), 0),
       net_payroll: entries.reduce((sum, entry) => sum + entry.net_salary, 0),
       entries,
     } as PayrollRun;
@@ -397,7 +398,7 @@ async function buildPayroll(request: Request, payrollMonth: string, preserveManu
     return { payroll_run_id: run.id, employee_id: structure.employee_id, salary_structure_id: structure.id, salary_structure_version: structure.version, employee_code: employee.employee_code, employee_name: [employee.title, employee.name].filter(Boolean).join(" "), department: employee.department, payroll_month: month, period_start: period.start, period_end: period.end, gross_salary: calculated.grossSalary, basic_pay: calculated.basicPay, hra: calculated.hra, conveyance_allowance: calculated.conveyanceAllowance, other_allowance: calculated.otherAllowance, bonus: calculated.bonus, leave_encashment: calculated.leaveEncashment, epf_salary: calculated.epfSalary, employee_pf: calculated.employeePf, employer_pf: calculated.employerPf, employer_eps: calculated.employerEps, employer_total_contribution: calculated.employerTotalContribution, professional_tax: calculated.professionalTax, lop_days: calculated.lopDays, lop_recommended: calculated.lopRecommended, lop_deduction: calculated.lopDeduction, previous_month_adjustment: calculated.previousMonthAdjustment, tds: calculated.tds, total_earnings: calculated.totalEarnings, total_deductions: calculated.totalDeductions, net_salary: calculated.netSalary, recurring_adjustment_snapshot: recurringSnapshot, manual_override_fields: overrideFields, status: "draft" };
   });
   if (rows.length) { const inserted = await actor.admin.from("payroll_entries").insert(rows); if (inserted.error) throw new Error(inserted.error.message); }
-  const totals = rows.reduce((sum, row) => ({ gross: sum.gross + row.gross_salary, net: sum.net + row.net_salary, pf: sum.pf + row.employer_pf, eps: sum.eps + row.employer_eps }), { gross: 0, net: 0, pf: 0, eps: 0 });
+  const totals = rows.reduce((sum, row) => ({ gross: sum.gross + salaryRegisterGrossPay(row), net: sum.net + row.net_salary, pf: sum.pf + row.employer_pf, eps: sum.eps + row.employer_eps }), { gross: 0, net: 0, pf: 0, eps: 0 });
   const update = await actor.admin.from("payroll_runs").update({ employee_count: rows.length, gross_payroll: totals.gross, net_payroll: totals.net, employer_pf_total: totals.pf, employer_eps_total: totals.eps, generated_at: new Date().toISOString(), generated_by: actor.userId, updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("id", run.id).select("*").single();
   if (update.error) throw new Error(update.error.message);
   await audit(actor.admin, actor, { action: preserveManualAdjustments ? "payroll_reprocessed" : "payroll_generated", runId: run.id, next: update.data });
@@ -434,7 +435,7 @@ export async function updatePayrollEntry(request: Request, entryId: string, valu
 async function refreshRunTotals(admin: SupabaseClient, runId: string) {
   const entries = await admin.from("payroll_entries").select("*").eq("payroll_run_id", runId);
   if (entries.error) throw new Error(entries.error.message);
-  const totals = (entries.data || []).map(toPayrollEntryDto).reduce((sum, row) => ({ gross: sum.gross + Number(row.gross_salary), net: sum.net + Number(row.net_salary), pf: sum.pf + Number(row.employer_pf), eps: sum.eps + Number(row.employer_eps) }), { gross: 0, net: 0, pf: 0, eps: 0 });
+  const totals = (entries.data || []).map(toPayrollEntryDto).reduce((sum, row) => ({ gross: sum.gross + salaryRegisterGrossPay(row), net: sum.net + Number(row.net_salary), pf: sum.pf + Number(row.employer_pf), eps: sum.eps + Number(row.employer_eps) }), { gross: 0, net: 0, pf: 0, eps: 0 });
   const update = await admin.from("payroll_runs").update({ gross_payroll: totals.gross, net_payroll: totals.net, employer_pf_total: totals.pf, employer_eps_total: totals.eps, updated_at: new Date().toISOString() }).eq("id", runId);
   if (update.error) throw new Error(update.error.message);
 }

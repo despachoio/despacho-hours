@@ -25,6 +25,32 @@ export function salaryRegisterGrossPay(entry: Pick<PayrollEntry, "gross_salary" 
   return Number(entry.gross_salary || 0) + Number(entry.bonus || 0) + Number(entry.leave_encashment || 0);
 }
 
+const PF_CHARGE_RATE = 0.005;
+const payrollMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+export function payrollPfAmounts(
+  entry: Pick<PayrollEntry, "epf_salary" | "employee_pf" | "employer_pf" | "employer_eps">,
+) {
+  const epfSalary = Number(entry.epf_salary || 0);
+  const administrationCharges = payrollMoney(epfSalary * PF_CHARGE_RATE);
+  const edliCharges = payrollMoney(epfSalary * PF_CHARGE_RATE);
+
+  return {
+    employeePf: Number(entry.employee_pf || 0),
+    employerPf: Number(entry.employer_pf || 0),
+    employerEps: Number(entry.employer_eps || 0),
+    administrationCharges,
+    edliCharges,
+    totalPf: payrollMoney(
+      Number(entry.employee_pf || 0) +
+      Number(entry.employer_pf || 0) +
+      Number(entry.employer_eps || 0) +
+      administrationCharges +
+      edliCharges,
+    ),
+  };
+}
+
 export function salaryRegisterRows(run: PayrollRun, bankDetails: EmployeeBankDetails[] = []) {
   const detailsByEmployee = employeeBankDetailsMap(bankDetails);
   return (run.entries || []).map((entry) => [
@@ -147,6 +173,9 @@ export type PayrollSummary = {
   employeePf: number;
   employerPf: number;
   employerEps: number;
+  administrationCharges: number;
+  edliCharges: number;
+  totalPf: number;
   professionalTax: number;
   lop: number;
   previousMonthAdjustment: number;
@@ -167,23 +196,29 @@ export function summarizePayroll(entries: PayrollEntry[]): PayrollSummary {
     summary.otherAllowance += Number(entry.other_allowance || 0);
     summary.bonus += Number(entry.bonus || 0);
     summary.leaveEncashment += Number(entry.leave_encashment || 0);
-    summary.grossSalary += Number(entry.gross_salary || 0);
-    summary.employeePf += Number(entry.employee_pf || 0);
-    summary.employerPf += Number(entry.employer_pf || 0);
-    summary.employerEps += Number(entry.employer_eps || 0);
+    const grossPay = salaryRegisterGrossPay(entry);
+    const pf = payrollPfAmounts(entry);
+    summary.grossSalary += grossPay;
+    summary.employeePf += pf.employeePf;
+    summary.employerPf += pf.employerPf;
+    summary.employerEps += pf.employerEps;
+    summary.administrationCharges += pf.administrationCharges;
+    summary.edliCharges += pf.edliCharges;
+    summary.totalPf += pf.totalPf;
     summary.professionalTax += Number(entry.professional_tax || 0);
     summary.lop += Number(entry.lop_deduction || 0);
     summary.previousMonthAdjustment += Number(entry.previous_month_adjustment || 0);
     summary.tds += Number(entry.tds || 0);
     summary.netSalary += Number(entry.net_salary || 0);
-    summary.grossPayroll += Number(entry.gross_salary || 0);
+    summary.grossPayroll += grossPay;
     summary.netPayroll += Number(entry.net_salary || 0);
     summary.employeesProcessed = employeeIds.size;
     return summary;
   }, {
     basicPay: 0, hra: 0, conveyanceAllowance: 0, otherAllowance: 0, bonus: 0,
     leaveEncashment: 0, grossSalary: 0, employeePf: 0, employerPf: 0,
-    employerEps: 0, professionalTax: 0, lop: 0, previousMonthAdjustment: 0,
+    employerEps: 0, administrationCharges: 0, edliCharges: 0, totalPf: 0,
+    professionalTax: 0, lop: 0, previousMonthAdjustment: 0,
     tds: 0, netSalary: 0, employeesProcessed: 0, grossPayroll: 0, netPayroll: 0,
   });
 }

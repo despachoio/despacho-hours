@@ -7,10 +7,10 @@ import { bankTransferFilename, payslipFilename, ytdFilename } from "../src/lib/p
 import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels";
 import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
-import { buildBankTransferFile, salaryRegisterGrossPay, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
+import { buildBankTransferFile, payrollPfAmounts, salaryRegisterGrossPay, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
 import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus, selectEffectiveSalaryStructures } from "../src/lib/payroll/salaryStructures";
 import { applicableRecurringAdjustments, payrollMonthDate, recurringAdjustmentStatus, recurringComponentTotal } from "../src/lib/payroll/recurringAdjustments";
-import type { RecurringPayrollAdjustment, SalaryStructure } from "../src/lib/payroll/types";
+import type { PayrollRun, RecurringPayrollAdjustment, SalaryStructure } from "../src/lib/payroll/types";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -295,7 +295,8 @@ describe("Payroll security and snapshot contracts", () => {
     expect(performanceSection).not.toContain('label="Total Deductions"');
     expect(performanceSection).not.toContain("Average Monthly Payroll");
     expect(performanceSection).toContain("Latest Payroll Period");
-    expect(performanceSection).toContain("totals.employeePf + totals.employerPf + totals.employerEps");
+    expect(performanceSection).toContain("money(totals.totalPf)");
+    expect(performanceSection).toContain("Administration Charges, and EDLI Charges");
     expect(workspace.indexOf("Recently Processed Payroll")).toBeLessThan(workspace.indexOf("Financial Year Performance"));
     expect(workspace).toContain('onViewProcessing={() => setAdministrationTab("process")}');
     expect(workspace).toContain("grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4");
@@ -376,7 +377,7 @@ describe("Payroll security and snapshot contracts", () => {
   });
 
   it("blocks incomplete, unsafe, and unapproved bank exports", () => {
-    const run = { status: "approved", payroll_month: "2026-07-01", processing_date: "2026-07-29", entries: [{ employee_id: "employee-1", employee_code: "90001", employee_name: "Riya Kumar", net_salary: 19_275 }] } as never;
+    const run = { status: "approved", payroll_month: "2026-07-01", processing_date: "2026-07-29", entries: [{ employee_id: "employee-1", employee_code: "90001", employee_name: "Riya Kumar", net_salary: 19_275 }] } as unknown as PayrollRun;
     const bank = [{ employee_id: "employee-1", bank_name: "Bank", ifsc_code: "HDFC0001234", bank_account_number: "001234" }];
     const settings = { payroll_bank_customer_id: "578052540", payroll_bank_account_number: "000205032630", payroll_bank_ifsc_code: "ICIC0000011", payroll_bank_branch_code: "0011", payroll_bank_currency: "INR" };
     expect(() => buildBankTransferFile(run, bank, { ...settings, payroll_bank_branch_code: null })).toThrow("Payroll Bank Account Branch Code is missing");
@@ -386,7 +387,7 @@ describe("Payroll security and snapshot contracts", () => {
     expect(() => buildBankTransferFile(run, [{ ...bank[0], bank_account_number: null }], settings)).toThrow("90001 – Riya Kumar – Bank Account Number missing");
     expect(() => buildBankTransferFile(run, [{ ...bank[0], ifsc_code: null }], settings)).toThrow("90001 – Riya Kumar – IFSC missing");
     expect(() => buildBankTransferFile({ ...run, status: "draft" }, bank, settings)).toThrow("Payroll must be Approved or Submitted");
-    expect(() => buildBankTransferFile({ ...run, entries: [{ ...run.entries[0], employee_name: "Riya|Kumar" }] }, bank, settings)).toThrow("unsupported character");
+    expect(() => buildBankTransferFile({ ...run, entries: [{ ...run.entries![0], employee_name: "Riya|Kumar" }] }, bank, settings)).toThrow("unsupported character");
   });
 
   it("keeps bank generation server-authoritative and audit-safe", () => {
@@ -506,12 +507,27 @@ describe("Payroll security and snapshot contracts", () => {
   });
 
   it("aggregates Finance payroll summary values without changing calculations", () => {
-    const summary = summarizePayroll([{ employee_id: "one", basic_pay: 10, hra: 5, conveyance_allowance: 2, other_allowance: 3, bonus: 1, leave_encashment: 4, gross_salary: 20, employee_pf: 2, employer_pf: 1, employer_eps: 1, professional_tax: 1, lop_deduction: 2, previous_month_adjustment: 3, tds: 4, net_salary: 14 } as never]);
+    const summary = summarizePayroll([{ employee_id: "one", basic_pay: 10, hra: 5, conveyance_allowance: 2, other_allowance: 3, bonus: 1, leave_encashment: 4, gross_salary: 20, epf_salary: 100, employee_pf: 2, employer_pf: 1, employer_eps: 1, professional_tax: 1, lop_deduction: 2, previous_month_adjustment: 3, tds: 4, net_salary: 14 } as never]);
     expect(summary.employeesProcessed).toBe(1);
-    expect(summary.grossPayroll).toBe(20);
+    expect(summary.grossPayroll).toBe(25);
+    expect(summary.grossSalary).toBe(25);
+    expect(summary.administrationCharges).toBe(0.5);
+    expect(summary.edliCharges).toBe(0.5);
+    expect(summary.totalPf).toBe(5);
     expect(summary.netPayroll).toBe(14);
     expect(summary.lop).toBe(2);
     expect(summary.tds).toBe(4);
+  });
+
+  it("includes PF administration and EDLI charges in Total PF Amount", () => {
+    expect(payrollPfAmounts({ epf_salary: 15_000, employee_pf: 1_800, employer_pf: 550, employer_eps: 1_250 })).toEqual({
+      employeePf: 1_800,
+      employerPf: 550,
+      employerEps: 1_250,
+      administrationCharges: 75,
+      edliCharges: 75,
+      totalPf: 3_750,
+    });
   });
 
   it("requires a financial year search before showing payroll history", () => {
@@ -522,8 +538,8 @@ describe("Payroll security and snapshot contracts", () => {
     expect(history).toContain("Financial Year");
     expect(history).toContain("isInFinancialYear");
     expect(history).toContain("Month &amp; Year");
-    expect(history).toContain("Gross Salary");
-    expect(history).toContain("entry.gross_salary");
+    expect(history).toContain("Gross Pay");
+    expect(history).toContain("salaryRegisterGrossPay(entry)");
     expect(history).toContain("Deductions");
     expect(history).toContain("Net Salary");
     expect(history).toContain("Download PDF");

@@ -7,6 +7,7 @@ import { currentFinancialYear, financialYearFromValue, financialYearOptions, isI
 import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
 import { MANUAL_PAYROLL_FIELDS, type ManualPayrollField } from "@/lib/payroll/labels";
 import { normalizePayrollNumber } from "@/lib/payroll/numbers";
+import { payrollPfAmounts, salaryRegisterGrossPay } from "@/lib/payroll/exports";
 import { isFinanceAdminRole } from "@/lib/roles";
 import type { CompanyPayrollBankDetails, EmployeeBankDetails, PayrollEntry, PayrollRun, PayrollSettings, RecurringPayrollAdjustment, SalaryStructure } from "@/lib/payroll/types";
 import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollAdministration";
@@ -278,7 +279,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
               <thead className="bg-[#153E90] text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-6 py-4">Month &amp; Year</th>
-                  <th className="px-4 py-4 text-center">Gross Salary</th>
+                  <th className="px-4 py-4 text-center">Gross Pay</th>
                   <th className="px-4 py-4 text-center">Deductions</th>
                   <th className="px-4 py-4 text-center">Net Salary</th>
                   <th className="px-6 py-4 text-center">Payslip</th>
@@ -290,7 +291,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
                     <td className="whitespace-nowrap px-6 py-5 text-center font-bold text-slate-900">
   {payrollMonthLabel(entry.payroll_month)}
 </td>
-                    <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-slate-700">{money(entry.gross_salary)}</td>
+                    <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-slate-700">{money(salaryRegisterGrossPay(entry))}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-rose-700">{money(entry.total_deductions)}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-bold text-[#153E90]">{money(entry.net_salary)}</td>
                     <td className="whitespace-nowrap px-6 py-5 text-center"><KairoButton type="button" disabled={Boolean(downloadingPayslipId)} className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadHistoryPayslip(entry)}>{downloadingPayslipId === entry.id ? "Downloading..." : "Download PDF"}</KairoButton></td>
@@ -308,13 +309,19 @@ function Empty({text}:{text:string}) { return <p className="px-6 py-14 text-cent
 
 function payrollRunBreakdown(run: PayrollRun) {
   const entries = run.entries || [];
-  return {
-    employeePf: entries.reduce((sum, entry) => sum + Number(entry.employee_pf || 0), 0),
-    employerPf: entries.reduce((sum, entry) => sum + Number(entry.employer_pf || 0), 0),
-    employerEps: entries.reduce((sum, entry) => sum + Number(entry.employer_eps || 0), 0),
-    professionalTax: entries.reduce((sum, entry) => sum + Number(entry.professional_tax || 0), 0),
-    tds: entries.reduce((sum, entry) => sum + Number(entry.tds || 0), 0),
-  };
+  return entries.reduce((summary, entry) => {
+    const pf = payrollPfAmounts(entry);
+    return {
+      employeePf: summary.employeePf + pf.employeePf,
+      employerPf: summary.employerPf + pf.employerPf,
+      employerEps: summary.employerEps + pf.employerEps,
+      administrationCharges: summary.administrationCharges + pf.administrationCharges,
+      edliCharges: summary.edliCharges + pf.edliCharges,
+      totalPf: summary.totalPf + pf.totalPf,
+      professionalTax: summary.professionalTax + Number(entry.professional_tax || 0),
+      tds: summary.tds + Number(entry.tds || 0),
+    };
+  }, { employeePf: 0, employerPf: 0, employerEps: 0, administrationCharges: 0, edliCharges: 0, totalPf: 0, professionalTax: 0, tds: 0 });
 }
 
 type PayrollDashboardIconName = "calendar" | "status" | "processing-date" | "employees" | "gross" | "deductions" | "net";
@@ -382,10 +389,13 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
       employeePf: sum.employeePf + deductions.employeePf,
       employerPf: sum.employerPf + deductions.employerPf,
       employerEps: sum.employerEps + deductions.employerEps,
+      administrationCharges: sum.administrationCharges + deductions.administrationCharges,
+      edliCharges: sum.edliCharges + deductions.edliCharges,
+      totalPf: sum.totalPf + deductions.totalPf,
       professionalTax: sum.professionalTax + deductions.professionalTax,
       tds: sum.tds + deductions.tds,
     };
-  }, { processed: 0, net: 0, employeePf: 0, employerPf: 0, employerEps: 0, professionalTax: 0, tds: 0 }), [runs]);
+  }, { processed: 0, net: 0, employeePf: 0, employerPf: 0, employerEps: 0, administrationCharges: 0, edliCharges: 0, totalPf: 0, professionalTax: 0, tds: 0 }), [runs]);
   const latestStatus = latestRun ? payrollStatusPresentation(latestRun.status) : null;
 
   return <div className="space-y-8">
@@ -400,7 +410,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <ExecutiveMetricCard label="Salary Processing Date" value={payrollDateLabel(latestRun.processing_date)} helper="Scheduled bank processing date" icon="processing-date" tone="cyan"/>
         <ExecutiveMetricCard label="Employees Processed" value={String(latestRun.employee_count)} helper="Employees included in this run" icon="employees" tone="violet"/>
         <ExecutiveMetricCard label="Net Payroll" value={money(latestRun.net_payroll)} helper="Total amount payable to employees" icon="net" tone="blue"/>
-        <ExecutiveMetricCard label="Total PF Amount" value={money(latestBreakdown.employeePf + latestBreakdown.employerPf + latestBreakdown.employerEps)} helper="Employee PF, Employer PF, and Employer EPS" icon="gross" tone="emerald"/>
+        <ExecutiveMetricCard label="Total PF Amount" value={money(latestBreakdown.totalPf)} helper="Employee PF, Employer PF, Employer EPS, Administration Charges, and EDLI Charges" icon="gross" tone="emerald"/>
         <ExecutiveMetricCard label="Total TDS Amount" value={money(latestBreakdown.tds)} helper="Tax deducted at source for this run" icon="deductions" tone="rose"/>
         <ExecutiveMetricCard label="Total Professional Tax Amount" value={money(latestBreakdown.professionalTax)} helper="Professional tax for this run" icon="deductions" tone="amber"/>
       </div> : <Empty text="No payroll has been processed yet." />}
@@ -416,7 +426,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <ExecutiveMetricCard label="Payroll Runs" value={String(totals.processed)} helper="Payroll months processed" icon="calendar" tone="blue"/>
         <ExecutiveMetricCard label="Latest Payroll Period" value={runs[0] ? payrollMonthLabel(runs[0].payroll_month) : "—"} helper="Most recent payroll in this financial year" icon="calendar" tone="emerald"/>
         <ExecutiveMetricCard label="Net Payroll" value={money(totals.net)} helper="Financial-year employee payouts" icon="net" tone="blue"/>
-        <ExecutiveMetricCard label="Total PF Amount" value={money(totals.employeePf + totals.employerPf + totals.employerEps)} helper="Employee PF, Employer PF, and Employer EPS" icon="gross" tone="cyan"/>
+        <ExecutiveMetricCard label="Total PF Amount" value={money(totals.totalPf)} helper="Employee PF, Employer PF, Employer EPS, Administration Charges, and EDLI Charges" icon="gross" tone="cyan"/>
         <ExecutiveMetricCard label="Total Professional Tax" value={money(totals.professionalTax)} helper="Financial-year professional tax" icon="deductions" tone="violet"/>
         <ExecutiveMetricCard label="Total TDS" value={money(totals.tds)} helper="Financial-year tax deducted at source" icon="deductions" tone="rose"/>
       </div>
@@ -424,8 +434,8 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
 
     <Card>
       <div className="border-b border-slate-100 px-6 py-5"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Statutory overview</p><h3 className="mt-2 text-xl font-bold text-slate-950">Financial Year Contributions &amp; Taxes</h3><p className="mt-1 text-sm text-slate-500">Supporting statutory totals for {financialYearFromValue(selectedYear)?.label || selectedYear}.</p></div>
-      <div className="grid grid-cols-1 gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-5">
-        {[["Employee PF", totals.employeePf, "text-cyan-700"], ["Employer PF", totals.employerPf, "text-violet-700"], ["Employer EPS", totals.employerEps, "text-indigo-700"], ["Professional Tax", totals.professionalTax, "text-rose-700"], ["TDS", totals.tds, "text-amber-700"]].map(([label, value, colour]) => <div key={String(label)} className="bg-white px-6 py-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className={`mt-2 text-xl font-bold ${colour}`}>{money(Number(value))}</p></div>)}
+      <div className="grid grid-cols-1 gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-7">
+        {[["Employee PF", totals.employeePf, "text-cyan-700"], ["Employer PF", totals.employerPf, "text-violet-700"], ["Employer EPS", totals.employerEps, "text-indigo-700"], ["Administration Charges", totals.administrationCharges, "text-sky-700"], ["EDLI Charges", totals.edliCharges, "text-blue-700"], ["Professional Tax", totals.professionalTax, "text-rose-700"], ["TDS", totals.tds, "text-amber-700"]].map(([label, value, colour]) => <div key={String(label)} className="bg-white px-6 py-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className={`mt-2 text-xl font-bold ${colour}`}>{money(Number(value))}</p></div>)}
       </div>
     </Card>
   </div>;
