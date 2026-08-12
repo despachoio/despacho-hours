@@ -821,7 +821,7 @@ if (profileError) {
           href="/team"
           className="mb-5 text-sm font-bold text-slate-500 hover:text-[#153E90]"
         >
-          ← Back to Team
+          ← Back to Workforce
         </Link>
         <EmployeeHeader analytics={analytics} actions={adminActions} />
         {isAdmin ? (
@@ -910,7 +910,7 @@ if (profileError) {
         ) : null}
         {action === "deactivate" && canManageMember ? (
           <Confirmation
-            text="Deactivate this team member?"
+            text="Deactivate this workforce member?"
             confirm="Deactivate"
             tone="red"
             busy={statusBusy}
@@ -920,7 +920,7 @@ if (profileError) {
         ) : null}
         {action === "activate" && canManageMember ? (
           <Confirmation
-            text="Activate this team member?"
+            text="Activate this workforce member?"
             confirm="Activate"
             tone="green"
             busy={statusBusy}
@@ -930,7 +930,7 @@ if (profileError) {
         ) : null}
         {action === "delete" && canManageMember ? (
           <Confirmation
-            text="Permanently delete this team member? Employees with time history must be deactivated instead so payroll and audit records remain intact."
+            text="Permanently delete this workforce member? Employees with time history must be deactivated instead so payroll and audit records remain intact."
             confirm="Delete Employee"
             tone="red"
             busy={deleteBusy}

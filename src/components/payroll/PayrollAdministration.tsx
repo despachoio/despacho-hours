@@ -12,6 +12,7 @@ import {
   salaryRegisterHeaders,
   salaryRegisterRows,
   stripEmployeeTitle,
+  summarizePayroll,
 } from "@/lib/payroll/exports";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "@/lib/payroll/lifecycle";
 import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
@@ -94,6 +95,10 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
   }
 
   const lifecycle = run ? payrollLifecycleStatus(run.status) : null;
+  const runSummary = useMemo(
+    () => summarizePayroll(run?.entries || []),
+    [run?.entries],
+  );
   return <div className="space-y-5">
     <Card className="p-6">
       <div className="flex flex-wrap items-end gap-3">
@@ -109,7 +114,7 @@ export function PayrollProcessing({ data, month, setMonth, onAction, onEdit }: {
       {exportError && !confirmingBankExport ? <p role="alert" className="mt-4 whitespace-pre-line rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{exportError}</p> : null}
     </Card>
     {run ? <>
-      <div className="grid gap-3 md:grid-cols-3"><Metric label="Employees Processed" value={String(run.employee_count)} colour="text-[#153E90]"/><Metric label="Net Payroll" value={money(run.net_payroll)} colour="text-emerald-700"/><Metric label="Status" value={lifecycle || "Generated"} colour="text-violet-700"/></div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"><Metric label="Employees Processed" value={String(run.employee_count)} colour="text-[#153E90]"/><Metric label="Net Payroll" value={money(run.net_payroll)} colour="text-emerald-700"/><Metric label="Total PF Amount" value={money(runSummary.totalPf)} colour="text-cyan-700"/><Metric label="Total PT Amount" value={money(runSummary.professionalTax)} colour="text-rose-700"/><Metric label="TDS Amount" value={money(runSummary.tds)} colour="text-amber-700"/><Metric label="Status" value={lifecycle || "Generated"} colour="text-violet-700"/></div>
       <SalaryRegister run={run} bankDetails={data.bankDetails || []} editable={canEditPayroll(run.status)} onEdit={onEdit} />
     </> : null}
     {run && confirmingBankExport ? <BankExportDialog run={run} bank={data.companyBankDetails!} busy={busy === "bank-export"} error={exportError} onClose={() => { setConfirmingBankExport(false); setExportError(""); }} onGenerate={async () => { setBusy("bank-export"); setExportError(""); try { await downloadBankTransfer(run.id); setConfirmingBankExport(false); } catch (cause) { setExportError(cause instanceof Error ? cause.message : "Unable to create the bank transfer file."); } finally { setBusy(""); } }} /> : null}

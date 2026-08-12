@@ -58,10 +58,10 @@ function teamDataErrorMessage(error: unknown) {
   ) {
     return "The employee profile database update is pending. Apply migration 202607210001 before deploying this version.";
   }
-  return "Unable to load team metrics right now.";
+  return "Unable to load workforce metrics right now.";
 }
 
-export default function TeamPage() {
+export default function WorkforcePage() {
   const [profile, setProfile] = useState<TeamProfile | null>(null);
   const [teamMetrics, setTeamMetrics] = useState<TeamMetrics | null>(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -141,7 +141,7 @@ export default function TeamPage() {
         .trim()
         .toLowerCase();
       if (!current || (currentRole === "employee" && !current.employee_id)) {
-        setError("Your team profile is not configured correctly.");
+        setError("Your workforce profile is not configured correctly.");
         setLoading(false);
         return;
       }
@@ -308,15 +308,16 @@ export default function TeamPage() {
                 People and capacity
               </p>
               <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">
-                Team
+                Workforce
               </h1>
               <p className="mt-3 text-sm text-slate-300">
-                Monitor employee utilisation and productivity.
+                Manage your organization&apos;s workforce, reporting structure,
+                approvals and company policies.
               </p>
             </div>
           </div>
         </header>
-        <nav aria-label="Team sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+        <nav aria-label="Workforce sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
           {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => setTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
         </nav>
         {error ? (
@@ -329,7 +330,7 @@ export default function TeamPage() {
         ) : null}
         {tab === "overview" && showNewMember && isAdmin ? (
           <section className="relative z-10 -mt-4 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:mx-5">
-            <h2 className="text-xl font-bold">Add team member</h2>
+            <h2 className="text-xl font-bold">Add workforce member</h2>
             <p className="mt-1 text-sm text-slate-500">
               Add employment details now so the profile is ready for future
               time-off and payroll workflows.
@@ -417,10 +418,10 @@ export default function TeamPage() {
                   <div>
                     <h2 className="font-bold text-slate-950">Employees</h2>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Manage active and inactive team accounts.
+                      Manage active and inactive workforce accounts.
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => setShowNewMember((value) => !value)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Team Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => setShowNewMember((value) => !value)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Workforce Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
                     {(["active", "inactive", "all"] as const).map((view) => (
                       <button
                         key={view}
@@ -448,7 +449,7 @@ export default function TeamPage() {
                 </section>
               ) : (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white py-16 text-center text-sm text-slate-500">
-                  No employees match these filters.
+                  No workforce members match these filters.
                 </div>
               )}
             </>

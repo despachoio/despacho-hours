@@ -71,7 +71,7 @@ export default function TeamFilters({
           data-shortcut-search
           value={value.search}
           onChange={(event) => update("search", event.target.value)}
-          placeholder="Search employees"
+          placeholder="Search workforce"
           className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
         />
         <button

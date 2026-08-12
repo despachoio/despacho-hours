@@ -50,7 +50,7 @@ const allMenu: MenuItem[] = [
     shortcutNumber: 1,
   },
   {
-    name: "Team",
+    name: "Workforce",
     path: "/team",
     roles: ["Finance Admin", "Super Admin", "Admin", "Manager", "Employee"],
     icon: "team",

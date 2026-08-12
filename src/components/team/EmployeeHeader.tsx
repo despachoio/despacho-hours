@@ -27,7 +27,7 @@ export default function EmployeeHeader({
               {employee.name}
             </h1>
             <p className="mt-2 text-sm text-slate-300">
-              {employee.role || "Team Member"}
+              {employee.role || "Workforce Member"}
               {employee.department ? ` · ${employee.department}` : ""}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">

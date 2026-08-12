@@ -1,4 +1,6 @@
 begin;
+set local statement_timeout = '15min';
+
 
 -- The wallet ledger is the source of truth for project-hour balances. Rebuild
 -- its time debits from the complete time-entry history so projects created
