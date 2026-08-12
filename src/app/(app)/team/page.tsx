@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TeamFilters from "@/components/team/TeamFilters";
 import TeamSummaryCards from "@/components/team/TeamSummaryCards";
@@ -26,6 +25,11 @@ import {
   type EmployeeProfileChanges,
 } from "@/lib/employee-profile";
 import { EmployeeProfileFormSections } from "@/components/team/EmployeeProfileSections";
+import ProfileApprovals from "@/components/team/ProfileApprovals";
+import OrganizationChart from "@/components/team/OrganizationChart";
+import TeamPolicies from "@/components/team/TeamPolicies";
+
+type TeamTab = "overview" | "approvals" | "organization" | "policies";
 
 const initialFilters: TeamFilterValue = {
   employeeId: "",
@@ -85,6 +89,7 @@ export default function TeamPage() {
   const isFinanceAdmin = role === "finance admin";
   const isSuperAdmin = isFinanceAdmin || role === "super admin";
   const isAdmin = isSuperAdmin || role === "admin";
+  const [tab, setTab] = useState<TeamTab>("overview");
   const range = useMemo(
     () => dateRange(filters.period, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.period],
@@ -309,25 +314,11 @@ export default function TeamPage() {
                 Monitor employee utilisation and productivity.
               </p>
             </div>
-            {isAdmin ? (
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/team/profile-requests"
-                  className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white"
-                >
-                  Profile Approvals
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowNewMember((value) => !value)}
-                  className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg"
-                >
-                  {showNewMember ? "Close" : "+ New Team Member"}
-                </button>
-              </div>
-            ) : null}
           </div>
         </header>
+        <nav aria-label="Team sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => setTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
+        </nav>
         {error ? (
           <div
             role="alert"
@@ -336,7 +327,7 @@ export default function TeamPage() {
             {error}
           </div>
         ) : null}
-        {showNewMember && isAdmin ? (
+        {tab === "overview" && showNewMember && isAdmin ? (
           <section className="relative z-10 -mt-4 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:mx-5">
             <h2 className="text-xl font-bold">Add team member</h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -398,7 +389,7 @@ export default function TeamPage() {
             </button>
           </section>
         ) : null}
-        <div className="mt-8 space-y-7">
+        {tab === "overview" ? <div className="mt-8 space-y-7">
           <TeamFilters
             value={filters}
             onChange={setFilters}
@@ -429,7 +420,7 @@ export default function TeamPage() {
                       Manage active and inactive team accounts.
                     </p>
                   </div>
-                  <div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => setShowNewMember((value) => !value)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Team Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
                     {(["active", "inactive", "all"] as const).map((view) => (
                       <button
                         key={view}
@@ -440,7 +431,7 @@ export default function TeamPage() {
                         {view}
                       </button>
                     ))}
-                  </div>
+                  </div></div>
                 </section>
               ) : null}
               {visibleAnalytics.length ? (
@@ -462,7 +453,10 @@ export default function TeamPage() {
               )}
             </>
           )}
-        </div>
+        </div> : null}
+        {tab === "approvals" && isAdmin ? <div className="mt-8"><ProfileApprovals/></div> : null}
+        {tab === "organization" ? <div className="mt-8"><OrganizationChart employees={employees}/></div> : null}
+        {tab === "policies" ? <div className="mt-8"><TeamPolicies/></div> : null}
       </div>
     </main>
   );

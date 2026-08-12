@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const result = await context.admin
     .from("employee_profile_change_requests")
     .select(
-      "id,employee_id,current_values,proposed_changes,status,review_notes,created_at,employees(id,name,title,employee_code)",
+      "id,employee_id,current_values,proposed_changes,status,review_notes,created_at,employees(id,name,title,employee_code,role,department)",
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true });
