@@ -12,12 +12,12 @@ describe("Accounts navigation architecture", () => {
   it("uses the consolidated sidebar order", () => {
     const expectedOrder = [
       "Dashboard",
-      "Accounts",
       "Time",
-      "Invoices",
       "Workforce",
-      "Payroll",
       "Time Off",
+      "Payroll",
+      "Invoices",
+      "Accounts",
       "Settings",
     ];
     const positions = expectedOrder.map((name) =>
@@ -28,6 +28,11 @@ describe("Accounts navigation architecture", () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
     expect(layout).not.toContain('name: "Clients"');
     expect(layout).not.toContain('name: "Projects"');
+  });
+
+  it("places the embedded new-project action beside its section heading", () => {
+    expect(projects).toContain("sm:flex-row sm:items-end sm:justify-between");
+    expect(projects).toContain("sm:self-auto");
   });
 
   it("supports client and project tabs without loading both at once", () => {
