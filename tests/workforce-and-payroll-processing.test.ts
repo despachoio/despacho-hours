@@ -15,7 +15,7 @@ describe("Workforce organization chart", () => {
   });
 
   it("uses premium color-coded cards", () => {
-    expect(chart).toContain("nodeTones");
+    expect(chart).toContain("levelTones");
     expect(chart).toContain("from-[#173B70]");
     expect(chart).toContain("from-[#0F5F66]");
     expect(chart).toContain("from-[#563D7C]");
@@ -26,14 +26,16 @@ describe("Workforce organization chart", () => {
     expect(chart).not.toContain("{node.department");
   });
 
-  it("renders a classic connected hierarchy with inherited branch colours", () => {
+  it("renders a classic connected hierarchy with level colours", () => {
     const styles = source(
       "src/components/team/OrganizationChart.module.css",
     );
     expect(chart).not.toContain("Company Organization");
     expect(chart).not.toContain("Active reporting hierarchy");
-    expect(chart).toContain("branchIndex");
-    expect(chart).toContain("depth === 0 ? childIndex : branchIndex");
+    expect(chart).toContain("levelTones[(depth - 1) % levelTones.length]");
+    expect(chart).toContain("arrangeLargeBranchesTowardCenter");
+    expect(chart).toContain("subtreeSize(b) - subtreeSize(a)");
+    expect(chart).toContain("Math.abs(a - center) - Math.abs(b - center)");
     expect(chart).toContain("aria-expanded={!isCollapsed}");
     expect(styles).toContain(".children::before");
     expect(styles).toContain(".node::before");

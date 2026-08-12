@@ -10,11 +10,12 @@ type ChartNode = TeamEmployee & { children: ChartNode[] };
 const rootTone =
   "border-[#0B1F3A] from-[#0B1F3A] via-[#153E90] to-[#2563A6]";
 
-const nodeTones = [
+const levelTones = [
   "border-[#173B70] from-[#173B70] to-[#2F66B3]",
   "border-[#0F5F66] from-[#0F5F66] to-[#2B8C88]",
   "border-[#563D7C] from-[#563D7C] to-[#7C5AA6]",
   "border-[#7A4E28] from-[#7A4E28] to-[#A96F3B]",
+  "border-[#334155] from-[#334155] to-[#52657D]",
 ] as const;
 
 export function organizationChartEmployeeName(name: string) {
@@ -30,6 +31,50 @@ export function organizationChartActiveEmployees(employees: TeamEmployee[]) {
 
 function employeeSearch(employee: TeamEmployee) {
   return `${employee.employee_code || ""} ${organizationChartEmployeeName(employee.name)} ${employee.role || ""} ${employee.department || ""}`.toLowerCase();
+}
+
+function compareChartNodes(a: ChartNode, b: ChartNode) {
+  return (
+    String(a.employee_code || "").localeCompare(
+      String(b.employee_code || ""),
+      undefined,
+      { numeric: true },
+    ) ||
+    organizationChartEmployeeName(a.name).localeCompare(
+      organizationChartEmployeeName(b.name),
+    )
+  );
+}
+
+function subtreeSize(node: ChartNode): number {
+  return (
+    1 +
+    node.children.reduce((total, child) => total + subtreeSize(child), 0)
+  );
+}
+
+function arrangeLargeBranchesTowardCenter(items: ChartNode[]) {
+  items.forEach((item) => {
+    item.children = arrangeLargeBranchesTowardCenter(item.children);
+  });
+
+  const ranked = [...items].sort(
+    (a, b) => subtreeSize(b) - subtreeSize(a) || compareChartNodes(a, b),
+  );
+  const center = (items.length - 1) / 2;
+  const centerOutPositions = Array.from(
+    { length: items.length },
+    (_, index) => index,
+  ).sort(
+    (a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b,
+  );
+  const arranged = Array<ChartNode>(items.length);
+
+  ranked.forEach((node, index) => {
+    arranged[centerOutPositions[index]] = node;
+  });
+
+  return arranged;
 }
 
 function buildForest(employees: TeamEmployee[]) {
@@ -49,42 +94,25 @@ function buildForest(employees: TeamEmployee[]) {
     else roots.push(node);
   });
 
-  const sort = (items: ChartNode[]) =>
-    items
-      .sort(
-        (a, b) =>
-          String(a.employee_code || "").localeCompare(
-            String(b.employee_code || ""),
-            undefined,
-            { numeric: true },
-          ) ||
-          organizationChartEmployeeName(a.name).localeCompare(
-            organizationChartEmployeeName(b.name),
-          ),
-      )
-      .forEach((item) => sort(item.children));
-
-  sort(roots);
-  return roots;
+  return arrangeLargeBranchesTowardCenter(roots);
 }
 
 function OrgNode({
   node,
   depth,
-  branchIndex,
   collapsed,
   toggle,
   selectedId,
 }: {
   node: ChartNode;
   depth: number;
-  branchIndex: number;
   collapsed: Set<string>;
   toggle: (id: string) => void;
   selectedId: string;
 }) {
   const isCollapsed = collapsed.has(node.id);
-  const tone = depth === 0 ? rootTone : nodeTones[branchIndex % nodeTones.length];
+  const tone =
+    depth === 0 ? rootTone : levelTones[(depth - 1) % levelTones.length];
   const name = organizationChartEmployeeName(node.name);
 
   return (
@@ -120,12 +148,11 @@ function OrgNode({
 
       {node.children.length && !isCollapsed ? (
         <ul className={styles.children}>
-          {node.children.map((child, childIndex) => (
+          {node.children.map((child) => (
             <OrgNode
               key={child.id}
               node={child}
               depth={depth + 1}
-              branchIndex={depth === 0 ? childIndex : branchIndex}
               collapsed={collapsed}
               toggle={toggle}
               selectedId={selectedId}
@@ -269,12 +296,11 @@ export default function OrganizationChart({
                 transformOrigin: "top center",
               }}
             >
-              {forest.map((root, rootIndex) => (
+              {forest.map((root) => (
                 <ul key={root.id} className={styles.tree}>
                   <OrgNode
                     node={root}
                     depth={0}
-                    branchIndex={rootIndex}
                     collapsed={collapsed}
                     selectedId={selectedId}
                     toggle={toggle}
