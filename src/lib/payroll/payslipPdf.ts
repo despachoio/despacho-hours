@@ -1,11 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
-import { encryptPDF } from "@pdfsmaller/pdf-encrypt-lite";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PayslipPdfDocument, type PayslipEmployeeDetails } from "@/components/payroll/PayslipPdfDocument";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
 import type { PayrollEntry } from "./types";
+import { encryptEmployeePdf } from "@/lib/pdf/passwordProtection";
 
 function inclusiveDayCount(start: string, end: string) {
   return Math.max(0, Math.round((new Date(`${end}T00:00:00Z`).getTime() - new Date(`${start}T00:00:00Z`).getTime()) / 86_400_000) + 1);
@@ -36,9 +35,5 @@ export async function generatePayslipPdf(admin: SupabaseClient, entry: PayrollEn
 }
 
 export async function protectPayslipPdf(pdf: Buffer, password: string) {
-  const protectedBytes = await encryptPDF(new Uint8Array(pdf), password, {
-    ownerPassword: randomUUID(), allowModifying: false, allowCopying: false,
-    allowAnnotating: false, allowAssembly: false,
-  });
-  return Buffer.from(protectedBytes);
+  return encryptEmployeePdf(pdf, password);
 }

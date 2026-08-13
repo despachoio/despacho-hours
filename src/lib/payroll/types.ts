@@ -109,6 +109,8 @@ export type PayrollSettings = {
   conveyance_allowance: number;
   payslip_distribution_method: PayslipDistributionMethod;
   payslip_password_protection: boolean;
+  ytd_password_protection: boolean;
+  performance_password_protection: boolean;
   payslip_password_rule: PayslipPasswordRule;
   payslip_email_subject: string;
   payslip_email_template: string;
@@ -120,6 +122,7 @@ export type PayslipDistribution = {
   id: string; payroll_run_id: string; payroll_entry_id: string; employee_id: string;
   payslip_status: "pending" | "generating" | "generated" | "failed";
   storage_path: string | null; generated_at: string | null; password_protected: boolean;
+  password_rule_used: PayslipPasswordRule | null;
   email_status: "pending" | "sending" | "completed" | "failed" | "not_required";
   email_sent_at: string | null; email_error: string | null; last_retry_at: string | null;
   last_download_at: string | null; downloaded_at: string | null;

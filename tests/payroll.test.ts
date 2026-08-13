@@ -194,8 +194,8 @@ describe("Payroll security and snapshot contracts", () => {
     for (const field of ["payslip_distribution_method", "payslip_password_protection", "payslip_password_rule", "payslip_email_subject", "payslip_email_template"]) expect(migration).toContain(field);
     expect(migration).toContain("create table if not exists public.payslip_distributions");
     expect(migration).toContain("'payroll-payslips', false");
-    expect(distribution).toContain("payslipPassword(");
-    expect(distribution).toContain("protectPayslipPdf");
+    expect(distribution).toContain("protectEmployeePdf");
+    expect(distribution).toContain('documentType: "payslip"');
     expect(distribution).toContain("sendEmail");
     expect(distribution).toContain('email_status: "failed"');
     expect(distribution).not.toMatch(/password\s*:/i);

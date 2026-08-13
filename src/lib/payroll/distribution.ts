@@ -6,9 +6,10 @@ import { buildPayslipEmail } from "@/lib/email/templates/payroll";
 import { loadCompanyLogo, loadCompanySettings, renderSettingsTemplate } from "@/lib/settings/companySettings";
 import { toPayrollEntryDto } from "./entry";
 import { payslipFilename, payrollMonthLabel } from "./filenames";
-import { payslipPassword, payslipPasswordDescription } from "./password";
-import { generatePayslipPdf, protectPayslipPdf } from "./payslipPdf";
+import { payslipPasswordDescription } from "./password";
+import { generatePayslipPdf } from "./payslipPdf";
 import type { PayrollSettings } from "./types";
+import { protectEmployeePdf } from "@/lib/pdf/employeePdfSecurity";
 
 type DistributionActor = { admin: SupabaseClient; userId: string; role: string };
 const BUCKET = "payroll-payslips";
@@ -50,19 +51,22 @@ export async function distributePayslip(actor: DistributionActor, entryId: strin
   }
   if (distribution.email_status === "completed" && !options.forceResend && !options.forceRegenerate) return distribution;
 
-  const password = settings.payslip_password_protection ? payslipPassword(settings.payslip_password_rule, entry.employee_code, employeeResult.data.date_of_birth) : "";
   let pdf: Buffer | null = null;
   let brand: Awaited<ReturnType<typeof generatePayslipPdf>> | null = null;
   let storagePath = distribution.storage_path as string | null;
-  if (!storagePath || options.forceRegenerate) {
+  const activePasswordRule = settings.payslip_password_protection ? settings.payslip_password_rule : null;
+  const storedPdfUsesCurrentSecurity =
+    Boolean(distribution.password_protected) === settings.payslip_password_protection &&
+    (distribution.password_rule_used || null) === activePasswordRule;
+  if (!storagePath || options.forceRegenerate || !storedPdfUsesCurrentSecurity) {
     await actor.admin.from("payslip_distributions").update({ payslip_status: "generating", email_error: null, updated_at: now }).eq("id", distribution.id);
     try {
       brand = await generatePayslipPdf(actor.admin, entry);
-      pdf = settings.payslip_password_protection ? await protectPayslipPdf(brand.pdf, password) : brand.pdf;
+      pdf = await protectEmployeePdf({ admin: actor.admin, pdfBytes: brand.pdf, employee: { employeeCode: entry.employee_code, employeeName: employeeResult.data.name, dateOfBirth: employeeResult.data.date_of_birth }, documentType: "payslip", settings });
       storagePath = `${entry.payroll_run_id}/${entry.id}.pdf`;
       const upload = await actor.admin.storage.from(BUCKET).upload(storagePath, pdf, { contentType: "application/pdf", upsert: true });
       if (upload.error) throw new Error(upload.error.message);
-      const updated = await actor.admin.from("payslip_distributions").update({ payslip_status: "generated", storage_path: storagePath, generated_by: actor.userId, generated_at: now, password_protected: settings.payslip_password_protection, email_error: null, updated_at: now }).eq("id", distribution.id).select("*").single();
+      const updated = await actor.admin.from("payslip_distributions").update({ payslip_status: "generated", storage_path: storagePath, generated_by: actor.userId, generated_at: now, password_protected: settings.payslip_password_protection, password_rule_used: activePasswordRule, email_error: null, updated_at: now }).eq("id", distribution.id).select("*").single();
       if (updated.error) throw new Error(updated.error.message);
       distribution = updated.data;
       try { await recordAudit(actor, { runId: entry.payroll_run_id, entryId: entry.id, action: options.forceRegenerate ? "payslip_regenerated" : "payslip_generated", next: { passwordProtected: settings.payslip_password_protection } }); }
