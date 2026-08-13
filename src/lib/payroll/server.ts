@@ -94,6 +94,10 @@ export async function loadPayroll(request: Request, month?: string | null) {
     ? await actor.admin.from("payroll_entries").select("*").in("payroll_run_id", runIds).order("employee_code")
     : { data: [], error: null };
   if (runEntries.error) throw new Error(runEntries.error.message);
+  const distributionRows = runIds.length
+    ? await actor.admin.from("payslip_distributions").select("*").in("payroll_run_id", runIds)
+    : { data: [], error: null };
+  if (distributionRows.error) throw new Error(distributionRows.error.message);
   const entryDtos = (runEntries.data || []).map(toPayrollEntryDto);
   const entriesByRun = new Map<string, typeof entryDtos>();
   for (const entry of entryDtos) {
@@ -108,6 +112,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
       gross_payroll: entries.reduce((sum, entry) => sum + salaryRegisterGrossPay(entry), 0),
       net_payroll: entries.reduce((sum, entry) => sum + entry.net_salary, 0),
       entries,
+      distributions: (distributionRows.data || []).filter((item) => item.payroll_run_id === run.id),
     } as PayrollRun;
   });
   let selectedRun: PayrollRun | null = null;
@@ -477,7 +482,7 @@ export async function cancelPayroll(request: Request, runId: string, reason: str
 export async function savePayrollSettings(request: Request, input: Partial<PayrollSettings>) {
   const actor = await payrollActor(request); payrollAdminOnly(actor.role);
   const previous = await settings(actor.admin);
-  const update = await actor.admin.from("payroll_settings").update({ period_start_day: input.period_start_day, period_end_day: input.period_end_day, professional_tax_threshold: input.professional_tax_threshold, professional_tax_amount: input.professional_tax_amount, conveyance_allowance: input.conveyance_allowance, updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("singleton_key", true).select("*").single();
+  const update = await actor.admin.from("payroll_settings").update({ period_start_day: input.period_start_day, period_end_day: input.period_end_day, professional_tax_threshold: input.professional_tax_threshold, professional_tax_amount: input.professional_tax_amount, conveyance_allowance: input.conveyance_allowance, payslip_distribution_method: input.payslip_distribution_method, payslip_password_protection: input.payslip_password_protection, payslip_password_rule: input.payslip_password_rule, payslip_email_subject: input.payslip_email_subject, payslip_email_template: input.payslip_email_template, updated_at: new Date().toISOString(), updated_by: actor.userId }).eq("singleton_key", true).select("*").single();
   if (update.error) throw new Error(update.error.message);
   await audit(actor.admin, actor, { action: "payroll_settings_changed", previous, next: update.data });
   return update.data;

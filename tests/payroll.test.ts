@@ -186,6 +186,23 @@ describe("Payroll security and snapshot contracts", () => {
     for (const column of ["gross_salary","basic_pay","hra","conveyance_allowance","other_allowance","bonus","leave_encashment","employee_pf","employer_pf","employer_eps","professional_tax","lop_deduction","previous_month_adjustment","tds","net_salary","salary_structure_version"]) expect(migration).toContain(column);
     expect(migration).toContain("reimbursements numeric(14,2) not null default 0");
   });
+
+  it("implements submitted payroll payslip distribution with resumable audit history", () => {
+    const migration = source("supabase/migrations/202608130001_payslip_distribution.sql");
+    const distribution = source("src/lib/payroll/distribution.ts");
+    const administration = source("src/components/payroll/PayrollAdministration.tsx");
+    for (const field of ["payslip_distribution_method", "payslip_password_protection", "payslip_password_rule", "payslip_email_subject", "payslip_email_template"]) expect(migration).toContain(field);
+    expect(migration).toContain("create table if not exists public.payslip_distributions");
+    expect(migration).toContain("'payroll-payslips', false");
+    expect(distribution).toContain("payslipPassword(");
+    expect(distribution).toContain("protectPayslipPdf");
+    expect(distribution).toContain("sendEmail");
+    expect(distribution).toContain('email_status: "failed"');
+    expect(distribution).not.toMatch(/password\s*:/i);
+    expect(administration).toContain("Retry Failed Emails");
+    expect(administration).toContain("Resend Email");
+    expect(administration).toContain("Regenerate Payslip");
+  });
   it("provides employee PDF and payroll administration workflow surfaces", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
     expect(workspace).toContain("Download Payslip");
@@ -619,8 +636,10 @@ describe("Payroll security and snapshot contracts", () => {
 
   it("uses the bundled Despacho logo and restores the INR currency footer", () => {
     const route = source("src/app/api/payroll/payslip/[id]/route.ts");
+    const generator = source("src/lib/payroll/payslipPdf.ts");
     const payslip = source("src/components/payroll/PayslipPdfDocument.tsx");
-    expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
+    expect(route).toContain("generatePayslipPdf");
+    expect(generator).toContain('invoice_logo_url: "/despacho-logo-full.png"');
     expect(route).not.toContain("kairo-logo");
     expect(payslip).toContain("All amounts are in Indian Rupees (INR)");
     expect(payslip).not.toContain("kairo-logo");

@@ -49,6 +49,10 @@ export async function downloadBankTransfer(runId: string) {
   await downloadResponse(`/api/payroll/bank-transfer/${encodeURIComponent(runId)}`, "OBSalaryFile.txt");
 }
 
+export async function processPayslipDistribution(entryId: string, action: "process" | "resend" | "regenerate" = "process") {
+  return payrollRequest(`/api/payroll/distribution`, { method: "POST", body: JSON.stringify({ entryId, action }) });
+}
+
 export async function viewPayslip(id: string) {
   const response = await fetch(`/api/payroll/payslip/${id}`, { headers: { authorization: `Bearer ${await token()}` } });
   if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || "Unable to view payslip"); }

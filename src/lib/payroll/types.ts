@@ -96,6 +96,7 @@ export type PayrollRun = {
   employer_eps_total: number;
   cancellation_reason: string | null;
   entries?: PayrollEntry[];
+  distributions?: PayslipDistribution[];
 };
 
 export type PayrollSettings = {
@@ -106,6 +107,22 @@ export type PayrollSettings = {
   professional_tax_threshold: number;
   professional_tax_amount: number;
   conveyance_allowance: number;
+  payslip_distribution_method: PayslipDistributionMethod;
+  payslip_password_protection: boolean;
+  payslip_password_rule: PayslipPasswordRule;
+  payslip_email_subject: string;
+  payslip_email_template: string;
+};
+
+export type PayslipDistributionMethod = "notify_only" | "protected_pdf_only" | "notify_and_attach";
+export type PayslipPasswordRule = "employee_code_dob" | "employee_code" | "dob";
+export type PayslipDistribution = {
+  id: string; payroll_run_id: string; payroll_entry_id: string; employee_id: string;
+  payslip_status: "pending" | "generating" | "generated" | "failed";
+  storage_path: string | null; generated_at: string | null; password_protected: boolean;
+  email_status: "pending" | "sending" | "completed" | "failed" | "not_required";
+  email_sent_at: string | null; email_error: string | null; last_retry_at: string | null;
+  last_download_at: string | null; downloaded_at: string | null;
 };
 
 export type EmployeeBankDetails = {
