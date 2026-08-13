@@ -36,9 +36,10 @@ async function syncPayrollLopEvents(actor:Actor,year:number,employeeIds:string[]
   if(!employeeIds.length)return;
   const metric=await actor.admin.from("performance_metric_definitions").select("id,default_score_delta").eq("code","lop").eq("active",true).maybeSingle();
   if(metric.error||!metric.data)return;
+  const lopMetric=metric.data;
   const payroll=await actor.admin.from("payroll_entries").select("id,employee_id,payroll_month,lop_days,status").in("employee_id",employeeIds).in("status",["approved","locked","published"]).gte("payroll_month",`${year}-01-01`).lte("payroll_month",`${year}-12-31`).gt("lop_days",0);
   if(payroll.error)throw new Error(payroll.error.message);
-  const rows=(payroll.data||[]).map(entry=>({employee_id:entry.employee_id,performance_year:year,metric_id:metric.data.id,client_id:null,event_date:String(entry.payroll_month),description:`${Number(entry.lop_days)} LOP day${Number(entry.lop_days)===1?"":"s"} recorded in finalized payroll`,qualification_status:"qualified",score_delta:Number(metric.data.default_score_delta||0),reason:"Automatically synchronized from finalized payroll",notes:null,evidence_url:null,source_type:"payroll",source_id:entry.id,updated_by:actor.userId}));
+  const rows=(payroll.data||[]).map(entry=>({employee_id:entry.employee_id,performance_year:year,metric_id:lopMetric.id,client_id:null,event_date:String(entry.payroll_month),description:`${Number(entry.lop_days)} LOP day${Number(entry.lop_days)===1?"":"s"} recorded in finalized payroll`,qualification_status:"qualified",score_delta:Number(lopMetric.default_score_delta||0),reason:"Automatically synchronized from finalized payroll",notes:null,evidence_url:null,source_type:"payroll",source_id:entry.id,updated_by:actor.userId}));
   if(rows.length){const synced=await actor.admin.from("performance_events").upsert(rows,{onConflict:"source_type,source_id",ignoreDuplicates:false});if(synced.error)throw new Error(synced.error.message);}
 }
 
