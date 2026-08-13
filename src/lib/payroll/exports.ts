@@ -186,6 +186,11 @@ export type PayrollSummary = {
   netPayroll: number;
 };
 
+export type MonthlyPayrollSummary = {
+  payrollMonth: string;
+  summary: PayrollSummary;
+};
+
 export function summarizePayroll(entries: PayrollEntry[]): PayrollSummary {
   const employeeIds = new Set<string>();
   return entries.reduce<PayrollSummary>((summary, entry) => {
@@ -221,4 +226,23 @@ export function summarizePayroll(entries: PayrollEntry[]): PayrollSummary {
     professionalTax: 0, lop: 0, previousMonthAdjustment: 0,
     tds: 0, netSalary: 0, employeesProcessed: 0, grossPayroll: 0, netPayroll: 0,
   });
+}
+
+export function summarizePayrollByMonth(
+  entries: PayrollEntry[],
+  payrollMonths: string[],
+): MonthlyPayrollSummary[] {
+  const entriesByMonth = new Map<string, PayrollEntry[]>();
+
+  entries.forEach((entry) => {
+    const payrollMonth = entry.payroll_month.slice(0, 7);
+    const monthEntries = entriesByMonth.get(payrollMonth) || [];
+    monthEntries.push(entry);
+    entriesByMonth.set(payrollMonth, monthEntries);
+  });
+
+  return payrollMonths.map((payrollMonth) => ({
+    payrollMonth,
+    summary: summarizePayroll(entriesByMonth.get(payrollMonth) || []),
+  }));
 }

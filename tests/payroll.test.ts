@@ -7,7 +7,7 @@ import { bankTransferFilename, payslipFilename, ytdFilename } from "../src/lib/p
 import { MANUAL_PAYROLL_FIELDS, PAYROLL_LABELS } from "../src/lib/payroll/labels";
 import { normalizePayrollNumber } from "../src/lib/payroll/numbers";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "../src/lib/payroll/lifecycle";
-import { buildBankTransferFile, payrollPfAmounts, salaryRegisterGrossPay, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll } from "../src/lib/payroll/exports";
+import { buildBankTransferFile, payrollPfAmounts, salaryRegisterGrossPay, salaryRegisterHeaders, salaryRegisterRows, stripEmployeeTitle, summarizePayroll, summarizePayrollByMonth } from "../src/lib/payroll/exports";
 import { calculateSalaryStructure, latestSalaryStructure, salaryStructureDisplayStatus, selectEffectiveSalaryStructures } from "../src/lib/payroll/salaryStructures";
 import { applicableRecurringAdjustments, payrollMonthDate, recurringAdjustmentStatus, recurringComponentTotal } from "../src/lib/payroll/recurringAdjustments";
 import type { PayrollRun, RecurringPayrollAdjustment, SalaryStructure } from "../src/lib/payroll/types";
@@ -517,6 +517,23 @@ describe("Payroll security and snapshot contracts", () => {
     expect(summary.netPayroll).toBe(14);
     expect(summary.lop).toBe(2);
     expect(summary.tds).toBe(4);
+  });
+
+  it("keeps Finance payroll summary exports separated by selected month", () => {
+    const entries = [
+      { employee_id: "one", payroll_month: "2026-04-01", gross_salary: 20, bonus: 1, leave_encashment: 0, net_salary: 18 },
+      { employee_id: "two", payroll_month: "2026-05-01", gross_salary: 30, bonus: 2, leave_encashment: 3, net_salary: 28 },
+    ] as never[];
+    const monthly = summarizePayrollByMonth(entries, ["2026-04", "2026-05", "2026-06"]);
+    expect(monthly.map((item) => item.payrollMonth)).toEqual(["2026-04", "2026-05", "2026-06"]);
+    expect(monthly.map((item) => item.summary.grossSalary)).toEqual([21, 35, 0]);
+
+    const route = source("src/app/api/payroll/reports/summary/route.ts");
+    const pdf = source("src/components/payroll/PayrollSummaryPdfDocument.tsx");
+    expect(route).toContain("summarizePayrollByMonth(entries, reportMonths)");
+    expect(route).toContain('"Grand Total": summary[key]');
+    expect(pdf).toContain("monthlySummaries.map");
+    expect(pdf).toContain("GRAND TOTAL");
   });
 
   it("includes PF administration and EDLI charges in Total PF Amount", () => {
