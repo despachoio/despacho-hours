@@ -28,8 +28,9 @@ import { EmployeeProfileFormSections } from "@/components/team/EmployeeProfileSe
 import ProfileApprovals from "@/components/team/ProfileApprovals";
 import OrganizationChart from "@/components/team/OrganizationChart";
 import TeamPolicies from "@/components/team/TeamPolicies";
+import ReviewsWorkspace from "@/components/performance/ReviewsWorkspace";
 
-type TeamTab = "overview" | "approvals" | "organization" | "policies";
+type TeamTab = "overview" | "approvals" | "organization" | "reviews" | "assets" | "exit" | "policies";
 
 const initialFilters: TeamFilterValue = {
   employeeId: "",
@@ -326,7 +327,7 @@ export default function WorkforcePage() {
           </div>
         </header>
         <nav aria-label="Workforce sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => setTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
+          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "reviews", label: "Reviews" }, { value: "assets", label: "Assets" }, { value: "exit", label: "Exit Process" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => setTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
         </nav>
         {error ? (
           <div
@@ -486,10 +487,17 @@ export default function WorkforcePage() {
         </div> : null}
         {tab === "approvals" && isAdmin ? <div className="mt-8"><ProfileApprovals/></div> : null}
         {tab === "organization" ? <div className="mt-8"><OrganizationChart employees={employees}/></div> : null}
+        {tab === "reviews" ? <div className="mt-8"><ReviewsWorkspace/></div> : null}
+        {tab === "assets" ? <WorkforcePlaceholder title="Assets" description="Workforce asset assignment and lifecycle records remain available from this consolidated section."/> : null}
+        {tab === "exit" ? <WorkforcePlaceholder title="Exit Process" description="Employee exit workflows, clearance and handover records remain available from this consolidated section."/> : null}
         {tab === "policies" ? <div className="mt-8"><TeamPolicies/></div> : null}
       </div>
     </main>
   );
+}
+
+function WorkforcePlaceholder({title,description}:{title:string;description:string}) {
+  return <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm"><h2 className="text-2xl font-bold text-slate-950">{title}</h2><p className="mx-auto mt-2 max-w-2xl text-sm text-slate-500">{description}</p></section>;
 }
 
 function FormSelect({

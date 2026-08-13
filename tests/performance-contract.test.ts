@@ -1,0 +1,13 @@
+import { readFileSync } from "node:fs";import {describe,expect,it} from "vitest";
+const source=(path:string)=>readFileSync(path,"utf8");
+describe("performance module contracts",()=>{
+  const migration=source("supabase/migrations/202608130002_performance_reviews.sql");const server=source("src/lib/performance/server.ts");
+  it("keeps Reviews inside Workforce with the required navigation",()=>{const page=source("src/app/(app)/team/page.tsx");for(const label of ["Overview","Profile Approvals","Organization Chart","Reviews","Assets","Exit Process","Policies"])expect(page).toContain(`label: "${label}"`);expect(page).toContain("<ReviewsWorkspace");});
+  it("uses authoritative billable project classification",()=>{expect(server).toContain('projects!inner(is_billable)');expect(server).toContain('.eq("projects.is_billable",true)');});
+  it("enforces administrator, manager, and employee scope server-side",()=>{expect(server).toContain("hasSuperAdminAccess");expect(server).toContain('actor.role==="manager"');expect(server).toContain('actor.role==="employee"');expect(migration).toContain("reporting_manager_id=public.get_my_employee_id()");});
+  it("protects finalized history and requires a reopen reason",()=>{expect(server).toContain('status==="finalized"');expect(server).toContain("snapshot={employee");expect(server).toContain("mandatory reopen reason");expect(migration).toContain("snapshot jsonb");});
+  it("audits policies, metrics, events, comments and workflow",()=>{for(const action of ["performance_event_added","performance_event_updated","performance_event_deleted","performance_metric_added","performance_metric_updated","performance_metric_deleted","utilization_policy_changed","performance_comment_added","review_status_changed","review_finalized","review_reopened"])expect(server).toContain(action);expect(migration).toContain("performance_audit_log");});
+  it("exposes employee review data only after finalization",()=>{expect(server).toContain('actor.role==="employee"?allReviews.filter(review=>review.status==="finalized")');expect(migration).toContain("employee_id=public.get_my_employee_id() and status='finalized'");});
+  it("reuses the existing Payslip protection without persisting passwords",()=>{const report=source("src/app/api/performance/report/[id]/route.ts");expect(report).toContain("protectPayslipPdf");expect(report).toContain("payslipPassword");expect(migration).not.toMatch(/pdf_password|generated_password|password\s+text/i);});
+  it("leaves existing Payslip and YTD documents untouched",()=>{expect(source("src/components/payroll/PayslipPdfDocument.tsx")).toContain("PayslipPdfDocument");expect(source("src/components/payroll/YtdPayrollPdfDocument.tsx")).toContain("YtdPayrollPdfDocument");});
+});

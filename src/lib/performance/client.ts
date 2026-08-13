@@ -1,0 +1,6 @@
+import { supabase } from "@/lib/supabase";
+import type { PerformanceData } from "./types";
+async function headers(){const {data}=await supabase.auth.getSession();return {"Content-Type":"application/json",Authorization:`Bearer ${data.session?.access_token||""}`};}
+export async function loadPerformanceData(year:number){const response=await fetch(`/api/performance?year=${year}`,{headers:await headers(),cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data.error||"Unable to load reviews");return data as PerformanceData;}
+export async function performanceAction(body:Record<string,unknown>){const response=await fetch("/api/performance",{method:"POST",headers:await headers(),body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error||"Performance action failed");return data;}
+export async function downloadPerformanceReport(reviewId:string,filename:string){const response=await fetch(`/api/performance/report/${reviewId}`,{headers:await headers()});if(!response.ok){const data=await response.json();throw new Error(data.error||"Unable to download performance report");}const url=URL.createObjectURL(await response.blob());const link=document.createElement("a");link.href=url;link.download=filename;link.click();URL.revokeObjectURL(url);}
