@@ -16,13 +16,16 @@ export function policyForLevel(level: string | null, policies = DEFAULT_UTILIZAT
   return policies.find((item) => item.level_group === group) || DEFAULT_UTILIZATION_POLICIES.find((item) => item.level_group === group)!;
 }
 
-export function performanceCategory(score: number) {
+export function performanceCategory(score: number, categories?: Array<{name:string;minimumScore:number}>) {
+  if(categories?.length)return [...categories].sort((a,b)=>b.minimumScore-a.minimumScore).find(item=>score>=item.minimumScore)?.name||"Not Eligible for Evaluation";
   if (score >= 150) return "Substantially Exceeded Expectations";
   if (score >= 125) return "Exceeded Expectations";
   if (score >= 100) return "Met Expectations";
   if (score >= 80) return "Partially Met Expectations";
   return "Not Eligible for Evaluation";
 }
+
+function countLabel(value:number){const words=["Zero","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten"];return words[value]??String(value);}
 
 function appliedEventScores(events: PerformanceEvent[], metrics: PerformanceMetric[]) {
   const metricMap = new Map(metrics.map((metric) => [metric.id, metric]));
@@ -45,7 +48,7 @@ function appliedEventScores(events: PerformanceEvent[], metrics: PerformanceMetr
   });
 }
 
-export function calculatePerformance(input: { policy: UtilizationPolicy; monthlyBillableHours: number[]; events: PerformanceEvent[]; metrics: PerformanceMetric[]; reviewFinalized?: boolean }): PerformanceCalculation {
+export function calculatePerformance(input: { policy: UtilizationPolicy; monthlyBillableHours: number[]; events: PerformanceEvent[]; metrics: PerformanceMetric[]; reviewFinalized?: boolean; eligibilityRules?: Record<string,unknown>; performanceCategories?: Array<{name:string;minimumScore:number}> }): PerformanceCalculation {
   const { policy } = input;
   const monthly = Array.from({length:12}, (_, index) => {
     const actual = Number(input.monthlyBillableHours[index] || 0);
@@ -63,10 +66,12 @@ export function calculatePerformance(input: { policy: UtilizationPolicy; monthly
   const refundCount = scoredEvents.filter((item)=>item.metric?.code === "refund" && item.appliedScore < 0).length;
   const eligibilityReasons:string[]=[];
   if (annualActual < policy.annual_minimum_hours) eligibilityReasons.push(`Billable utilization is below the ${policy.minimum_percent}% level minimum`);
-  if (overallScore < 80) eligibilityReasons.push("Overall performance score is below 80%");
-  if (escalationCount >= 3) eligibilityReasons.push("Three or more qualifying client escalations occurred");
+  const minimumOverallScore=Number(input.eligibilityRules?.minimumOverallScore??80);
+  const maximumEscalations=Number(input.eligibilityRules?.maximumEscalations??2);
+  if (overallScore < minimumOverallScore) eligibilityReasons.push(`Overall performance score is below ${minimumOverallScore}%`);
+  if (escalationCount > maximumEscalations) eligibilityReasons.push(`${countLabel(maximumEscalations + 1)} or more qualifying client escalations occurred`);
   const criticalFlags:string[]=[];
   if (escalationCount >= 5) criticalFlags.push("Termination Criteria Met — 5 or more qualifying client escalations");
   if (refundCount >= 3) criticalFlags.push("Termination Criteria Met — 3 or more qualifying client refunds");
-  return { policy, monthly, quarterly, annualExpected:policy.annual_expected_hours, annualActual, utilizationPercent, boosterScore, penaltyScore, overallScore, category:performanceCategory(overallScore), eligibility:eligibilityReasons.length ? "not_eligible" : input.reviewFinalized ? "eligible" : "pending_review", eligibilityReasons, criticalFlags, scoredEvents };
+  return { policy, monthly, quarterly, annualExpected:policy.annual_expected_hours, annualActual, utilizationPercent, boosterScore, penaltyScore, overallScore, category:performanceCategory(overallScore,input.performanceCategories), eligibility:eligibilityReasons.length ? "not_eligible" : input.reviewFinalized ? "eligible" : "pending_review", eligibilityReasons, criticalFlags, scoredEvents };
 }
