@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type {
   MonthlyPayrollSummary,
   PayrollSummary,
@@ -15,6 +15,18 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     color: "#0F172A",
     backgroundColor: "#F8FAFC",
+  },
+  heading: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  headingCopy: { flexGrow: 1, paddingRight: 24 },
+  logo: {
+    width: 136,
+    height: 38,
+    objectFit: "contain",
+    objectPosition: "right center",
   },
   eyebrow: {
     fontSize: 8,
@@ -165,12 +177,14 @@ export function PayrollSummaryPdfDocument({
   financialYear,
   fromMonth,
   toMonth,
+  logoSrc,
 }: {
   summary: PayrollSummary;
   monthlySummaries: MonthlyPayrollSummary[];
   financialYear: string;
   fromMonth: string;
   toMonth: string;
+  logoSrc: string;
 }) {
   return (
     <Document
@@ -178,11 +192,17 @@ export function PayrollSummaryPdfDocument({
       author="Despacho India Private Limited"
     >
       <Page size="A4" orientation="landscape" style={styles.page}>
-        <Text style={styles.eyebrow}>DESPACHO INDIA PRIVATE LIMITED</Text>
-        <Text style={styles.title}>Payroll Summary</Text>
-        <Text style={styles.subtitle}>
-          Financial Year {financialYear} · {monthLabel(fromMonth)} to {monthLabel(toMonth)}
-        </Text>
+        <View style={styles.heading}>
+          <View style={styles.headingCopy}>
+            <Text style={styles.eyebrow}>DESPACHO INDIA PRIVATE LIMITED</Text>
+            <Text style={styles.title}>Payroll Summary</Text>
+            <Text style={styles.subtitle}>
+              Financial Year {financialYear} · {monthLabel(fromMonth)} to {monthLabel(toMonth)}
+            </Text>
+          </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={logoSrc} style={styles.logo} />
+        </View>
         <View style={styles.divider} />
         <View style={styles.metrics}>
           <View style={styles.metric}>

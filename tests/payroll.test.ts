@@ -534,6 +534,10 @@ describe("Payroll security and snapshot contracts", () => {
     expect(route).toContain('"Grand Total": summary[key]');
     expect(pdf).toContain("monthlySummaries.map");
     expect(pdf).toContain("GRAND TOTAL");
+    expect(route).toContain("loadCompanyLogo");
+    expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');
+    expect(route).toContain("logoSrc: logo.dataUrl");
+    expect(pdf).toContain("<Image src={logoSrc}");
   });
 
   it("includes PF administration and EDLI charges in Total PF Amount", () => {

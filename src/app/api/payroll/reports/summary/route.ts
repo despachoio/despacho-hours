@@ -11,6 +11,10 @@ import { toPayrollEntryDto } from "@/lib/payroll/entry";
 import { financialYearFromValue } from "@/lib/payroll/financialYear";
 import { payrollMonthLabel } from "@/lib/payroll/filenames";
 import { financePayrollOnly, payrollActor } from "@/lib/payroll/server";
+import {
+  loadCompanyLogo,
+  loadCompanySettings,
+} from "@/lib/settings/companySettings";
 
 const labels: Record<string, string> = {
   basicPay: "Basic Pay", hra: "HRA", conveyanceAllowance: "Conveyance Allowance", otherAllowance: "Other Allowance",
@@ -88,7 +92,19 @@ export async function GET(request: Request) {
       const output = XLSX.write(book, { type: "buffer", bookType: "xlsx" }) as Buffer;
       return new Response(new Uint8Array(output), { headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": `attachment; filename="${filename}.xlsx"`, "Cache-Control": "private, no-store" } });
     }
-    const document = createElement(PayrollSummaryPdfDocument, { summary, monthlySummaries, financialYear: financialYear.label, fromMonth, toMonth }) as ReactElement<DocumentProps>;
+    const company = await loadCompanySettings(actor.admin);
+    const logo = await loadCompanyLogo({
+      ...company,
+      invoice_logo_url: "/despacho-logo-full.png",
+    });
+    const document = createElement(PayrollSummaryPdfDocument, {
+      summary,
+      monthlySummaries,
+      financialYear: financialYear.label,
+      fromMonth,
+      toMonth,
+      logoSrc: logo.dataUrl,
+    }) as ReactElement<DocumentProps>;
     const pdf = await renderToBuffer(document);
     return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}.pdf"`, "Cache-Control": "private, no-store" } });
   } catch (cause) {
