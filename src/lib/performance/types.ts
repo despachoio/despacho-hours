@@ -25,6 +25,8 @@ export type PerformanceEvent = {
   client_id: string | null; event_date: string; description: string;
   qualification_status: "qualified" | "not_qualified" | "pending";
   score_delta: number; evidence_url: string | null; notes: string | null;
+  reason?: string | null; policy_category?: string | null; lost_client?: boolean;
+  refund_amount?: number | null; source_type?: "manual" | "payroll"; source_id?: string | null;
   created_by: string | null; created_at: string; metric?: PerformanceMetric;
   client?: { id: string; name: string } | null; added_by_name?: string | null;
 };
@@ -52,6 +54,13 @@ export type PerformanceReview = {
   status: PerformanceReviewStatus; snapshot: Record<string, unknown> | null;
   finalized_at: string | null; finalized_by: string | null; reopened_at: string | null;
   reopen_reason: string | null; employee?: PerformanceEmployee;
+  manager_decision?: string | null; hr_decision?: string | null;
+};
+
+export type PerformanceSettings = {
+  id?: string; singleton_key: boolean; policy_version: number;
+  eligibility_rules: Record<string, unknown>;
+  performance_categories: Array<{ name: string; minimumScore: number }>;
 };
 
 export type PerformanceComment = { id: string; review_id: string; employee_id: string; performance_year: number; author_employee_id: string; author_role: string; comment_type: "manager" | "admin" | "employee"; comment: string; created_at: string; author_name?: string };
@@ -62,4 +71,5 @@ export type PerformanceData = {
   events: PerformanceEvent[]; reviews: PerformanceReview[]; comments: PerformanceComment[];
   calculations: Record<string, PerformanceCalculation>;
   clients: Array<{id:string;name:string}>;
+  settings: PerformanceSettings;
 };
