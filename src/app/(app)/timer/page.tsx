@@ -123,6 +123,18 @@ type TimeEntry = {
 
 };
 
+function hydrateLiveTimerEmployeeNames(
+  timers: LiveTimer[],
+  employeeNames: Record<string, string>,
+) {
+  return timers.map((timer) => ({
+    ...timer,
+    employees: timer.employees?.name
+      ? timer.employees
+      : { name: employeeNames[timer.employee_id] || "" },
+  }));
+}
+
 
 
 export default function TimePage() {
@@ -179,6 +191,7 @@ export default function TimePage() {
   const [liveTimers, setLiveTimers] =
     useState<LiveTimer[]>([]);
   const [directReporteeIds, setDirectReporteeIds] = useState<string[]>([]);
+  const [directReporteeNames, setDirectReporteeNames] = useState<Record<string, string>>({});
 
 
   const [elapsedSeconds, setElapsedSeconds] =
@@ -761,12 +774,21 @@ currentProfile?.role==="Manager"
 ){
 
 let managerReporteeIds: string[] = [];
+let managerReporteeNames: Record<string, string> = {};
 if (currentProfile.role === "Manager") {
   const reporteeResult = await supabase.rpc("get_team_metric_employees");
-  managerReporteeIds = (reporteeResult.data || []).map(
-    (employee: { id: string }) => employee.id,
+  const reportees = (reporteeResult.data || []) as Array<{
+    id: string;
+    name: string;
+  }>;
+  managerReporteeIds = reportees.map(
+    (employee) => employee.id,
+  );
+  managerReporteeNames = Object.fromEntries(
+    reportees.map((employee) => [employee.id, employee.name]),
   );
   setDirectReporteeIds(managerReporteeIds);
+  setDirectReporteeNames(managerReporteeNames);
 }
 
 let liveTimerQuery = supabase
@@ -803,11 +825,14 @@ const {data:liveData} =
     ? { data: [] }
     : await liveTimerQuery;
 
-if(liveData)
-
-setLiveTimers(
-liveData as unknown as LiveTimer[]
-);
+if(liveData) {
+  const timers = liveData as unknown as LiveTimer[];
+  setLiveTimers(
+    currentProfile.role === "Manager"
+      ? hydrateLiveTimerEmployeeNames(timers, managerReporteeNames)
+      : timers,
+  );
+}
 
 
 }else{
@@ -1640,12 +1665,17 @@ useEffect(() => {
     const { data: liveData } = await liveTimerQuery;
 
     if (liveData) {
-      setLiveTimers(liveData as unknown as LiveTimer[]);
+      const timers = liveData as unknown as LiveTimer[];
+      setLiveTimers(
+        profile.role === "Manager"
+          ? hydrateLiveTimerEmployeeNames(timers, directReporteeNames)
+          : timers,
+      );
     }
   }, 5000);
 
   return () => clearInterval(interval);
-}, [profile?.role, directReporteeIds]);
+}, [profile?.role, directReporteeIds, directReporteeNames]);
 
 const timerAssignedProjects = useMemo(
   () => profile?.employee_id
