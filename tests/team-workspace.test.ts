@@ -33,14 +33,16 @@ describe("Team HR workspace", () => {
   });
 
   it("bundles configurable policy documents with viewing and downloads", () => {
-    expect(TEAM_POLICY_DOCUMENTS).toHaveLength(3);
-    expect(TEAM_POLICY_DOCUMENTS.map((policy) => policy.title)).toEqual(["Code of Conduct", "Non-Disclosure Agreement (NDA)", "Acceptable Usage Policy (AUP)"]);
-    for (const policy of TEAM_POLICY_DOCUMENTS) {
+    expect(TEAM_POLICY_DOCUMENTS.map((policy) => policy.title)).toEqual(["Code of Conduct", "Non-Disclosure Agreement (NDA)", "Acceptable Usage Policy (AUP)", "Appraisal Policy", "Roles and Responsibilities"]);
+    for (const policy of TEAM_POLICY_DOCUMENTS.filter((item) => item.kind === "pdf")) {
       expect(policy.version).toBe("1.1");
-      expect(source(`public${policy.file}`).startsWith("%PDF-")).toBe(true);
+      expect(policy.file && source(`public${policy.file}`).startsWith("%PDF-")).toBe(true);
     }
+    expect(TEAM_POLICY_DOCUMENTS.find((item) => item.id === "roles-and-responsibilities")?.externalUrl).toContain("drive.google.com");
     const policies = source("src/components/team/TeamPolicies.tsx");
     expect(policies).toContain("TEAM_POLICY_DOCUMENTS.map");
+    expect(policies).toContain("Overall Score = Billable Utilization + Recognition − Penalties");
+    expect(policies).toContain("active, inactive, or archived");
     expect(policies).toContain("<iframe");
     expect(policies).toContain("Print / Open");
     expect(policies).toContain("download");

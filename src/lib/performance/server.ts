@@ -23,6 +23,30 @@ async function audit(actor:Actor,input:{action:string;reviewId?:string;employeeI
 }
 const validYear=(value:unknown)=>{const year=Number(value);if(!Number.isInteger(year)||year<2000||year>2200)throw new Error("Select a valid performance year");return year;};
 
+type BillableTimeEntry = {
+  id: string;
+  employee_id: string;
+  entry_date: string;
+  hours: number | null;
+};
+
+async function loadAllBillableTimeEntries(actor:Actor,year:number,employeeIds:string[]){
+  if(!employeeIds.length)return {data:[] as BillableTimeEntry[],error:null};
+  const pageSize=1000;const data:BillableTimeEntry[]=[];
+  for(let from=0;;from+=pageSize){
+    const page=await actor.admin.from("time_entries")
+      .select("id,employee_id,entry_date,hours,projects!inner(is_billable)")
+      .gte("entry_date",`${year}-01-01`).lte("entry_date",`${year}-12-31`)
+      .in("employee_id",employeeIds).eq("projects.is_billable",true)
+      .order("entry_date",{ascending:true}).order("id",{ascending:true})
+      .range(from,from+pageSize-1);
+    if(page.error)return {data,error:page.error};
+    const rows=(page.data||[]) as unknown as BillableTimeEntry[];data.push(...rows);
+    if(rows.length<pageSize)break;
+  }
+  return {data,error:null};
+}
+
 async function visibleEmployees(actor:Actor) {
   let query=actor.admin.from("employees").select("id,employee_code,name,department,role,level,reporting_manager_id,date_of_joining,date_of_birth,status").eq("status","active").order("employee_code");
   if(actor.role==="employee") query=query.eq("id",actor.employeeId); else if(actor.role==="manager") query=query.or(`id.eq.${actor.employeeId},reporting_manager_id.eq.${actor.employeeId}`);
@@ -52,7 +76,7 @@ export async function loadPerformance(request:Request,yearInput:unknown):Promise
     employeeIds.length?actor.admin.from("performance_events").select("*,clients(id,name)").eq("performance_year",year).in("employee_id",employeeIds).order("event_date"):{data:[],error:null},
     employeeIds.length?actor.admin.from("performance_reviews").select("*").eq("performance_year",year).in("employee_id",employeeIds):{data:[],error:null},
     employeeIds.length?actor.admin.from("performance_comments").select("*").eq("performance_year",year).in("employee_id",employeeIds).order("created_at"):{data:[],error:null},
-    employeeIds.length?actor.admin.from("time_entries").select("employee_id,entry_date,hours,projects!inner(is_billable)").gte("entry_date",`${year}-01-01`).lte("entry_date",`${year}-12-31`).in("employee_id",employeeIds).eq("projects.is_billable",true):{data:[],error:null},
+    loadAllBillableTimeEntries(actor,year,employeeIds),
     actor.admin.from("clients").select("id,name").eq("status","active").order("name"),
     actor.admin.from("performance_settings").select("*").eq("singleton_key",true).maybeSingle(),
   ]);
