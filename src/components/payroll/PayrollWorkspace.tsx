@@ -427,7 +427,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <ExecutiveMetricCard label="Payroll Runs" value={String(totals.processed)} helper="Payroll months processed" icon="calendar" tone="blue"/>
         <ExecutiveMetricCard label="Latest Payroll Period" value={runs[0] ? payrollMonthLabel(runs[0].payroll_month) : "—"} helper="Most recent payroll in this financial year" icon="calendar" tone="emerald"/>
         <ExecutiveMetricCard label="Net Payroll" value={money(totals.net)} helper="Financial-year employee payouts" icon="net" tone="blue"/>
-        <ExecutiveMetricCard label="Total PF Amount" value={money(totals.totalPf)} helper="Employee PF, Employer PF, Employer EPS, Administration Charges, and EDLI Charges" icon="gross" tone="cyan"/>
+        <ExecutiveMetricCard label="Total PF Amount" value={money(totals.totalPf)} helper="Employee PF, Employer PF, Employer EPS, Admin Charges, and EDLI Charges" icon="gross" tone="cyan"/>
         <ExecutiveMetricCard label="Total Professional Tax" value={money(totals.professionalTax)} helper="Financial-year professional tax" icon="deductions" tone="violet"/>
         <ExecutiveMetricCard label="Total TDS" value={money(totals.tds)} helper="Financial-year tax deducted at source" icon="deductions" tone="rose"/>
       </div>
@@ -436,7 +436,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
     <Card>
       <div className="border-b border-slate-100 px-6 py-5"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Statutory overview</p><h3 className="mt-2 text-xl font-bold text-slate-950">Financial Year Contributions &amp; Taxes</h3><p className="mt-1 text-sm text-slate-500">Supporting statutory totals for {financialYearFromValue(selectedYear)?.label || selectedYear}.</p></div>
       <div className="grid grid-cols-1 gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-7">
-        {[["Employee PF", totals.employeePf, "text-cyan-700"], ["Employer PF", totals.employerPf, "text-violet-700"], ["Employer EPS", totals.employerEps, "text-indigo-700"], ["Administration Charges", totals.administrationCharges, "text-sky-700"], ["EDLI Charges", totals.edliCharges, "text-blue-700"], ["Professional Tax", totals.professionalTax, "text-rose-700"], ["TDS", totals.tds, "text-amber-700"]].map(([label, value, colour]) => <div key={String(label)} className="bg-white px-6 py-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className={`mt-2 text-xl font-bold ${colour}`}>{money(Number(value))}</p></div>)}
+        {[["Employee PF", totals.employeePf, "text-cyan-700"], ["Employer PF", totals.employerPf, "text-violet-700"], ["Employer EPS", totals.employerEps, "text-indigo-700"], ["Admin Charges", totals.administrationCharges, "text-sky-700"], ["EDLI Charges", totals.edliCharges, "text-blue-700"], ["Professional Tax", totals.professionalTax, "text-rose-700"], ["TDS", totals.tds, "text-amber-700"]].map(([label, value, colour]) => <div key={String(label)} className="bg-white px-6 py-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className={`mt-2 text-xl font-bold ${colour}`}>{money(Number(value))}</p></div>)}
       </div>
     </Card>
   </div>;
