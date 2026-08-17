@@ -411,7 +411,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
         <ExecutiveMetricCard label="Salary Processing Date" value={payrollDateLabel(latestRun.processing_date)} helper="Scheduled bank processing date" icon="processing-date" tone="cyan"/>
         <ExecutiveMetricCard label="Employees Processed" value={String(latestRun.employee_count)} helper="Employees included in this run" icon="employees" tone="violet"/>
         <ExecutiveMetricCard label="Net Payroll" value={money(latestRun.net_payroll)} helper="Total amount payable to employees" icon="net" tone="blue"/>
-        <ExecutiveMetricCard label="Total PF Amount" value={money(latestBreakdown.totalPf)} helper="Employee PF, Employer PF, Employer EPS, Administration Charges, and EDLI Charges" icon="gross" tone="emerald"/>
+        <ExecutiveMetricCard label="Total PF Amount" value={money(latestBreakdown.totalPf)} helper="Employee PF, Employer PF, Employer EPS, Admin Charges, and EDLI Charges" icon="gross" tone="emerald"/>
         <ExecutiveMetricCard label="Total TDS Amount" value={money(latestBreakdown.tds)} helper="Tax deducted at source for this run" icon="deductions" tone="rose"/>
         <ExecutiveMetricCard label="Total Professional Tax Amount" value={money(latestBreakdown.professionalTax)} helper="Professional tax for this run" icon="deductions" tone="amber"/>
       </div> : <Empty text="No payroll has been processed yet." />}
