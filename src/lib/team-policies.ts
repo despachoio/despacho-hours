@@ -28,7 +28,6 @@ const EXIT_POLICY_TEXT = `# Exit Policy
 1. The Employee may terminate the employment by providing Thirty (30) days prior written notice of his/her intention to terminate the employment; or
 
 2. Despacho India Private Limited (henceforth Despacho) may terminate the employment by providing the employee with at least five (5) days prior written notice of its intention to terminate the employment.
-2. Despacho India Private Limited (henceforth Despacho) may terminate the employment by providing the employee with at least five (5) days prior written notice of its intention to terminate the employment.
 
 ## Following the Initial Term
 
