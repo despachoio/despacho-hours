@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { TEAM_POLICY_DOCUMENTS, type TeamPolicyDocument } from "@/lib/team-policies";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import {
+  TEAM_POLICY_DOCUMENTS,
+  buildPolicySections,
+  type AppraisalPolicyConfiguration,
+  type PolicySection,
+  type TeamPolicyDocument,
+} from "@/lib/team-policies";
 
 const tones = {
   blue: { accent: "from-[#153E90] to-blue-500", icon: "bg-blue-50 text-[#153E90]", badge: "bg-blue-50 text-[#153E90]" },
@@ -9,42 +16,125 @@ const tones = {
   cyan: { accent: "from-cyan-600 to-sky-400", icon: "bg-cyan-50 text-cyan-700", badge: "bg-cyan-50 text-cyan-700" },
   emerald: { accent: "from-emerald-600 to-teal-400", icon: "bg-emerald-50 text-emerald-700", badge: "bg-emerald-50 text-emerald-700" },
   amber: { accent: "from-amber-500 to-orange-400", icon: "bg-amber-50 text-amber-700", badge: "bg-amber-50 text-amber-700" },
+  rose: { accent: "from-rose-600 to-pink-400", icon: "bg-rose-50 text-rose-700", badge: "bg-rose-50 text-rose-700" },
 };
 
 function DocumentIcon() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg>;
 }
+function DownloadIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>;
+}
 
-function AppraisalPolicy() {
-  const categories = [
-    ["150+", "Substantially Exceeded Expectations"],
-    ["125–149.99", "Exceeded Expectations"],
-    ["100–124.99", "Met Expectations"],
-    ["80–99.99", "Partially Met Expectations"],
-    ["Below 80", "Not Eligible for Evaluation"],
-  ];
-  return <div className="overflow-y-auto bg-slate-50 p-5 sm:p-8">
-    <div className="mx-auto max-w-5xl space-y-5">
-      <section className="rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#153E90] to-emerald-700 p-7 text-white shadow-xl"><p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-200">Despacho performance framework</p><h4 className="mt-2 text-3xl font-bold">Annual Appraisal Policy</h4><p className="mt-3 max-w-3xl text-sm leading-6 text-blue-100">A transparent annual review framework combining billable delivery, documented recognition, performance issues, and consistent eligibility controls.</p></section>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm"><h5 className="text-lg font-bold text-[#153E90]">Scoring method</h5><p className="mt-3 rounded-2xl bg-blue-50 p-4 font-mono text-sm font-bold text-[#153E90]">Overall Score = Billable Utilization + Recognition − Penalties</p><p className="mt-4 text-sm leading-6 text-slate-600"><strong>Actual Billable</strong> includes completed time-entry hours from every billable project in the review year, whether that project is active, inactive, or archived. Non-billable project hours are excluded.</p></section>
-        <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm"><h5 className="text-lg font-bold text-emerald-800">Annual eligibility</h5><ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600"><li>• Minimum overall score: <strong>80%</strong></li><li>• Maximum qualified client escalations: <strong>2</strong></li><li>• The employee must meet the minimum billable-hours threshold for their level.</li><li>• Critical policy conditions may affect eligibility even when the numeric score is met.</li></ul></section>
-      </div>
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h5 className="text-lg font-bold text-slate-950">Billable-utilization standards</h5><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="bg-[#0F172A] text-xs uppercase text-slate-200"><tr><th className="rounded-l-xl px-4 py-3">Level</th><th>Expected</th><th>Minimum</th><th>Monthly hours</th><th className="rounded-r-xl">Annual hours</th></tr></thead><tbody className="divide-y divide-slate-100"><tr><td className="px-4 py-3 font-bold">Level 1</td><td>60%</td><td>40%</td><td>90 expected · 60 minimum</td><td>1,080 expected · 720 minimum</td></tr><tr><td className="px-4 py-3 font-bold">Level 2</td><td>80%</td><td>60%</td><td>120 expected · 90 minimum</td><td>1,440 expected · 1,080 minimum</td></tr><tr><td className="px-4 py-3 font-bold">Level 3+</td><td>90%</td><td>70%</td><td>135 expected · 105 minimum</td><td>1,620 expected · 1,260 minimum</td></tr></tbody></table></div></section>
-      <div className="grid gap-5 lg:grid-cols-2"><section className="rounded-3xl border border-emerald-100 bg-emerald-50/50 p-6"><h5 className="font-bold text-emerald-900">Recognition</h5><p className="mt-3 text-sm leading-6 text-slate-600">Qualified client feedback, scale-ups, testimonials, successful referrals, and Rockstar awards add the configured score for the applicable review year.</p></section><section className="rounded-3xl border border-rose-100 bg-rose-50/50 p-6"><h5 className="font-bold text-rose-900">Penalties</h5><p className="mt-3 text-sm leading-6 text-slate-600">Qualified policy violations, employee-fault client escalations or refunds, and finalized payroll LOP events deduct the configured score.</p></section></div>
-      <section className="rounded-3xl border border-violet-100 bg-white p-6 shadow-sm"><h5 className="text-lg font-bold text-violet-900">Performance categories</h5><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{categories.map(([score,label])=><div key={score} className="rounded-2xl bg-violet-50 p-4"><p className="text-xl font-bold text-violet-800">{score}</p><p className="mt-1 text-sm font-semibold text-slate-700">{label}</p></div>)}</div></section>
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h5 className="text-lg font-bold text-slate-950">Review lifecycle and transparency</h5><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Not started","Live performance remains visible."],["Started","Manager review and comments are in progress."],["Finalized","The approved calculation and policy version are frozen."],["Reopened","Authorized administrators document a reason before changes."]].map(([stage,detail])=><div key={stage} className="rounded-2xl border border-slate-200 p-4"><p className="font-bold text-[#153E90]">{stage}</p><p className="mt-2 text-xs leading-5 text-slate-500">{detail}</p></div>)}</div><p className="mt-5 text-xs leading-5 text-slate-500">Employees can monitor their live annual performance and download their report. Managers can review direct reports. Super Admin and Finance Admin retain administrative review and audit controls.</p></section>
-    </div>
+async function token() {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token || "";
+}
+
+function PolicyTable({ section }: { section: PolicySection }) {
+  if (!section.table) return null;
+  return <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
+    <table className="w-full min-w-[660px] text-left text-sm">
+      <thead className="bg-[#0F172A] text-xs uppercase tracking-wide text-slate-200"><tr>{section.table.columns.map((column) => <th key={column} className="px-4 py-3">{column}</th>)}</tr></thead>
+      <tbody className="divide-y divide-slate-100">{section.table.rows.map((row, index) => <tr key={index} className={index % 2 ? "bg-slate-50/80" : "bg-white"}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 align-top text-slate-700">{cell}</td>)}</tr>)}</tbody>
+    </table>
   </div>;
+}
+
+function PolicyContent({ sections }: { sections: PolicySection[] }) {
+  return <div className="mx-auto max-w-5xl space-y-5">
+    {sections.map((section, index) => <section key={`${section.heading}-${index}`} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <h4 className="text-lg font-bold text-[#153E90]">{section.heading}</h4>
+      {section.paragraphs?.map((paragraph, paragraphIndex) => <p key={paragraphIndex} className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-600">{paragraph}</p>)}
+      {section.bullets?.length ? <ul className="mt-4 space-y-2">{section.bullets.map((bullet, bulletIndex) => <li key={bulletIndex} className="flex gap-3 text-sm leading-6 text-slate-600"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#153E90]"/><span>{bullet}</span></li>)}</ul> : null}
+      <PolicyTable section={section}/>
+    </section>)}
+  </div>;
+}
+
+function PolicyCard({ policy, onRead, onDownload, downloading }: { policy: TeamPolicyDocument; onRead: () => void; onDownload: () => void; downloading: boolean }) {
+  const tone = tones[policy.tone];
+  return <article className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_45px_-34px_rgba(15,23,42,.45)] transition hover:-translate-y-0.5 hover:shadow-lg">
+    <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tone.accent}`}/>
+    <div className="flex items-start justify-between gap-4"><span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${tone.icon}`}><DocumentIcon/></span><span className={`rounded-full px-3 py-1 text-xs font-bold ${tone.badge}`}>{policy.version === "Current" ? "Current" : `v${policy.version}`}</span></div>
+    <p className="mt-6 text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{policy.category}</p>
+    <h3 className="mt-2 text-xl font-bold text-slate-950">{policy.title}</h3>
+    <dl className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3 text-xs"><div><dt className="text-slate-400">Version</dt><dd className="mt-1 font-bold text-slate-700">{policy.version}</dd></div><div><dt className="text-slate-400">{policy.lastUpdated ? "Last updated" : "Effective"}</dt><dd className="mt-1 font-bold text-slate-700">{policy.lastUpdated || policy.effectiveDate}</dd></div></dl>
+    <p className="mt-4 min-h-16 text-sm leading-6 text-slate-500">{policy.description}</p>
+    <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-100 pt-5">
+      <button type="button" onClick={onRead} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0B2C68]">Read Policy</button>
+      <button type="button" onClick={onDownload} disabled={downloading} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-[#153E90] transition hover:bg-blue-50 disabled:cursor-wait disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"><DownloadIcon/>{downloading ? "Downloading…" : "Download PDF"}</button>
+    </div>
+  </article>;
 }
 
 export default function TeamPolicies() {
   const [viewing, setViewing] = useState<TeamPolicyDocument | null>(null);
+  const [configuration, setConfiguration] = useState<AppraisalPolicyConfiguration | null>(null);
+  const [loadingPolicy, setLoadingPolicy] = useState(false);
+  const [downloading, setDownloading] = useState("");
+  const [error, setError] = useState("");
+
+  const loadConfiguration = useCallback(async () => {
+    if (configuration) return configuration;
+    const accessToken = await token();
+    if (!accessToken) throw new Error("Your session has expired.");
+    const response = await fetch("/api/workforce/policies/config", { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+    const result = await response.json() as AppraisalPolicyConfiguration & { error?: string };
+    if (!response.ok) throw new Error(result.error || "Unable to load current appraisal policy settings.");
+    setConfiguration(result);
+    return result;
+  }, [configuration]);
+
+  const openPolicy = useCallback(async (policy: TeamPolicyDocument) => {
+    setError("");
+    setViewing(policy);
+    if (policy.contentSource === "reviews-settings" && !configuration) {
+      setLoadingPolicy(true);
+      try { await loadConfiguration() } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load this policy."); }
+      finally { setLoadingPolicy(false); }
+    }
+  }, [configuration, loadConfiguration]);
+
+  const downloadPolicy = useCallback(async (policy: TeamPolicyDocument) => {
+    if (downloading) return;
+    setDownloading(policy.id);
+    setError("");
+    try {
+      const accessToken = await token();
+      if (!accessToken) throw new Error("Your session has expired.");
+      const response = await fetch(`/api/workforce/policies/${policy.slug}/pdf`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!response.ok) { const result = await response.json() as { error?: string }; throw new Error(result.error || "Unable to download this policy."); }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a"); link.href = url; link.download = `${policy.slug}.pdf`; link.click(); URL.revokeObjectURL(url);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to download this policy."); }
+    finally { setDownloading(""); }
+  }, [downloading]);
+
+  useEffect(() => {
+    if (!viewing) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setViewing(null) };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [viewing]);
+
+  const displayPolicy = useMemo(() => viewing && configuration && viewing.contentSource === "reviews-settings" ? { ...viewing, version: String(configuration.settings.policy_version) } : viewing, [configuration, viewing]);
+  const sections = useMemo(() => displayPolicy ? buildPolicySections(displayPolicy, configuration || undefined) : [], [displayPolicy, configuration]);
+
   return <div className="space-y-6">
-    <section className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-7 py-7 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#153E90]">People knowledge centre</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Workforce Policies</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Read Despacho workplace, performance, confidentiality, technology, and role guidance from one controlled policy library.</p></section>
-    <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-      {TEAM_POLICY_DOCUMENTS.map((policy) => { const tone = tones[policy.tone]; return <article key={policy.id} className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_45px_-34px_rgba(15,23,42,.45)] transition hover:-translate-y-0.5 hover:shadow-lg"><div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tone.accent}`}/><div className="flex items-start justify-between gap-4"><span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${tone.icon}`}><DocumentIcon/></span><span className={`rounded-full px-3 py-1 text-xs font-bold ${tone.badge}`}>{policy.version==="Live"?policy.version:`v${policy.version}`}</span></div><p className="mt-6 text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{policy.category}</p><h3 className="mt-2 text-xl font-bold text-slate-950">{policy.title}</h3><p className="mt-3 min-h-16 text-sm leading-6 text-slate-500">{policy.description}</p><div className="mt-6 flex gap-3 border-t border-slate-100 pt-5">{policy.kind==="external"?<a href={policy.externalUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0B2C68]">Open</a>:<button type="button" onClick={() => setViewing(policy)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0B2C68]">{policy.kind==="appraisal"?"Read Policy":"View"}</button>}{policy.kind==="pdf"&&policy.file?<a href={policy.file} download className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:text-[#153E90]">Download</a>:null}</div></article>; })}
-    </div>
-    {viewing ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-6"><div role="dialog" aria-modal="true" aria-label={`${viewing.title} policy viewer`} className="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"><header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#153E90]">{viewing.category} · {viewing.version==="Live"?viewing.version:`Version ${viewing.version}`}</p><h3 className="mt-1 font-bold text-slate-950">{viewing.title}</h3></div><div className="flex items-center gap-2">{viewing.kind==="pdf"&&viewing.file?<><a href={viewing.file} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600">Print / Open</a><a href={viewing.file} download className="rounded-xl bg-[#153E90] px-3 py-2 text-sm font-bold text-white">Download</a></>:null}<button type="button" aria-label="Close policy viewer" onClick={() => setViewing(null)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-500">×</button></div></header>{viewing.kind==="appraisal"?<AppraisalPolicy/>:viewing.file?<iframe name="policy-pdf-viewer" title={viewing.title} src={`${viewing.file}#view=FitH&toolbar=1&navpanes=1`} className="min-h-0 flex-1 bg-slate-100"/>:null}</div></div> : null}
+    <section className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-7 py-7 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#153E90]">People knowledge centre</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Workforce Policies</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Read and download Despacho workplace, performance, employment, confidentiality, technology, and role guidance from one controlled internal library.</p></section>
+    {error && !viewing ? <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
+    <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">{TEAM_POLICY_DOCUMENTS.map((policy) => <PolicyCard key={policy.id} policy={policy} onRead={() => void openPolicy(policy)} onDownload={() => void downloadPolicy(policy)} downloading={downloading === policy.id}/>)}</div>
+    {displayPolicy ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(event) => { if (event.currentTarget === event.target) setViewing(null) }}>
+      <div role="dialog" aria-modal="true" aria-label={`${displayPolicy.title} policy viewer`} className="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
+          <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#153E90]">{displayPolicy.category} · Version {displayPolicy.version}</p><h3 className="mt-1 text-xl font-bold text-slate-950">{displayPolicy.title}</h3><p className="mt-1 text-xs text-slate-500">Effective: {displayPolicy.effectiveDate}{displayPolicy.lastUpdated ? ` · Last updated: ${displayPolicy.lastUpdated}` : ""}</p></div>
+          <div className="flex items-center gap-2"><button type="button" onClick={() => void downloadPolicy(displayPolicy)} disabled={downloading === displayPolicy.id} className="inline-flex items-center gap-2 rounded-xl bg-[#153E90] px-3 py-2 text-sm font-bold text-white disabled:bg-slate-300"><DownloadIcon/>{downloading === displayPolicy.id ? "Downloading…" : "Download PDF"}</button><button type="button" aria-label="Close policy viewer" onClick={() => setViewing(null)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-500 transition hover:bg-slate-200">×</button></div>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-7">
+          {loadingPolicy ? <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-500">Loading current Reviews settings…</div> : error ? <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-700">{error}</div> : <PolicyContent sections={sections}/>}
+        </div>
+      </div>
+    </div> : null}
   </div>;
 }
