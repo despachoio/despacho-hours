@@ -53,6 +53,7 @@ export type PerformanceReview = {
   id: string; employee_id: string; performance_year: number; review_type: string;
   status: PerformanceReviewStatus; snapshot: Record<string, unknown> | null;
   finalized_at: string | null; finalized_by: string | null; reopened_at: string | null;
+  started_at?: string | null; started_by?: string | null;
   reopen_reason: string | null; employee?: PerformanceEmployee;
   manager_decision?: string | null; hr_decision?: string | null;
 };
