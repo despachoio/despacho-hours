@@ -81,6 +81,9 @@ export type EmployeeAnalytics = {
   averageDailyHours: number;
   averageSession: number;
   longestSession: number;
+  entryCount?: number;
+  projectIds?: string[];
+  clientIds?: string[];
   status: "working" | "paused" | "offline" | "on_leave";
 };
 

@@ -23,28 +23,23 @@ async function audit(actor:Actor,input:{action:string;reviewId?:string;employeeI
 }
 const validYear=(value:unknown)=>{const year=Number(value);if(!Number.isInteger(year)||year<2000||year>2200)throw new Error("Select a valid performance year");return year;};
 
-type BillableTimeEntry = {
-  id: string;
+type MonthlyBillableSummary = {
   employee_id: string;
-  entry_date: string;
-  hours: number | null;
+  month_start: string;
+  billable_hours: number | string | null;
 };
 
-async function loadAllBillableTimeEntries(actor:Actor,year:number,employeeIds:string[]){
-  if(!employeeIds.length)return {data:[] as BillableTimeEntry[],error:null};
-  const pageSize=1000;const data:BillableTimeEntry[]=[];
-  for(let from=0;;from+=pageSize){
-    const page=await actor.admin.from("time_entries")
-      .select("id,employee_id,entry_date,hours,projects!inner(is_billable)")
-      .gte("entry_date",`${year}-01-01`).lte("entry_date",`${year}-12-31`)
-      .in("employee_id",employeeIds).eq("projects.is_billable",true)
-      .order("entry_date",{ascending:true}).order("id",{ascending:true})
-      .range(from,from+pageSize-1);
-    if(page.error)return {data,error:page.error};
-    const rows=(page.data||[]) as unknown as BillableTimeEntry[];data.push(...rows);
-    if(rows.length<pageSize)break;
-  }
-  return {data,error:null};
+async function loadMonthlyBillableSummary(actor:Actor,year:number,employeeIds:string[]){
+  if(!employeeIds.length)return {data:[] as MonthlyBillableSummary[],error:null};
+  const result=await actor.admin.rpc("get_performance_billable_monthly_summary",{
+    p_start_date:`${year}-01-01`,
+    p_end_date:`${year}-12-31`,
+    p_employee_ids:employeeIds,
+  });
+  return {
+    data:(result.data||[]) as MonthlyBillableSummary[],
+    error:result.error,
+  };
 }
 
 async function visibleEmployees(actor:Actor) {
@@ -76,7 +71,7 @@ export async function loadPerformance(request:Request,yearInput:unknown):Promise
     employeeIds.length?actor.admin.from("performance_events").select("*,clients(id,name)").eq("performance_year",year).in("employee_id",employeeIds).order("event_date"):{data:[],error:null},
     employeeIds.length?actor.admin.from("performance_reviews").select("*").eq("performance_year",year).in("employee_id",employeeIds):{data:[],error:null},
     employeeIds.length?actor.admin.from("performance_comments").select("*").eq("performance_year",year).in("employee_id",employeeIds).order("created_at"):{data:[],error:null},
-    loadAllBillableTimeEntries(actor,year,employeeIds),
+    loadMonthlyBillableSummary(actor,year,employeeIds),
     actor.admin.from("clients").select("id,name").eq("status","active").order("name"),
     actor.admin.from("performance_settings").select("*").eq("singleton_key",true).maybeSingle(),
   ]);
@@ -90,7 +85,13 @@ export async function loadPerformance(request:Request,yearInput:unknown):Promise
   const allEvents=(eventResult.data||[]).map(row=>({...row,metric:metrics.find(metric=>metric.id===row.metric_id),client:row.clients||null})).filter(event=>displayEmployeeIds.has(event.employee_id)) as PerformanceEvent[];
   const events=actor.role==="employee"?allEvents.filter(event=>event.metric?.category==="booster"):allEvents;
   const calculations:PerformanceData["calculations"]={};
-  for(const employee of displayEmployees){const review=reviews.find(item=>item.employee_id===employee.id);if(review?.status==="finalized"&&review.snapshot?.calculation){calculations[employee.id]=review.snapshot.calculation as PerformanceData["calculations"][string];continue;}const monthly=Array(12).fill(0) as number[];for(const entry of entryResult.data||[]){if(entry.employee_id===employee.id)monthly[Number(String(entry.entry_date).slice(5,7))-1]+=Number(entry.hours||0);}calculations[employee.id]=calculatePerformance({policy:policyForLevel(employee.level,policies),monthlyBillableHours:monthly,events:allEvents.filter(event=>event.employee_id===employee.id),metrics,reviewFinalized:false,eligibilityRules:settings.eligibility_rules,performanceCategories:settings.performance_categories});}
+  const monthlyByEmployee=new Map<string,number[]>();
+  for(const row of entryResult.data||[]){
+    const monthly=monthlyByEmployee.get(row.employee_id)||Array(12).fill(0) as number[];
+    monthly[Number(String(row.month_start).slice(5,7))-1]=Number(row.billable_hours||0);
+    monthlyByEmployee.set(row.employee_id,monthly);
+  }
+  for(const employee of displayEmployees){const review=reviews.find(item=>item.employee_id===employee.id);if(review?.status==="finalized"&&review.snapshot?.calculation){calculations[employee.id]=review.snapshot.calculation as PerformanceData["calculations"][string];continue;}const monthly=monthlyByEmployee.get(employee.id)||Array(12).fill(0) as number[];calculations[employee.id]=calculatePerformance({policy:policyForLevel(employee.level,policies),monthlyBillableHours:monthly,events:allEvents.filter(event=>event.employee_id===employee.id),metrics,reviewFinalized:false,eligibilityRules:settings.eligibility_rules,performanceCategories:settings.performance_categories});}
   const comments=(commentResult.data||[]).filter(comment=>displayEmployeeIds.has(comment.employee_id));
   return {role:actor.role,employeeId:actor.employeeId,year,canAdminister:hasSuperAdminAccess(actor.role),employees:displayEmployees,metrics,policies,events,reviews,comments,calculations,clients:hasSuperAdminAccess(actor.role)?clientResult.data||[]:[],settings};
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import TeamFilters from "@/components/team/TeamFilters";
 import TeamSummaryCards from "@/components/team/TeamSummaryCards";
@@ -25,10 +27,6 @@ import {
   type EmployeeProfileChanges,
 } from "@/lib/employee-profile";
 import { EmployeeProfileFormSections } from "@/components/team/EmployeeProfileSections";
-import ProfileApprovals from "@/components/team/ProfileApprovals";
-import OrganizationChart from "@/components/team/OrganizationChart";
-import TeamPolicies from "@/components/team/TeamPolicies";
-import ReviewsWorkspace from "@/components/performance/ReviewsWorkspace";
 
 type TeamTab = "overview" | "approvals" | "organization" | "reviews" | "assets" | "exit" | "policies";
 
@@ -42,6 +40,42 @@ const initialFilters: TeamFilterValue = {
   search: "",
 };
 const EMPTY_ANALYTICS: EmployeeAnalytics[] = [];
+
+function TabLoading({ label }: { label: string }) {
+  return (
+    <div aria-label={`Loading ${label}`} className="space-y-5">
+      <div className="h-24 animate-pulse rounded-3xl bg-white" />
+      <div className="h-80 animate-pulse rounded-3xl bg-white" />
+    </div>
+  );
+}
+
+const ProfileApprovals = dynamic(
+  () => import("@/components/team/ProfileApprovals"),
+  { loading: () => <TabLoading label="profile approvals" /> },
+);
+const OrganizationChartLoader = dynamic(
+  () => import("@/components/team/OrganizationChartLoader"),
+  { loading: () => <TabLoading label="organization chart" /> },
+);
+const ReviewsWorkspace = dynamic(
+  () => import("@/components/performance/ReviewsWorkspace"),
+  { loading: () => <TabLoading label="reviews" /> },
+);
+const TeamPolicies = dynamic(
+  () => import("@/components/team/TeamPolicies"),
+  { loading: () => <TabLoading label="policies" /> },
+);
+
+const TEAM_TABS = new Set<TeamTab>([
+  "overview",
+  "approvals",
+  "organization",
+  "reviews",
+  "assets",
+  "exit",
+  "policies",
+]);
 
 function teamDataErrorMessage(error: unknown) {
   const message =
@@ -63,6 +97,9 @@ function teamDataErrorMessage(error: unknown) {
 }
 
 export default function WorkforcePage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<TeamProfile | null>(null);
   const [teamMetrics, setTeamMetrics] = useState<TeamMetrics | null>(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -90,7 +127,13 @@ export default function WorkforcePage() {
   const isFinanceAdmin = role === "finance admin";
   const isSuperAdmin = isFinanceAdmin || role === "super admin";
   const isAdmin = isSuperAdmin || role === "admin";
-  const [tab, setTab] = useState<TeamTab>("overview");
+  const requestedTab = searchParams.get("tab") as TeamTab | null;
+  const validRequestedTab = requestedTab && TEAM_TABS.has(requestedTab)
+    ? requestedTab
+    : "overview";
+  const tab = validRequestedTab === "approvals" && profile && !isAdmin
+    ? "overview"
+    : validRequestedTab;
   const range = useMemo(
     () => dateRange(filters.period, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.period],
@@ -146,16 +189,6 @@ export default function WorkforcePage() {
         setLoading(false);
         return;
       }
-      if (["admin", "super admin", "finance admin"].includes(currentRole)) {
-        const { data: managerData, error: managerError } = await supabase.rpc(
-          "get_reporting_manager_options",
-        );
-        if (managerError) setError(teamDataErrorMessage(managerError));
-        else
-          setReportingManagers(
-            (managerData || []) as ReportingManagerOption[],
-          );
-      }
       setNow(Date.now());
       setLoading(false);
     }
@@ -163,7 +196,24 @@ export default function WorkforcePage() {
   }, []);
 
   useEffect(() => {
-    if (!profile || !range.from || !range.to) return;
+    if (!isAdmin || tab !== "overview" || !showNewMember) return;
+    let cancelled = false;
+    async function loadReportingManagers() {
+      const { data, error: managerError } = await supabase.rpc(
+        "get_reporting_manager_options",
+      );
+      if (cancelled) return;
+      if (managerError) setError(teamDataErrorMessage(managerError));
+      else setReportingManagers((data || []) as ReportingManagerOption[]);
+    }
+    void loadReportingManagers();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, showNewMember, tab]);
+
+  useEffect(() => {
+    if (tab !== "overview" || !profile || !range.from || !range.to) return;
     let cancelled = false;
     async function loadMetrics() {
       setMetricsLoading(true);
@@ -195,7 +245,17 @@ export default function WorkforcePage() {
     return () => {
       cancelled = true;
     };
-  }, [profile, range.from, range.to]);
+  }, [profile, range.from, range.to, tab]);
+
+  function changeTab(nextTab: TeamTab) {
+    if (nextTab === "approvals" && !isAdmin) return;
+    const next = new URLSearchParams(searchParams.toString());
+    if (nextTab === "overview") next.delete("tab");
+    else next.set("tab", nextTab);
+    router.replace(`${pathname}${next.size ? `?${next.toString()}` : ""}`, {
+      scroll: false,
+    });
+  }
   const visibleAnalytics = useMemo(
     () =>
       analytics.filter((item) => {
@@ -327,7 +387,7 @@ export default function WorkforcePage() {
           </div>
         </header>
         <nav aria-label="Workforce sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "reviews", label: "Reviews" }, { value: "assets", label: "Assets" }, { value: "exit", label: "Exit Process" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => setTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
+          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "reviews", label: "Reviews" }, { value: "assets", label: "Assets" }, { value: "exit", label: "Exit Process" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => changeTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
         </nav>
         {error ? (
           <div
@@ -486,7 +546,7 @@ export default function WorkforcePage() {
           )}
         </div> : null}
         {tab === "approvals" && isAdmin ? <div className="mt-8"><ProfileApprovals/></div> : null}
-        {tab === "organization" ? <div className="mt-8"><OrganizationChart employees={employees}/></div> : null}
+        {tab === "organization" ? <div className="mt-8"><OrganizationChartLoader/></div> : null}
         {tab === "reviews" ? <div className="mt-8"><ReviewsWorkspace/></div> : null}
         {tab === "assets" ? <WorkforcePlaceholder title="Assets" description="Workforce asset assignment and lifecycle records remain available from this consolidated section."/> : null}
         {tab === "exit" ? <WorkforcePlaceholder title="Exit Process" description="Employee exit workflows, clearance and handover records remain available from this consolidated section."/> : null}

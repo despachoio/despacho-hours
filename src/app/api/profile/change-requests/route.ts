@@ -22,13 +22,22 @@ export async function GET(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const searchParams = new URL(request.url).searchParams;
+  const page = Math.max(1, Number(searchParams.get("page") || 1));
+  const pageSize = Math.min(
+    50,
+    Math.max(1, Number(searchParams.get("pageSize") || 25)),
+  );
+  const from = (page - 1) * pageSize;
   const result = await context.admin
     .from("employee_profile_change_requests")
     .select(
       "id,employee_id,current_values,proposed_changes,status,review_notes,created_at,employees(id,name,title,employee_code,role,department)",
+      { count: "exact" },
     )
     .eq("status", "pending")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .range(from, from + pageSize - 1);
   if (result.error) {
     return Response.json({ error: result.error.message }, { status: 500 });
   }
@@ -82,7 +91,12 @@ export async function GET(request: Request) {
       }));
   }
 
-  return Response.json({ requests });
+  return Response.json({
+    requests,
+    page,
+    pageSize,
+    total: result.count || 0,
+  });
 }
 
 export async function POST(request: Request) {

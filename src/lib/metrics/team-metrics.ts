@@ -9,7 +9,29 @@ import { weekdays } from "./date-ranges";
 import { expectedCapacityHours } from "@/lib/time-off/policy";
 import type { TeamMetricFilters, TeamMetrics } from "./types";
 
-const PAGE_SIZE = 1000;
+type WorkforceEmployeeRow = {
+  id: string;
+  employee_code: string | null;
+  title: string | null;
+  name: string;
+  email: string;
+  role: string | null;
+  department: string | null;
+  reporting_manager_id: string | null;
+  reporting_manager_name: string | null;
+  reporting_manager_title: string | null;
+  status: string | null;
+};
+
+type WorkforceTimeSummary = {
+  employee_id: string;
+  total_hours: number | string | null;
+  billable_hours: number | string | null;
+  entry_count: number | string | null;
+  longest_session: number | string | null;
+  project_ids: string[] | null;
+  client_ids: string[] | null;
+};
 
 export function employeeStatus(
   employee: TeamEmployee,
@@ -71,34 +93,17 @@ export function employeeAnalytics(
       0,
       ...entries.map((entry) => Number(entry.hours || 0)),
     ),
+    entryCount: entries.length,
+    projectIds: Array.from(new Set(entries.map((entry) => entry.project_id))),
+    clientIds: Array.from(
+      new Set(
+        entries
+          .map((entry) => entry.projects?.clients?.id)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ),
     status: employeeStatus(employee, timer),
   };
-}
-
-async function fetchTimeEntries(
-  filters: TeamMetricFilters,
-  visibleEmployeeIds: string[],
-) {
-  const entries: TeamEntry[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    let query = supabase
-      .from("time_entries")
-      .select(
-        "id,employee_id,project_id,entry_date,started_at,stopped_at,hours,description,projects(id,name,project_code,is_billable,clients(id,name))",
-      )
-      .gte("entry_date", filters.startDate)
-      .lte("entry_date", filters.endDate)
-      .order("entry_date", { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
-    if (filters.employeeId) query = query.eq("employee_id", filters.employeeId);
-    else query = query.in("employee_id", visibleEmployeeIds);
-    const result = await query;
-    if (result.error) throw result.error;
-    const page = (result.data || []) as unknown as TeamEntry[];
-    entries.push(...page);
-    if (page.length < PAGE_SIZE) break;
-  }
-  return entries;
 }
 
 export function calculateTeamMetrics(
@@ -122,7 +127,10 @@ export function calculateTeamMetrics(
     (sum, item) => sum + item.billableHours,
     0,
   );
-  const entries = employees.flatMap((item) => item.entries);
+  const entryCount = employees.reduce(
+    (sum, item) => sum + (item.entryCount ?? item.entries.length),
+    0,
+  );
   const aggregateUtilization = totalExpectedHours
     ? (operationsBillableHours / totalExpectedHours) * 100
     : 0;
@@ -139,15 +147,25 @@ export function calculateTeamMetrics(
       ? operationsEmployees.reduce((sum, item) => sum + item.utilisation, 0) /
         operationsEmployees.length
       : 0,
-    projectsWorked: new Set(entries.map((entry) => entry.project_id)).size,
+    projectsWorked: new Set(
+      employees.flatMap(
+        (item) => item.projectIds ?? item.entries.map((entry) => entry.project_id),
+      ),
+    ).size,
     clientsServed: new Set(
-      entries.map((entry) => entry.projects?.clients?.id).filter(Boolean),
+      employees.flatMap(
+        (item) =>
+          item.clientIds ??
+          item.entries
+            .map((entry) => entry.projects?.clients?.id)
+            .filter((value): value is string => Boolean(value)),
+      ),
     ).size,
     averageDailyHours: employees.length
       ? employees.reduce((sum, item) => sum + item.averageDailyHours, 0) /
         employees.length
       : 0,
-    averageSessionHours: entries.length ? totalHoursLogged / entries.length : 0,
+    averageSessionHours: entryCount ? totalHoursLogged / entryCount : 0,
     employees,
   };
 }
@@ -155,90 +173,42 @@ export function calculateTeamMetrics(
 export async function getTeamMetrics(
   filters: TeamMetricFilters,
 ): Promise<TeamMetrics> {
-  let employeeRows: Array<Omit<TeamEmployee, "reporting_manager">>;
-  if (filters.reportingManagerId) {
-    const employeeResult = await supabase.rpc("get_team_metric_employees");
-    if (employeeResult.error) throw employeeResult.error;
-    employeeRows = (employeeResult.data || []) as unknown as Array<
-      Omit<TeamEmployee, "reporting_manager">
-    >;
-    if (
-      filters.includeEmployeeId &&
-      !employeeRows.some(
-        (employee) => employee.id === filters.includeEmployeeId,
-      )
-    ) {
-      const selfResult = await supabase
-        .from("employees")
-        .select(
-          "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
-        )
-        .eq("id", filters.includeEmployeeId)
-        .maybeSingle();
-      if (selfResult.error) throw selfResult.error;
-      if (selfResult.data) {
-        employeeRows.push(
-          selfResult.data as unknown as Omit<
-            TeamEmployee,
-            "reporting_manager"
-          >,
-        );
-      }
-    }
-  } else {
-    let employeeQuery = supabase
-      .from("employees")
-      .select(
-        "id,employee_code,title,name,gender,email,role,department,date_of_joining,date_of_birth,epf_number,uan_number,reporting_manager_id,status,hourly_cost",
-      )
-      .order("created_at", { ascending: true });
-
-    if (filters.employeeId) {
-      employeeQuery = employeeQuery.eq("id", filters.employeeId);
-    }
-    if (filters.employeeStatus) {
-      employeeQuery = employeeQuery.eq("status", filters.employeeStatus);
-    }
-
-    const employeeResult = await employeeQuery;
-    if (employeeResult.error) throw employeeResult.error;
-    employeeRows = (employeeResult.data || []) as unknown as Array<
-      Omit<TeamEmployee, "reporting_manager">
-    >;
-  }
-  const managerIds = Array.from(
-    new Set(
-      employeeRows
-        .map((employee) => employee.reporting_manager_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
+  const employeeResult = await supabase.rpc(
+    "get_workforce_overview_employees",
   );
-  const managerMap = new Map<
-    string,
-    NonNullable<TeamEmployee["reporting_manager"]>
-  >();
-  if (managerIds.length) {
-    const managerResult = await supabase
-      .from("employees")
-      .select("id,name,title")
-      .in("id", managerIds);
-    if (managerResult.error) {
-      console.warn(
-        "Unable to load reporting-manager names",
-        managerResult.error,
-      );
-    } else {
-      for (const manager of managerResult.data || []) {
-        managerMap.set(manager.id, manager);
-      }
-    }
-  }
-  const teamEmployees: TeamEmployee[] = employeeRows.map((employee) => ({
-    ...employee,
-    reporting_manager: employee.reporting_manager_id
-      ? managerMap.get(employee.reporting_manager_id) || null
-      : null,
-  }));
+  if (employeeResult.error) throw employeeResult.error;
+  const employeeRows = (employeeResult.data || []) as WorkforceEmployeeRow[];
+  const teamEmployees: TeamEmployee[] = employeeRows
+    .filter(
+      (employee) =>
+        (!filters.employeeId || employee.id === filters.employeeId) &&
+        (!filters.employeeStatus || employee.status === filters.employeeStatus),
+    )
+    .map((employee) => ({
+      id: employee.id,
+      employee_code: employee.employee_code,
+      title: employee.title,
+      name: employee.name,
+      gender: null,
+      email: employee.email,
+      role: employee.role,
+      level: null,
+      department: employee.department,
+      date_of_joining: null,
+      date_of_birth: null,
+      epf_number: null,
+      uan_number: null,
+      reporting_manager_id: employee.reporting_manager_id,
+      reporting_manager: employee.reporting_manager_id
+        ? {
+            id: employee.reporting_manager_id,
+            name: employee.reporting_manager_name || "Reporting manager",
+            title: employee.reporting_manager_title,
+          }
+        : null,
+      status: employee.status,
+      hourly_cost: null,
+    }));
   const visibleEmployeeIds = teamEmployees.map((employee) => employee.id);
   if (!visibleEmployeeIds.length) return calculateTeamMetrics([]);
 
@@ -250,9 +220,12 @@ export async function getTeamMetrics(
     .in("status", ["running", "paused"])
     .in("employee_id", visibleEmployeeIds);
 
-  const [timerResult, entries, holidayResult, leaveResult] = await Promise.all([
+  const [timerResult, summaryResult, holidayResult, leaveResult] = await Promise.all([
     timerQuery,
-    fetchTimeEntries(filters, visibleEmployeeIds),
+    supabase.rpc("get_workforce_overview_time_summary", {
+      p_start_date: filters.startDate,
+      p_end_date: filters.endDate,
+    }),
     supabase
       .from("holidays")
       .select("holiday_date,day_part")
@@ -269,6 +242,7 @@ export async function getTeamMetrics(
       .lte("leave_date", filters.endDate),
   ]);
   if (timerResult.error) throw timerResult.error;
+  if (summaryResult.error) throw summaryResult.error;
   if (holidayResult.error) throw holidayResult.error;
   if (leaveResult.error) throw leaveResult.error;
 
@@ -289,20 +263,52 @@ export async function getTeamMetrics(
   }
 
   const timers = (timerResult.data || []) as unknown as TeamTimer[];
-  const analytics = teamEmployees.map((employee) =>
-    employeeAnalytics(
-      employee,
-      entries.filter((entry) => entry.employee_id === employee.id),
-      timers.find((timer) => timer.employee_id === employee.id) || null,
-      filters.startDate,
-      filters.endDate,
-      expectedCapacityHours({
+  const summaryMap = new Map(
+    ((summaryResult.data || []) as WorkforceTimeSummary[]).map((row) => [
+      row.employee_id,
+      row,
+    ]),
+  );
+  const workdays = weekdays(filters.startDate, filters.endDate);
+  const analytics = teamEmployees.map((employee) => {
+    const summary = summaryMap.get(employee.id);
+    const hours = Number(summary?.total_hours || 0);
+    const billableHours = Number(summary?.billable_hours || 0);
+    const expectedHours = expectedCapacityHours({
         startDate: filters.startDate,
         endDate: filters.endDate,
         holidayParts,
         approvedLeaveParts: leavePartsByEmployee.get(employee.id),
-      }),
-    ),
-  );
+      });
+    const isOperationsEmployee =
+      String(employee.department || "").trim().toLowerCase() === "operations";
+    const utilisation =
+      isOperationsEmployee && expectedHours
+        ? (billableHours / expectedHours) * 100
+        : 0;
+    const timer = timers.find((item) => item.employee_id === employee.id) || null;
+    const entryCount = Number(summary?.entry_count || 0);
+    return {
+      employee,
+      entries: [],
+      timer,
+      hours,
+      expectedHours,
+      utilisation,
+      billableHours,
+      nonBillableHours: Math.max(0, hours - billableHours),
+      billableUtilisation: utilisation,
+      nonBillableUtilisation: 0,
+      projects: summary?.project_ids?.length || 0,
+      clients: summary?.client_ids?.length || 0,
+      averageDailyHours: workdays ? hours / workdays : 0,
+      averageSession: entryCount ? hours / entryCount : 0,
+      longestSession: Number(summary?.longest_session || 0),
+      entryCount,
+      projectIds: summary?.project_ids || [],
+      clientIds: summary?.client_ids || [],
+      status: employeeStatus(employee, timer),
+    } satisfies EmployeeAnalytics;
+  });
   return calculateTeamMetrics(analytics);
 }
