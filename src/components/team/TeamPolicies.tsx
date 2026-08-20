@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   TEAM_POLICY_DOCUMENTS,
@@ -69,7 +70,11 @@ function PolicyCard({ policy, onRead, onDownload, downloading }: { policy: TeamP
 }
 
 export default function TeamPolicies() {
-  const [viewing, setViewing] = useState<TeamPolicyDocument | null>(null);
+  const searchParams = useSearchParams();
+  const [viewing, setViewing] = useState<TeamPolicyDocument | null>(() => {
+    const requested = searchParams.get("policy");
+    return TEAM_POLICY_DOCUMENTS.find((item) => item.slug === requested) || null;
+  });
   const [configuration, setConfiguration] = useState<AppraisalPolicyConfiguration | null>(null);
   const [loadingPolicy, setLoadingPolicy] = useState(false);
   const [downloading, setDownloading] = useState("");

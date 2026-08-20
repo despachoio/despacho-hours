@@ -74,6 +74,10 @@ const TeamPolicies = dynamic(
   () => import("@/components/team/TeamPolicies"),
   { loading: () => <TabLoading label="policies" /> },
 );
+const ExitProcessWorkspace = dynamic(
+  () => import("@/components/team/ExitProcessWorkspace"),
+  { loading: () => <TabLoading label="exit process" /> },
+);
 
 function teamDataErrorMessage(error: unknown) {
   const message =
@@ -543,15 +547,11 @@ export default function WorkforcePage() {
         {tab === "organization" ? <div className="mt-8"><OrganizationChartLoader/></div> : null}
         {tab === "reviews" ? <div className="mt-8"><ReviewsWorkspace/></div> : null}
         {tab === "assets" ? <div className="mt-8"><AssetsWorkspace/></div> : null}
-        {tab === "exit" ? <WorkforcePlaceholder title="Exit Process" description="Employee exit workflows, clearance and handover records remain available from this consolidated section."/> : null}
+        {tab === "exit" ? <div className="mt-8"><ExitProcessWorkspace/></div> : null}
         {tab === "policies" ? <div className="mt-8"><TeamPolicies/></div> : null}
       </div>
     </main>
   );
-}
-
-function WorkforcePlaceholder({title,description}:{title:string;description:string}) {
-  return <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm"><h2 className="text-2xl font-bold text-slate-950">{title}</h2><p className="mx-auto mt-2 max-w-2xl text-sm text-slate-500">{description}</p></section>;
 }
 
 function FormSelect({

@@ -106,6 +106,22 @@ textarea::placeholder {
   color: var(--kairo-subtle);
 }
 
+.input {
+  min-height: 3rem;
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  padding: 0 1rem;
+  font-weight: 400;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgb(21 62 144 / 10%);
+}
+
 ::selection {
   background: var(--kairo-blue);
   color: white;
