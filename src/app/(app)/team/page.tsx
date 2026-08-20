@@ -66,6 +66,10 @@ const ReviewsWorkspace = dynamic(
   () => import("@/components/performance/ReviewsWorkspace"),
   { loading: () => <TabLoading label="reviews" /> },
 );
+const AssetsWorkspace = dynamic(
+  () => import("@/components/assets/AssetsWorkspace"),
+  { loading: () => <TabLoading label="assets and supplies" /> },
+);
 const TeamPolicies = dynamic(
   () => import("@/components/team/TeamPolicies"),
   { loading: () => <TabLoading label="policies" /> },
@@ -538,7 +542,7 @@ export default function WorkforcePage() {
         {tab === "approvals" && isAdmin ? <div className="mt-8"><ProfileApprovals/></div> : null}
         {tab === "organization" ? <div className="mt-8"><OrganizationChartLoader/></div> : null}
         {tab === "reviews" ? <div className="mt-8"><ReviewsWorkspace/></div> : null}
-        {tab === "assets" ? <WorkforcePlaceholder title="Assets" description="Workforce asset assignment and lifecycle records remain available from this consolidated section."/> : null}
+        {tab === "assets" ? <div className="mt-8"><AssetsWorkspace/></div> : null}
         {tab === "exit" ? <WorkforcePlaceholder title="Exit Process" description="Employee exit workflows, clearance and handover records remain available from this consolidated section."/> : null}
         {tab === "policies" ? <div className="mt-8"><TeamPolicies/></div> : null}
       </div>
