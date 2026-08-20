@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import TeamFilters from "@/components/team/TeamFilters";
@@ -27,8 +28,11 @@ import {
   type EmployeeProfileChanges,
 } from "@/lib/employee-profile";
 import { EmployeeProfileFormSections } from "@/components/team/EmployeeProfileSections";
-
-type TeamTab = "overview" | "approvals" | "organization" | "reviews" | "assets" | "exit" | "policies";
+import {
+  resolveWorkforceTab,
+  workforceTabUrl,
+  type WorkforceTab,
+} from "@/lib/workforce/tabs";
 
 const initialFilters: TeamFilterValue = {
   employeeId: "",
@@ -66,16 +70,6 @@ const TeamPolicies = dynamic(
   () => import("@/components/team/TeamPolicies"),
   { loading: () => <TabLoading label="policies" /> },
 );
-
-const TEAM_TABS = new Set<TeamTab>([
-  "overview",
-  "approvals",
-  "organization",
-  "reviews",
-  "assets",
-  "exit",
-  "policies",
-]);
 
 function teamDataErrorMessage(error: unknown) {
   const message =
@@ -127,13 +121,8 @@ export default function WorkforcePage() {
   const isFinanceAdmin = role === "finance admin";
   const isSuperAdmin = isFinanceAdmin || role === "super admin";
   const isAdmin = isSuperAdmin || role === "admin";
-  const requestedTab = searchParams.get("tab") as TeamTab | null;
-  const validRequestedTab = requestedTab && TEAM_TABS.has(requestedTab)
-    ? requestedTab
-    : "overview";
-  const tab = validRequestedTab === "approvals" && profile && !isAdmin
-    ? "overview"
-    : validRequestedTab;
+  const requestedTab = searchParams.get("tab");
+  const tab = resolveWorkforceTab(requestedTab, isAdmin);
   const range = useMemo(
     () => dateRange(filters.period, filters.customFrom, filters.customTo),
     [filters.customFrom, filters.customTo, filters.period],
@@ -247,15 +236,16 @@ export default function WorkforcePage() {
     };
   }, [profile, range.from, range.to, tab]);
 
-  function changeTab(nextTab: TeamTab) {
-    if (nextTab === "approvals" && !isAdmin) return;
-    const next = new URLSearchParams(searchParams.toString());
-    if (nextTab === "overview") next.delete("tab");
-    else next.set("tab", nextTab);
-    router.replace(`${pathname}${next.size ? `?${next.toString()}` : ""}`, {
-      scroll: false,
-    });
-  }
+  useEffect(() => {
+    if (!profile || requestedTab === null || requestedTab === tab) return;
+    router.replace(
+      workforceTabUrl(pathname, searchParams.toString(), tab),
+      { scroll: false },
+    );
+  }, [pathname, profile, requestedTab, router, searchParams, tab]);
+
+  const tabHref = (nextTab: WorkforceTab) =>
+    workforceTabUrl(pathname, searchParams.toString(), nextTab);
   const visibleAnalytics = useMemo(
     () =>
       analytics.filter((item) => {
@@ -387,7 +377,7 @@ export default function WorkforcePage() {
           </div>
         </header>
         <nav aria-label="Workforce sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "reviews", label: "Reviews" }, { value: "assets", label: "Assets" }, { value: "exit", label: "Exit Process" }, { value: "policies", label: "Policies" }] as Array<{ value: TeamTab; label: string }>).map((item) => <button key={item.value} type="button" onClick={() => changeTab(item.value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</button>)}
+          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "reviews", label: "Reviews" }, { value: "assets", label: "Assets" }, { value: "exit", label: "Exit Process" }, { value: "policies", label: "Policies" }] as Array<{ value: WorkforceTab; label: string }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</Link>)}
         </nav>
         {error ? (
           <div

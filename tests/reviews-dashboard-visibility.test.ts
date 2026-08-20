@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   REVIEWS_DASHBOARD_ENABLED,
   resolveReviewsTab,
+  reviewsTabUrl,
   reviewsTabsForRole,
 } from "../src/lib/performance/features";
 
@@ -58,6 +59,16 @@ describe("Reviews Dashboard feature visibility", () => {
     ]);
   });
 
+  it("keeps Reviews sub-tabs within the Reviews parent route", () => {
+    expect(
+      reviewsTabUrl(
+        "/team",
+        "tab=reviews&reviewTab=my_review",
+        "reviews",
+      ),
+    ).toBe("/team?tab=reviews&reviewTab=reviews");
+  });
+
   it("does not mount Dashboard while disabled and preserves its code", () => {
     const workspace = source(
       "src/components/performance/ReviewsWorkspace.tsx",
@@ -68,6 +79,7 @@ describe("Reviews Dashboard feature visibility", () => {
     expect(workspace).toContain("function Dashboard({data}");
     expect(workspace).toContain('searchParams.get("reviewTab")');
     expect(workspace).toContain("resolveReviewsTab(data.role,requestedTab)");
+    expect(workspace).toContain("href={reviewsTabUrl(");
     expect(workspace).not.toContain('useState<Tab>("dashboard")');
   });
 });

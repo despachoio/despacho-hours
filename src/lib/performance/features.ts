@@ -50,3 +50,14 @@ export function resolveReviewsTab(
   const requested = visibleTabs.find(([tab]) => tab === requestedTab);
   return requested?.[0] ?? visibleTabs[0]?.[0] ?? "my_review";
 }
+
+export function reviewsTabUrl(
+  pathname: string,
+  currentQuery: string,
+  nextTab: ReviewsTab,
+): string {
+  const next = new URLSearchParams(currentQuery);
+  next.set("tab", "reviews");
+  next.set("reviewTab", nextTab);
+  return `${pathname}?${next.toString()}`;
+}
