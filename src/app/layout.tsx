@@ -7,7 +7,10 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Kairo",
+  title: {
+    default: "Kairo",
+    template: "%s | Kairo",
+  },
   description: "The Pulse Of Despacho",
   icons: {
     icon: "/kairo-icon.png",

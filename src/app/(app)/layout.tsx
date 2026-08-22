@@ -462,7 +462,7 @@ export default function DashboardLayout({
           ) : null}
         </div>
         <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-slate-400">
-          KAIRO · DESPACHO INC.
+          KAIRO 2.0 · DESPACHO INC.
         </p>
       </div>
     </aside>

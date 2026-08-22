@@ -33,7 +33,7 @@ describe("Team HR workspace", () => {
   });
 
   it("bundles configurable policy documents with viewing and downloads", () => {
-    expect(TEAM_POLICY_DOCUMENTS.map((policy) => policy.title)).toEqual(["Code of Conduct", "Non-Disclosure Agreement (NDA)", "Acceptable Usage Policy (AUP)", "Annual Appraisal Policy", "Roles and Responsibilities", "Exit Policy"]);
+    expect(TEAM_POLICY_DOCUMENTS.map((policy) => policy.title)).toEqual(["Code of Conduct", "Non-Disclosure Agreement (NDA)", "Acceptable Usage Policy (AUP)", "Annual Appraisal Policy", "Performance and Growth Rewards", "Roles and Responsibilities", "Exit Policy"]);
     expect(TEAM_POLICY_DOCUMENTS.every((policy) => policy.downloadable && Boolean(policy.effectiveDate))).toBe(true);
     const policies = source("src/components/team/TeamPolicies.tsx");
     expect(policies).toContain("TEAM_POLICY_DOCUMENTS.map");

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Workforce | Kairo",
+  title: "Workforce",
   description:
     "Manage your organization's workforce, reporting structure, approvals and company policies.",
 };

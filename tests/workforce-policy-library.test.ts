@@ -47,6 +47,15 @@ describe("Workforce internal policy library", () => {
     expect(text).toContain("no severance payment");
     expect(text).toContain("computer and its accessories");
   });
+  it("moves the rewards policy into the shared Workforce reader and PDF flow", () => {
+    const policy = TEAM_POLICY_DOCUMENTS.find((item) => item.id === "rewards-policy");
+    expect(policy).toBeTruthy();
+    const content = JSON.stringify(buildPolicyDocument(policy!));
+    for (const expected of ["Client Retention Bonus", "₹5,000", "Leadership Bonus", "₹30,000", "Client Scale-up", "Client Referral"]) {
+      expect(content).toContain(expected);
+    }
+    expect(source("src/components/payroll/PayrollPolicy.tsx")).not.toContain('id: "rewards"');
+  });
   it("uses a shared premium PDF and the official Despacho logo", () => {
     expect(route).toContain("PolicyPdfDocument");
     expect(route).toContain('invoice_logo_url: "/despacho-logo-full.png"');

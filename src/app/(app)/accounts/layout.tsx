@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Accounts | Kairo",
+  title: "Accounts",
   description: "Manage client accounts, projects and service delivery.",
 };
 

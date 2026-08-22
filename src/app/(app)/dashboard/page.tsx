@@ -349,14 +349,34 @@ export default function DashboardPage() {
         <WorkforceActivity />
 
         {canViewInvoices ? (
-          <section className="mt-8">
-            <SectionHeading
-              eyebrow="Billing intelligence"
-              title="Invoice Overview"
-              action="View invoices"
-              actionHref="/invoices"
-            />
-            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="mt-9 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+            <div className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-white to-emerald-50/60 px-6 py-6 sm:px-7">
+              <div className="absolute -right-10 -top-16 h-40 w-40 rounded-full bg-cyan-200/25 blur-3xl" />
+              <div className="relative flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_5px_rgba(16,185,129,0.12)]" />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
+                      Billing intelligence
+                    </p>
+                  </div>
+                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                    Invoice Overview
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    A live view of receivables, collections, and payment health.
+                  </p>
+                </div>
+                <Link
+                  href="/invoices"
+                  className="group inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2.5 text-sm font-bold text-[#153E90] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+                >
+                  View invoices
+                  <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
+                </Link>
+              </div>
+            </div>
+            <div className="grid gap-4 p-5 sm:p-7 md:grid-cols-2 xl:grid-cols-4">
               <InvoiceCard
                 label="Total Open"
                 values={(invoiceMetrics?.currencies || [])
@@ -383,7 +403,7 @@ export default function DashboardPage() {
                     wholeMoney(row.currency, row.paidInYearAmount),
                   )}
                 note={`Paid during ${invoiceYear}`}
-                tone="green"
+                tone="navy"
                 href={`/invoices?tab=all&status=paid&year=${invoiceYear}`}
               />
               <InvoiceCard
@@ -470,39 +490,6 @@ function MetricCard({
   );
 }
 
-function SectionHeading({
-  eyebrow,
-  title,
-  action,
-  actionHref,
-}: {
-  eyebrow: string;
-  title: string;
-  action?: string;
-  actionHref?: string;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
-          {eyebrow}
-        </p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-          {title}
-        </h2>
-      </div>
-      {action && actionHref ? (
-        <Link
-          href={actionHref}
-          className="text-sm font-bold text-[#153E90] hover:text-blue-800"
-        >
-          {action} →
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
 function InvoiceCard({
   label,
   values,
@@ -518,48 +505,83 @@ function InvoiceCard({
   tone: "blue" | "green" | "navy" | "red";
   href: string;
 }) {
-  const valueColor = {
-    blue: "text-[#153E90]",
-    green: "text-emerald-700",
-    navy: "text-slate-950",
-    red: "text-red-700",
+  const presentation = {
+    blue: {
+      accent: "bg-blue-500",
+      badge: "border-blue-100 bg-blue-50 text-[#153E90]",
+      border: "border-blue-100 hover:border-blue-200",
+      icon: "↗",
+      surface: "from-white to-blue-50/70",
+      value: "text-[#153E90]",
+    },
+    green: {
+      accent: "bg-emerald-500",
+      badge: "border-emerald-100 bg-emerald-50 text-emerald-700",
+      border: "border-emerald-100 hover:border-emerald-200",
+      icon: "✓",
+      surface: "from-white to-emerald-50/70",
+      value: "text-emerald-700",
+    },
+    navy: {
+      accent: "bg-violet-500",
+      badge: "border-violet-100 bg-violet-50 text-violet-700",
+      border: "border-violet-100 hover:border-violet-200",
+      icon: "◆",
+      surface: "from-white to-violet-50/70",
+      value: "text-violet-700",
+    },
+    red: {
+      accent: "bg-rose-500",
+      badge: "border-rose-100 bg-rose-50 text-rose-700",
+      border: "border-rose-100 hover:border-rose-200",
+      icon: "!",
+      surface: "from-white to-rose-50/70",
+      value: "text-rose-700",
+    },
   }[tone];
   return (
     <Link
       href={href}
-      className={`min-h-48 rounded-3xl border bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${tone === "red" ? "border-red-100 hover:border-red-200" : "border-slate-200 hover:border-blue-200"}`}
+      className={`group relative min-h-52 overflow-hidden rounded-3xl border bg-gradient-to-br p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${presentation.border} ${presentation.surface}`}
     >
-      <p
-        className={`text-xs font-bold uppercase tracking-[0.16em] ${tone === "red" ? "text-red-400" : "text-slate-400"}`}
-      >
-        {label}
-      </p>
+      <span className={`absolute inset-x-6 top-0 h-1 rounded-b-full ${presentation.accent}`} />
+      <div className="flex items-start justify-between gap-3">
+        <p className="pt-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+          {label}
+        </p>
+        <span aria-hidden="true" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-black shadow-sm ${presentation.badge}`}>
+          {presentation.icon}
+        </span>
+      </div>
       <div className="mt-5 space-y-1">
         {values.length ? (
           values.map((value) => (
             <p
               key={value}
-              className={`text-3xl font-bold tracking-tight ${valueColor}`}
+              className={`text-3xl font-bold tracking-tight ${presentation.value}`}
             >
               {value}
             </p>
           ))
         ) : (
-          <p className={`text-3xl font-bold ${valueColor}`}>—</p>
+          <p className={`text-3xl font-bold ${presentation.value}`}>—</p>
         )}
       </div>
       {secondaryValues.length ? (
         <div className="mt-2 space-y-1">
           {secondaryValues.map((value) => (
-            <p key={value} className="text-sm font-bold text-red-600">
+            <p key={value} className="text-sm font-bold text-rose-600">
               {value}
             </p>
           ))}
         </div>
       ) : null}
-      <p className="mt-5 text-xs font-semibold text-slate-400">
-        {note} · View all →
-      </p>
+      <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-200/70 pt-4">
+        <p className="text-xs font-semibold text-slate-500">{note}</p>
+        <span className={`shrink-0 text-xs font-bold ${presentation.value} transition-transform group-hover:translate-x-0.5`}>
+          View all →
+        </span>
+      </div>
     </Link>
   );
 }

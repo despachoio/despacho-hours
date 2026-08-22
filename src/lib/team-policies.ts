@@ -34,6 +34,7 @@ export const TEAM_POLICY_DOCUMENTS: TeamPolicyDocument[] = [
   { id: "non-disclosure-agreement", slug: "non-disclosure-agreement", title: "Non-Disclosure Agreement (NDA)", shortTitle: "NDA", category: "Legal", version: "1.1", effectiveDate: "1 September 2019", lastUpdated: "1 September 2019", description: "Confidentiality obligations covering company, client, employee, and business information.", contentSource: "static", sourceText: NDA_TEXT, downloadable: true, tone: "violet" },
   { id: "acceptable-usage-policy", slug: "acceptable-usage-policy", title: "Acceptable Usage Policy (AUP)", shortTitle: "AUP", category: "IT / Security", version: "1.1", effectiveDate: "1 September 2019", lastUpdated: "1 September 2019", description: "Approved acknowledgement governing responsible use of company information systems.", contentSource: "static", sourceText: AUP_TEXT, downloadable: true, tone: "cyan" },
   { id: "annual-appraisal-policy", slug: "annual-appraisal-policy", title: "Annual Appraisal Policy", shortTitle: "Appraisal", category: "Performance", version: "Current", effectiveDate: "Current Reviews configuration", description: "Transparent annual scoring, billable-utilization targets, recognition, penalties, eligibility, and review stages.", contentSource: "reviews-settings", downloadable: true, tone: "emerald" },
+  { id: "rewards-policy", slug: "rewards-policy", title: "Performance and Growth Rewards", shortTitle: "Rewards", category: "Rewards Policy", version: "1.0", effectiveDate: "Upon publication", description: "Annual client-retention, leadership, scale-up, and referral rewards recognising measurable business impact.", contentSource: "static", downloadable: true, tone: "amber" },
   { id: "roles-and-responsibilities", slug: "roles-and-responsibilities", title: "Roles and Responsibilities", shortTitle: "Roles", category: "People Operations", version: "1.0", effectiveDate: "Current", description: "The role expectations and responsibility framework maintained by Despacho.", contentSource: "static", sourceText: ROLES_AND_RESPONSIBILITIES_TEXT, downloadable: true, tone: "amber" },
   { id: "exit-policy", slug: "exit-policy", title: "Exit Policy", shortTitle: "Exit", category: "Employment / HR Policy", version: "1.0", effectiveDate: "Upon publication", description: "Notice periods, termination conditions, final obligations, and return of company property.", contentSource: "static", downloadable: true, tone: "rose" },
 ];
@@ -140,7 +141,21 @@ function rolesBlocks(): PolicyBlock[] {
   flush(); return blocks;
 }
 
-const STATIC_BLOCKS: Record<string, PolicyBlock[]> = { "code-of-conduct": codeOfConductBlocks(), "non-disclosure-agreement": ndaBlocks(), "acceptable-usage-policy": aupBlocks(), "roles-and-responsibilities": rolesBlocks(), "exit-policy": EXIT_POLICY_BLOCKS };
+const REWARDS_POLICY_BLOCKS: PolicyBlock[] = [
+  { type: "heading", level: 2, text: "Client Retention Bonus · Level 1–4" },
+  { type: "paragraph", text: "The bonus applies to all active clients who have maintained their retention through the end of the year." },
+  { type: "table", table: { columns: ["Annual billing hours", "Reward"], rows: [["More than 500 and less than 1,000 hours", "₹5,000"], ["More than 1,000 and less than 1,500 hours", "₹10,000"], ["More than 1,500 hours", "₹20,000"]] } },
+  { type: "unordered-list", items: ["When multiple employees work under the same project code, the total billing hours are divided by the number of employees working on that project.", "Billing hours are not calculated for clients who ended their contract with the company on any day during the year."] },
+  { type: "heading", level: 2, text: "Leadership Bonus · Level 5–7" },
+  { type: "callout", text: "Leadership bonus: ₹30,000" },
+  { type: "unordered-list", items: ["The team’s total utilization must be 90% or higher.", "There must be no client escalations or refunds.", "There must be no policy violation by any team member."] },
+  { type: "heading", level: 2, text: "Client Growth Rewards" },
+  { type: "table", table: { columns: ["Reward type", "Reward"], rows: [["Client Scale-up", "₹3,000 for every successful scale-up"], ["Client Referral", "₹3,000 for every successful referral"]] } },
+  { type: "callout", text: "When more than one employee works for the client during the scale-up or referral period, the reward is divided among those employees." },
+  { type: "paragraph", text: "The rewards amount will be transferred directly to the VA’s bank account along with wages." },
+];
+
+const STATIC_BLOCKS: Record<string, PolicyBlock[]> = { "code-of-conduct": codeOfConductBlocks(), "non-disclosure-agreement": ndaBlocks(), "acceptable-usage-policy": aupBlocks(), "rewards-policy": REWARDS_POLICY_BLOCKS, "roles-and-responsibilities": rolesBlocks(), "exit-policy": EXIT_POLICY_BLOCKS };
 
 export function validateStructuredPolicy(policy: StructuredPolicyDocument) {
   for (const field of [policy.title, policy.category, policy.version]) if (!field.trim()) throw new Error(`Policy ${policy.id} has incomplete metadata.`);
