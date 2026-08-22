@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatDecimalHours } from "@/lib/format-hours";
 import { useShortcutCommand } from "@/components/shortcuts/ShortcutProvider";
+import { getTimerWorkDate } from "@/lib/timer/work-date";
 
 
 type Profile = {
@@ -42,6 +43,7 @@ type ActiveTimer = {
   project_id: string;
 
   started_at: string;
+  work_date: string | null;
   paused_at: string | null;
   total_paused_seconds: number;
 
@@ -1140,7 +1142,7 @@ async function stopTimer() {
       .insert({
         employee_id: latestTimer.employee_id,
         project_id: latestTimer.project_id,
-        entry_date: stoppedAt.slice(0, 10),
+        entry_date: getTimerWorkDate(latestTimer),
         started_at: latestTimer.started_at,
         stopped_at: stoppedAt,
         hours: workedHours,
@@ -1256,7 +1258,7 @@ async function adminStopTimer(timer: LiveTimer) {
       .insert({
         employee_id: latestTimer.employee_id,
         project_id: latestTimer.project_id,
-        entry_date: stoppedAt.slice(0, 10),
+        entry_date: getTimerWorkDate(latestTimer),
         started_at: latestTimer.started_at,
         stopped_at: stoppedAt,
         hours: workedHours,

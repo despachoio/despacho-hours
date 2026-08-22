@@ -40,6 +40,7 @@ type ActiveTimer = {
   employee_id: string;
   project_id: string;
   started_at: string;
+  work_date: string | null;
   paused_at: string | null;
   total_paused_seconds: number;
   status: "running" | "paused";

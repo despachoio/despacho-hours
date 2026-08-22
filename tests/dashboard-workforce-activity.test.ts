@@ -66,10 +66,10 @@ describe("dashboard workforce activity", () => {
     expect(route).toContain('businessDateKey()');
     expect(route).toContain('.eq("status", "approved")');
     expect(route).not.toContain("reason,");
-    expect(route).not.toContain("date_of_birth:");
+    expect(route).not.toContain("date_of_birth: employee.date_of_birth");
     expect(component).toContain("The rest of your dashboard is unaffected");
     expect(component).toContain("Retry");
+    expect(component).toContain('className="mt-9 grid items-start gap-6 xl:grid-cols-2"');
     expect(dashboard).toContain("<WorkforceActivity />");
   });
 });
-

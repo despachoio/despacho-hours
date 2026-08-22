@@ -60,7 +60,8 @@ export function WorkforceActivity() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   if (loading) return <WorkforceActivitySkeleton />;
@@ -78,47 +79,55 @@ export function WorkforceActivity() {
   if (!data) return null;
 
   return (
-    <section className="mt-9 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/70 px-6 py-6 sm:px-8">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">People moments</p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-950">Today at Despacho</h2>
-            <p className="mt-1 text-sm text-slate-500">Leave, celebrations and workforce milestones in one calm view.</p>
+    <section className="mt-9 grid items-start gap-6 xl:grid-cols-2">
+      <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/70 px-6 py-6 sm:px-7">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">People moments</p>
+          <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-950">Today at Despacho</h2>
+              <p className="mt-1 text-sm text-slate-500">Today’s celebrations, leave and milestones.</p>
+            </div>
+            <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90]">
+              {displayDate(data.businessDate, { weekday: "long", year: "numeric" })}
+            </p>
           </div>
-          <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90]">
-            {displayDate(data.businessDate, { weekday: "long", year: "numeric" })}
-          </p>
         </div>
-      </div>
+        <div className="p-5 sm:p-7">
+          {data.today.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {data.today.map((event) => <ActivityCard key={event.id} event={event} />)}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-5 py-7 text-center">
+              <p className="font-bold text-slate-800">A clear day ahead</p>
+              <p className="mt-1 text-sm text-slate-500">No workforce events are scheduled for today.</p>
+            </div>
+          )}
+        </div>
+      </article>
 
-      <div className="p-5 sm:p-7">
-        {data.today.length ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {data.today.map((event) => <ActivityCard key={event.id} event={event} />)}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-5 py-7 text-center">
-            <p className="font-bold text-slate-800">A clear day ahead</p>
-            <p className="mt-1 text-sm text-slate-500">No workforce events are scheduled for today.</p>
-          </div>
-        )}
-
-        <div className="mt-7 flex items-end justify-between gap-4">
+      <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+        <div className="flex min-h-[129px] items-end justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-violet-50/60 via-white to-cyan-50/60 px-6 py-6 sm:px-7">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Next seven days</p>
-            <h3 className="mt-1 text-xl font-bold text-slate-950">Coming Up</h3>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">Coming Up</h2>
+            <p className="mt-1 text-sm text-slate-500">Plan ahead for upcoming team moments.</p>
           </div>
-          <p className="text-xs font-semibold text-slate-400">Through {displayDate(data.upcomingThrough, { year: "numeric" })}</p>
+          <p className="shrink-0 rounded-full border border-violet-100 bg-white px-4 py-2 text-xs font-bold text-violet-700">
+            Through {displayDate(data.upcomingThrough, { year: "numeric" })}
+          </p>
         </div>
-        {data.upcoming.length ? (
-          <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200">
-            {data.upcoming.map((event) => <TimelineRow key={event.id} event={event} />)}
-          </div>
-        ) : (
-          <p className="mt-4 rounded-2xl bg-slate-50 px-5 py-6 text-center text-sm font-semibold text-slate-500">Nothing scheduled in the next seven days.</p>
-        )}
-      </div>
+        <div className="p-5 sm:p-7">
+          {data.upcoming.length ? (
+            <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+              {data.upcoming.map((event) => <TimelineRow key={event.id} event={event} />)}
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-slate-50 px-5 py-7 text-center text-sm font-semibold text-slate-500">Nothing scheduled in the next seven days.</p>
+          )}
+        </div>
+      </article>
     </section>
   );
 }
@@ -158,13 +167,16 @@ function TimelineRow({ event }: { event: WorkforceEvent }) {
 
 function WorkforceActivitySkeleton() {
   return (
-    <section aria-label="Loading workforce activity" className="mt-9 animate-pulse rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-      <div className="h-3 w-28 rounded bg-slate-200" />
-      <div className="mt-3 h-7 w-56 rounded bg-slate-200" />
-      <div className="mt-6 grid gap-3 md:grid-cols-3">
-        {[0, 1, 2].map((item) => <div key={item} className="h-28 rounded-2xl bg-slate-100" />)}
-      </div>
+    <section aria-label="Loading workforce activity" className="mt-9 grid animate-pulse gap-6 xl:grid-cols-2">
+      {[0, 1].map((panel) => (
+        <div key={panel} className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+          <div className="h-3 w-28 rounded bg-slate-200" />
+          <div className="mt-3 h-7 w-56 rounded bg-slate-200" />
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {[0, 1].map((item) => <div key={item} className="h-28 rounded-2xl bg-slate-100" />)}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }
-
