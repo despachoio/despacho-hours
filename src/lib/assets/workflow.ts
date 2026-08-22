@@ -29,7 +29,7 @@ export function isAssetAvailable(
 ) {
   return asset.active !== false
     && asset.item?.active !== false
-    && asset.status === "available"
+    && ["available", "returned"].includes(asset.status || "")
     && !activeAssignmentAssetIds.has(assetId);
 }
 
