@@ -134,8 +134,18 @@ export default function TeamPolicies() {
     return () => document.removeEventListener("keydown", close);
   }, [viewing]);
 
+  useEffect(() => {
+    if (viewing?.contentSource !== "reviews-settings" || configuration || loadingPolicy) return;
+    const timer = window.setTimeout(() => { void openPolicy(viewing); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [configuration, loadingPolicy, openPolicy, viewing]);
+
   const displayPolicy = useMemo(() => viewing && configuration && viewing.contentSource === "reviews-settings" ? { ...viewing, version: String(configuration.settings.policy_version) } : viewing, [configuration, viewing]);
-  const policyDocument = useMemo(() => displayPolicy ? buildPolicyDocument(displayPolicy, configuration || undefined) : null, [displayPolicy, configuration]);
+  const policyDocument = useMemo(() => {
+    if (!displayPolicy) return null;
+    if (displayPolicy.contentSource === "reviews-settings" && !configuration) return null;
+    return buildPolicyDocument(displayPolicy, configuration || undefined);
+  }, [displayPolicy, configuration]);
 
   return <div className="space-y-6">
     <section className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-7 py-7 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#153E90]">People knowledge centre</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Workforce Policies</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Read and download Despacho workplace, performance, employment, confidentiality, technology, and role guidance from one controlled internal library.</p></section>

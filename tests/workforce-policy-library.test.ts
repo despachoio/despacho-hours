@@ -74,6 +74,10 @@ describe("Workforce internal policy library", () => {
     expect(route).toContain("buildPolicyDocument");
     expect(route).toContain("loadAppraisalPolicyConfiguration");
   });
+  it("waits for Reviews settings before building the Annual Appraisal document", () => {
+    expect(ui).toContain('displayPolicy.contentSource === "reviews-settings" && !configuration');
+    expect(ui).toContain('viewing?.contentSource !== "reviews-settings"');
+  });
   it("limits policy configuration loading to small settings queries", () => {
     for (const table of ["utilization_policies", "performance_metric_definitions", "performance_settings"]) expect(loader).toContain(table);
     for (const forbidden of ['from("employees")', 'from("time_entries")', 'from("performance_reviews")', 'from("performance_events")', "calculatePerformance(", "loadPerformance("]) expect(loader).not.toContain(forbidden);
