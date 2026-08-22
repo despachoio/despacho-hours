@@ -12,6 +12,7 @@ import {
 } from "@/lib/metrics/team-metrics";
 import { getInvoiceMetrics } from "@/lib/metrics/invoice-metrics";
 import type { InvoiceMetrics, TeamMetrics } from "@/lib/metrics/types";
+import { WorkforceActivity } from "@/components/dashboard/WorkforceActivity";
 
 type Client = { id: string; status: string };
 
@@ -344,6 +345,8 @@ export default function DashboardPage() {
             </>
           )}
         </section>
+
+        <WorkforceActivity />
 
         {canViewInvoices ? (
           <section className="mt-8">

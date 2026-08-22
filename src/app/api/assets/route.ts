@@ -36,6 +36,12 @@ export async function GET(request:Request){
     return NextResponse.json({...payload,assignments:assignments.data||[],requests:requests.data||[]});
   }
 
+  if(view==="my_assets"){
+    const assignments=await context.admin.from("asset_assignments").select(assignmentSelect).eq("employee_id",employeeId).order("created_at",{ascending:false});
+    if(assignments.error)return jsonError(assignments.error,500);
+    return NextResponse.json({...payload,assignments:assignments.data||[]});
+  }
+
   if(view==="available"){
     const [available,activeAssignments]=await Promise.all([
       context.admin.from("assets").select(assetSelect).in("status",["available","returned"]).order("asset_tag"),
