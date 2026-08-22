@@ -3,8 +3,9 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { PolicyPdfDocument } from "@/components/team/PolicyPdfDocument";
 import { performanceActor } from "@/lib/performance/server";
 import { loadCompanyLogo, loadCompanySettings } from "@/lib/settings/companySettings";
-import { buildPolicySections, findTeamPolicy } from "@/lib/team-policies";
+import { buildPolicyDocument, findTeamPolicy } from "@/lib/team-policies";
 import { loadAppraisalPolicyConfiguration } from "@/lib/team-policy-server";
+import { stampPolicyPageNumbers } from "@/lib/team-policy-pdf";
 
 export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
   try {
@@ -17,9 +18,9 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       policy.contentSource === "reviews-settings" ? loadAppraisalPolicyConfiguration(actor.admin) : Promise.resolve(undefined),
     ]);
     const logo = await loadCompanyLogo({ ...company, invoice_logo_url: "/despacho-logo-full.png" });
-    const sections = buildPolicySections(policy, config);
-    const document = createElement(PolicyPdfDocument, { policy: config ? { ...policy, version: String(config.settings.policy_version) } : policy, sections, logoSrc: logo.dataUrl }) as ReactElement<DocumentProps>;
-    const pdf = await renderToBuffer(document);
+    const policyDocument = buildPolicyDocument(policy, config);
+    const document = createElement(PolicyPdfDocument, { document: policyDocument, logoSrc: logo.dataUrl }) as ReactElement<DocumentProps>;
+    const pdf = await stampPolicyPageNumbers(await renderToBuffer(document));
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
