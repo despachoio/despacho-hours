@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { calculateExpectedLastWorkingDate, EXIT_NOTICE_POLICY, noticeDays } from "../src/lib/exit-policy";
+import { exitMatchesStatus, selectVisibleExitId } from "../src/lib/exit-process/workflow";
+import type { ExitCase } from "../src/lib/exit-process/types";
 
 const root=process.cwd();
 const migration=readFileSync(path.join(root,"supabase/migrations/202608200004_employee_exit_process.sql"),"utf8");
@@ -17,4 +19,6 @@ describe("Workforce exit process",()=>{
   it("preserves history and employee activity rules",()=>{expect(route).toContain('status:"cancelled"');expect(route).not.toContain('from("employee_exits").delete');expect(route).toContain('status:"inactive",active:false');});
   it("loads Exit Process only when its tab is rendered",()=>{expect(workforce).toContain('dynamic(\n  () => import("@/components/team/ExitProcessWorkspace")');expect(workforce).toContain('tab === "exit" ? <div className="mt-8"><ExitProcessWorkspace/>');});
   it("keeps confidential notes out of non-admin responses",()=>{expect(route).toContain("if(!context.canAdminister)delete copy.internal_notes");});
+  it("keeps closed exit cases out of the default active workspace",()=>{expect(exitMatchesStatus("submitted","active")).toBe(true);expect(exitMatchesStatus("completed","active")).toBe(false);expect(exitMatchesStatus("cancelled","active")).toBe(false);});
+  it("does not preserve a closed selection after completion or cancellation",()=>{const cases=[{id:"closed",status:"completed"},{id:"active",status:"notice_period"}] as ExitCase[];expect(selectVisibleExitId(cases,"active","closed")).toBe("active");expect(selectVisibleExitId(cases,"completed","closed")).toBe("closed");});
 });

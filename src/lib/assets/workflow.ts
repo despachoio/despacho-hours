@@ -15,6 +15,10 @@ export function nonNegativeQuantity(value: unknown, fallback = 1) {
 export function itemsForCategory<T extends { category_id: string; active?: boolean }>(items: T[], categoryId: string) {
   return items.filter((item) => item.category_id === categoryId && item.active !== false);
 }
+
+export function assetsForCategory<T extends { item?: { category_id?: string } | null }>(assets: T[], categoryId: string) {
+  return categoryId ? assets.filter((asset) => asset.item?.category_id === categoryId) : [];
+}
 export function requestNeedsExistingAsset(code: string) { return ["replacement","repair","lost_damaged_replacement"].includes(code); }
 export function requestCode(sequence: number) { return `AR-${String(sequence).padStart(6,"0")}`; }
 

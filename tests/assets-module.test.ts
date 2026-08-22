@@ -1,5 +1,5 @@
 import { describe,expect,it } from "vitest";
-import { assetOptionLabel,canAdministerAssets,canEmployeeCancelAssetRequest,isAssetAvailable,isLowStock,itemsForCategory,nonNegativeQuantity,requestNeedsExistingAsset,requestCode,supportsPhysicalAssets } from "@/lib/assets/workflow";
+import { assetOptionLabel,assetsForCategory,canAdministerAssets,canEmployeeCancelAssetRequest,isAssetAvailable,isLowStock,itemsForCategory,nonNegativeQuantity,requestNeedsExistingAsset,requestCode,supportsPhysicalAssets } from "@/lib/assets/workflow";
 
 describe("Assets & Supplies permission and workflow rules",()=>{
   it("allows only explicit administrator access levels to administer assets",()=>{
@@ -9,6 +9,7 @@ describe("Assets & Supplies permission and workflow rules",()=>{
   it("lets employees cancel only pending requests",()=>{expect(canEmployeeCancelAssetRequest("pending_approval")).toBe(true);expect(canEmployeeCancelAssetRequest("approved")).toBe(false);expect(canEmployeeCancelAssetRequest("issued")).toBe(false);});
   it("flags stock at or below the configured minimum",()=>{expect(isLowStock({stock_tracked:true,current_stock:3,minimum_stock_level:3})).toBe(true);expect(isLowStock({stock_tracked:true,current_stock:4,minimum_stock_level:3})).toBe(false);expect(isLowStock({stock_tracked:false,current_stock:0,minimum_stock_level:2})).toBe(false);});
   it("filters dependent item options by category and active state",()=>{const items=[{id:"1",category_id:"it",active:true},{id:"2",category_id:"office",active:true},{id:"3",category_id:"it",active:false}];expect(itemsForCategory(items,"it").map(i=>i.id)).toEqual(["1"]);});
+  it("filters available assignment assets by the selected category",()=>{const assets=[{id:"1",item:{category_id:"it"}},{id:"2",item:{category_id:"office"}}];expect(assetsForCategory(assets,"it").map(asset=>asset.id)).toEqual(["1"]);expect(assetsForCategory(assets,"")).toEqual([]);});
   it("recognizes request types that support existing asset linkage",()=>{expect(requestNeedsExistingAsset("replacement")).toBe(true);expect(requestNeedsExistingAsset("repair")).toBe(true);expect(requestNeedsExistingAsset("lost_damaged_replacement")).toBe(true);expect(requestNeedsExistingAsset("consumable")).toBe(false);});
   it("normalizes request quantities safely",()=>{expect(nonNegativeQuantity(3)).toBe(3);expect(nonNegativeQuantity(-1)).toBe(1);expect(nonNegativeQuantity("bad",2)).toBe(2);});
   it("formats traceable request references",()=>expect(requestCode(42)).toBe("AR-000042"));
@@ -54,4 +55,5 @@ describe("Assets module implementation contracts",()=>{
   it("adds only focused inventory metadata in the reconciliation migration",async()=>{const source=await import("node:fs/promises").then(fs=>fs.readFile("supabase/migrations/202608220001_assets_inventory_management.sql","utf8"));expect(source).toContain("warranty_expiry");expect(source).toContain("expected_return_date");expect(source).toContain("assets_available_item_idx");expect(source).not.toContain("create table");});
   it("keeps a unique active assignment guard",async()=>{const source=await import("node:fs/promises").then(fs=>fs.readFile("supabase/migrations/202608200003_assets_and_supplies.sql","utf8"));expect(source).toContain("asset_assignments_one_active_idx");});
   it("uses active employees in assignment administration",async()=>{const source=await import("node:fs/promises").then(fs=>fs.readFile("src/app/api/assets/route.ts","utf8"));expect(source).toContain('.eq("status","active").order("employee_code")');});
+  it("allows branded catalogue variants without duplicating the same variant",async()=>{const source=await import("node:fs/promises").then(fs=>fs.readFile("supabase/migrations/202608220002_asset_item_brand_variants.sql","utf8"));expect(source).toContain("drop constraint if exists asset_items_category_id_name_key");expect(source).toContain("asset_items_category_name_brand_model_uidx");expect(source).toContain("coalesce(brand, '')");expect(source).toContain("coalesce(model, '')");});
 });
