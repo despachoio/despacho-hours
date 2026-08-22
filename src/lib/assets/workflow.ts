@@ -18,3 +18,28 @@ export function itemsForCategory<T extends { category_id: string; active?: boole
 export function requestNeedsExistingAsset(code: string) { return ["replacement","repair","lost_damaged_replacement"].includes(code); }
 export function requestCode(sequence: number) { return `AR-${String(sequence).padStart(6,"0")}`; }
 
+export function supportsPhysicalAssets(item: { item_type?: string; individually_tracked?: boolean }) {
+  return item.item_type === "durable_asset" || item.individually_tracked === true;
+}
+
+export function isAssetAvailable(
+  asset: { active?: boolean; status?: string; item?: { active?: boolean } | null },
+  activeAssignmentAssetIds: ReadonlySet<string> = new Set(),
+  assetId = "",
+) {
+  return asset.active !== false
+    && asset.item?.active !== false
+    && asset.status === "available"
+    && !activeAssignmentAssetIds.has(assetId);
+}
+
+export function assetOptionLabel(asset: {
+  asset_tag?: string | null;
+  serial_number?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  item?: { name?: string | null } | null;
+}) {
+  const identity = [asset.brand, asset.model].filter(Boolean).join(" ") || "Unspecified brand/model";
+  return [asset.item?.name || "Asset", identity, asset.asset_tag || "No tag", asset.serial_number || "No serial"].join(" — ");
+}

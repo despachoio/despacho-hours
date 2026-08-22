@@ -4,28 +4,67 @@ import { canAdministerAssets, canEmployeeCancelAssetRequest, nonNegativeQuantity
 import { notifyAssetRequest } from "@/lib/assets/notifications";
 
 const requestSelect="*,employee:employees!asset_requests_employee_id_fkey(id,employee_code,name,title),category:asset_categories!asset_requests_category_id_fkey(name),item:asset_items!asset_requests_item_id_fkey(name,item_type,stock_tracked,current_stock),request_type:asset_request_types!asset_requests_request_type_id_fkey(name,code),existing_asset:assets!asset_requests_existing_asset_id_fkey(asset_tag,brand,model)";
-const assignmentSelect="*,employee:employees!asset_assignments_employee_id_fkey(id,employee_code,name,title),asset:assets!asset_assignments_asset_id_fkey(*,item:asset_items!assets_item_id_fkey(name,item_type))";
+const assignmentSelect="*,employee:employees!asset_assignments_employee_id_fkey(id,employee_code,name,title),asset:assets!asset_assignments_asset_id_fkey(*,item:asset_items!assets_item_id_fkey(name,item_type,active,brand,model,category_id))";
+const assetSelect="*,item:asset_items!inner(name,item_type,active,brand,model,category_id)";
 function jsonError(cause:unknown,status=400){return NextResponse.json({error:cause instanceof Error?cause.message:"Asset operation failed"},{status});}
 
 export async function GET(request:Request){
   const context=await getProfileApiContext(request);if("error" in context)return NextResponse.json({error:context.error},{status:context.status});
-  const canAdminister=canAdministerAssets(context.profile.role);const employeeId=context.profile.employee_id;
-  const assignmentsQuery=context.admin.from("asset_assignments").select(assignmentSelect).order("created_at",{ascending:false});
-  const requestsQuery=context.admin.from("asset_requests").select(requestSelect).order("created_at",{ascending:false});
-  if(!canAdminister){assignmentsQuery.eq("employee_id",employeeId);requestsQuery.eq("employee_id",employeeId);}
-  const [categories,types,items,assets,assignments,requests,employees,history,audit]=await Promise.all([
+  const canAdminister=canAdministerAssets(context.profile.role);const employeeId=context.profile.employee_id;const params=new URL(request.url).searchParams;const view=params.get("view")||"bootstrap";
+  const [categories,types,items,employees]=await Promise.all([
     context.admin.from("asset_categories").select("*").order("display_order"),
     context.admin.from("asset_request_types").select("*").order("display_order"),
     context.admin.from("asset_items").select("*,category:asset_categories!asset_items_category_id_fkey(name)").order("display_order"),
-    canAdminister?context.admin.from("assets").select("*,item:asset_items!assets_item_id_fkey(name,item_type)").order("created_at",{ascending:false}):Promise.resolve({data:[],error:null}),
-    assignmentsQuery,requestsQuery,
     canAdminister?context.admin.from("employees").select("id,employee_code,name,title").eq("status","active").order("employee_code"):Promise.resolve({data:[],error:null}),
-    canAdminister?context.admin.from("asset_request_history").select("*").order("created_at",{ascending:false}).limit(300):Promise.resolve({data:[],error:null}),
-    canAdminister?context.admin.from("asset_audit_log").select("*").order("created_at",{ascending:false}).limit(150):Promise.resolve({data:[],error:null}),
   ]);
-  const failure=[categories,types,items,assets,assignments,requests,employees,history,audit].find((result)=>result.error);
+  const failure=[categories,types,items,employees].find((result)=>result.error);
   if(failure?.error)return jsonError(failure.error,500);
-  return NextResponse.json({role:context.profile.role,employeeId,canAdminister,categories:categories.data||[],requestTypes:types.data||[],items:items.data||[],assets:assets.data||[],assignments:assignments.data||[],requests:requests.data||[],employees:employees.data||[],history:history.data||[],audit:audit.data||[]});
+  const payload={role:context.profile.role,employeeId,canAdminister,categories:categories.data||[],requestTypes:types.data||[],items:items.data||[],assets:[],assignments:[],requests:[],employees:employees.data||[],history:[],audit:[]};
+
+  if(!canAdminister){
+    const [assignments,requests]=await Promise.all([
+      context.admin.from("asset_assignments").select(assignmentSelect).eq("employee_id",employeeId).order("created_at",{ascending:false}),
+      context.admin.from("asset_requests").select(requestSelect).eq("employee_id",employeeId).order("created_at",{ascending:false}),
+    ]);if(assignments.error||requests.error)return jsonError(assignments.error||requests.error,500);
+    return NextResponse.json({...payload,assignments:assignments.data||[],requests:requests.data||[]});
+  }
+
+  if(view==="available"){
+    const [available,activeAssignments]=await Promise.all([
+      context.admin.from("assets").select(assetSelect).eq("active",true).eq("status","available").eq("item.active",true).order("asset_tag"),
+      context.admin.from("asset_assignments").select("asset_id").eq("status","assigned"),
+    ]);if(available.error||activeAssignments.error)return jsonError(available.error||activeAssignments.error,500);
+    const assignedIds=new Set((activeAssignments.data||[]).map((row)=>row.asset_id));
+    return NextResponse.json({...payload,assets:(available.data||[]).filter((asset)=>!assignedIds.has(asset.id))});
+  }
+
+  if(view==="assignments"){
+    if(params.get("searched")!=="true")return NextResponse.json(payload);
+    let query=context.admin.from("asset_assignments").select(assignmentSelect,{count:"exact"}).order("created_at",{ascending:false});
+    const selectedEmployee=params.get("employeeId"),selectedItem=params.get("itemId"),selectedStatus=params.get("status");
+    if(selectedEmployee)query=query.eq("employee_id",selectedEmployee);if(selectedStatus)query=query.eq("status",selectedStatus);
+    if(selectedItem){const matchingAssets=await context.admin.from("assets").select("id").eq("item_id",selectedItem);if(matchingAssets.error)return jsonError(matchingAssets.error,500);const assetIds=(matchingAssets.data||[]).map((row)=>row.id);if(!assetIds.length)return NextResponse.json({...payload,total:0});query=query.in("asset_id",assetIds);}
+    const result=await query.range(0,199);if(result.error)return jsonError(result.error,500);return NextResponse.json({...payload,assignments:result.data||[],total:result.count||0});
+  }
+
+  if(view==="requests"){
+    if(params.get("searched")!=="true")return NextResponse.json(payload);
+    let query=context.admin.from("asset_requests").select(requestSelect,{count:"exact"}).order("created_at",{ascending:false});
+    const employee=params.get("employeeId"),category=params.get("categoryId"),item=params.get("itemId"),requestType=params.get("requestTypeId"),status=params.get("status"),from=params.get("requestedFrom"),to=params.get("requestedTo"),search=params.get("search")?.trim();
+    if(employee)query=query.eq("employee_id",employee);if(category)query=query.eq("category_id",category);if(item)query=query.eq("item_id",item);if(requestType)query=query.eq("request_type_id",requestType);if(status)query=query.eq("status",status);if(from)query=query.gte("created_at",`${from}T00:00:00`);if(to)query=query.lte("created_at",`${to}T23:59:59`);if(search)query=query.ilike("request_code",`%${search}%`);
+    const [result,available,activeAssignments]=await Promise.all([query.range(0,199),context.admin.from("assets").select(assetSelect).eq("active",true).eq("status","available").eq("item.active",true).order("asset_tag"),context.admin.from("asset_assignments").select("asset_id").eq("status","assigned")]);if(result.error||available.error||activeAssignments.error)return jsonError(result.error||available.error||activeAssignments.error,500);const assignedIds=new Set((activeAssignments.data||[]).map((row)=>row.asset_id));return NextResponse.json({...payload,requests:result.data||[],assets:(available.data||[]).filter((asset)=>!assignedIds.has(asset.id)),total:result.count||0});
+  }
+
+  if(view==="inventory"){
+    let assetQuery=context.admin.from("assets").select(assetSelect).order("created_at",{ascending:false});const status=params.get("status"),search=params.get("search")?.trim();
+    if(status==="active")assetQuery=assetQuery.eq("active",true);else if(status==="inactive")assetQuery=assetQuery.eq("active",false);if(search)assetQuery=assetQuery.or(`asset_tag.ilike.%${search}%,serial_number.ilike.%${search}%,brand.ilike.%${search}%,model.ilike.%${search}%`);
+    const assets=await assetQuery.range(0,499);if(assets.error)return jsonError(assets.error,500);return NextResponse.json({...payload,assets:assets.data||[]});
+  }
+
+  if(view==="dashboard"){
+    const [assignments,requests,assets]=await Promise.all([context.admin.from("asset_assignments").select(assignmentSelect).order("created_at",{ascending:false}).limit(500),context.admin.from("asset_requests").select(requestSelect).order("created_at",{ascending:false}).limit(100),context.admin.from("assets").select(assetSelect).order("created_at",{ascending:false}).limit(500)]);if(assignments.error||requests.error||assets.error)return jsonError(assignments.error||requests.error||assets.error,500);return NextResponse.json({...payload,assignments:assignments.data||[],requests:requests.data||[],assets:assets.data||[]});
+  }
+  return NextResponse.json(payload);
 }
 
 export async function POST(request:Request){
@@ -58,11 +97,15 @@ export async function POST(request:Request){
     if(!adminAllowed)return jsonError(new Error("Asset administrator access required"),403);
 
     if(action==="create_asset"){
-      const result=await context.admin.from("assets").insert({item_id:String(body.itemId||""),brand:String(body.brand||"").trim()||null,model:String(body.model||"").trim()||null,serial_number:String(body.serialNumber||"").trim()||null,asset_tag:String(body.assetTag||"").trim(),purchased_at:body.purchasedAt||null,condition:String(body.condition||"good"),status:"available",notes:String(body.notes||"").trim()||null,created_by:context.user.id,updated_by:context.user.id}).select("id").single();if(result.error)throw result.error;await audit({action:"asset_created",entityType:"asset",entityId:result.data.id,newValue:body});return NextResponse.json({ok:true,id:result.data.id});
+      const itemId=String(body.itemId||""),assetTag=String(body.assetTag||"").trim();if(!itemId||!assetTag)throw new Error("Item and asset tag are required");const item=await context.admin.from("asset_items").select("id,active,item_type,individually_tracked").eq("id",itemId).single();if(item.error||!item.data.active)throw new Error("Select an active catalogue item");if(item.data.item_type!=="durable_asset"&&!item.data.individually_tracked)throw new Error("Physical assets can only be added for individually tracked items");
+      const values={item_id:itemId,brand:String(body.brand||"").trim()||null,model:String(body.model||"").trim()||null,serial_number:String(body.serialNumber||"").trim()||null,asset_tag:assetTag,purchased_at:body.purchasedAt||null,warranty_expiry:body.warrantyExpiry||null,condition:String(body.condition||"good"),status:String(body.status||"available"),active:body.active!==false,notes:String(body.notes||"").trim()||null,created_by:context.user.id,updated_by:context.user.id};const result=await context.admin.from("assets").insert(values).select("id").single();if(result.error)throw result.error;await audit({action:"ASSET_CREATED",entityType:"asset",entityId:result.data.id,newValue:values});return NextResponse.json({ok:true,id:result.data.id});
+    }
+    if(action==="update_asset"){
+      const id=String(body.id||"");const current=await context.admin.from("assets").select("*").eq("id",id).single();if(current.error)throw current.error;const values={brand:String(body.brand||"").trim()||null,model:String(body.model||"").trim()||null,serial_number:String(body.serialNumber||"").trim()||null,asset_tag:String(body.assetTag||"").trim(),purchased_at:body.purchasedAt||null,warranty_expiry:body.warrantyExpiry||null,condition:String(body.condition||current.data.condition),status:String(body.status||current.data.status),active:body.active!==false,notes:String(body.notes||"").trim()||null,updated_by:context.user.id,updated_at:new Date().toISOString()};if(!values.asset_tag)throw new Error("Asset tag is required");const updated=await context.admin.from("assets").update(values).eq("id",id);if(updated.error)throw updated.error;await audit({action:values.status==="retired"?"ASSET_RETIRED":"ASSET_UPDATED",entityType:"asset",entityId:id,oldValue:current.data,newValue:values});return NextResponse.json({ok:true});
     }
     if(action==="assign_asset"){
-      const assetId=String(body.assetId||""),employeeId=String(body.employeeId||"");const asset=await context.admin.from("assets").select("id,status,condition").eq("id",assetId).single();if(asset.error)throw asset.error;if(!["available","returned"].includes(asset.data.status))throw new Error("This asset is not available");
-      const assigned=await context.admin.from("asset_assignments").insert({asset_id:assetId,employee_id:employeeId,issued_date:String(body.issuedDate||new Date().toISOString().slice(0,10)),condition_at_issue:String(body.condition||asset.data.condition),notes:String(body.notes||"").trim()||null,assigned_by:context.user.id}).select("id").single();if(assigned.error)throw assigned.error;const updated=await context.admin.from("assets").update({status:"assigned",updated_by:context.user.id,updated_at:new Date().toISOString()}).eq("id",assetId);if(updated.error)throw updated.error;await audit({action:"asset_assigned",entityType:"assignment",entityId:assigned.data.id,employeeId,newValue:{assetId}});return NextResponse.json({ok:true});
+      const assetId=String(body.assetId||""),employeeId=String(body.employeeId||"");if(!assetId||!employeeId)throw new Error("Employee and available asset are required");const [asset,employee,existing]=await Promise.all([context.admin.from("assets").select("id,status,condition,active,item:asset_items!inner(active)").eq("id",assetId).eq("active",true).eq("status","available").eq("item.active",true).single(),context.admin.from("employees").select("id").eq("id",employeeId).eq("status","active").single(),context.admin.from("asset_assignments").select("id").eq("asset_id",assetId).eq("status","assigned").maybeSingle()]);if(asset.error)throw new Error("This asset is not available");if(employee.error)throw new Error("Select an active employee");if(existing.data)throw new Error("This asset is already assigned");
+      const assigned=await context.admin.from("asset_assignments").insert({asset_id:assetId,employee_id:employeeId,issued_date:String(body.issuedDate||new Date().toISOString().slice(0,10)),expected_return_date:body.expectedReturnDate||null,condition_at_issue:String(body.condition||asset.data.condition),notes:String(body.notes||"").trim()||null,assigned_by:context.user.id}).select("id").single();if(assigned.error)throw assigned.error;const updated=await context.admin.from("assets").update({status:"assigned",updated_by:context.user.id,updated_at:new Date().toISOString()}).eq("id",assetId).eq("status","available");if(updated.error)throw updated.error;await audit({action:"ASSET_ASSIGNED",entityType:"assignment",entityId:assigned.data.id,employeeId,newValue:{assetId}});return NextResponse.json({ok:true});
     }
     if(action==="create_and_assign_asset"){
       const employeeId=String(body.employeeId||""),assetTag=String(body.assetTag||"").trim();if(!employeeId||!assetTag)throw new Error("Employee and asset tag are required");
@@ -70,7 +113,7 @@ export async function POST(request:Request){
       const assigned=await context.admin.from("asset_assignments").insert({asset_id:created.data.id,employee_id:employeeId,issued_date:String(body.issuedDate||new Date().toISOString().slice(0,10)),condition_at_issue:String(body.condition||"good"),notes:String(body.notes||"").trim()||null,assigned_by:context.user.id}).select("id").single();if(assigned.error){await context.admin.from("assets").delete().eq("id",created.data.id);throw assigned.error;}await audit({action:"asset_created",entityType:"asset",entityId:created.data.id,employeeId,newValue:body});await audit({action:"asset_assigned",entityType:"assignment",entityId:assigned.data.id,employeeId,newValue:{assetId:created.data.id}});return NextResponse.json({ok:true,id:assigned.data.id});
     }
     if(action==="return_asset"){
-      const assignmentId=String(body.assignmentId||"");const assignment=await context.admin.from("asset_assignments").select("*").eq("id",assignmentId).eq("status","assigned").single();if(assignment.error)throw assignment.error;const assetStatus=String(body.assetStatus||"returned");
+      const assignmentId=String(body.assignmentId||"");const assignment=await context.admin.from("asset_assignments").select("*").eq("id",assignmentId).eq("status","assigned").single();if(assignment.error)throw assignment.error;const assetStatus=String(body.assetStatus||"available");
       const a=await context.admin.from("asset_assignments").update({status:"returned",returned_date:String(body.returnedDate||new Date().toISOString().slice(0,10)),condition_at_return:String(body.condition||"good"),returned_by:context.user.id,updated_at:new Date().toISOString()}).eq("id",assignmentId);if(a.error)throw a.error;const b=await context.admin.from("assets").update({status:assetStatus,condition:String(body.condition||"good"),updated_by:context.user.id,updated_at:new Date().toISOString()}).eq("id",assignment.data.asset_id);if(b.error)throw b.error;await audit({action:"asset_returned",entityType:"assignment",entityId:assignmentId,employeeId:assignment.data.employee_id,newValue:{assetStatus}});return NextResponse.json({ok:true});
     }
     if(action==="request_status"){
@@ -95,7 +138,10 @@ export async function POST(request:Request){
       const values={name:String(body.name||"").trim(),description:String(body.description||"").trim()||null,active:body.active!==false,updated_by:context.user.id,updated_at:new Date().toISOString()};if(!values.name)throw new Error("Category name is required");const result=body.id?await context.admin.from("asset_categories").update(values).eq("id",String(body.id)):await context.admin.from("asset_categories").insert({...values,created_by:context.user.id});if(result.error)throw result.error;return NextResponse.json({ok:true});
     }
     if(action==="save_item"){
-      const values={category_id:String(body.categoryId||""),name:String(body.name||"").trim(),item_type:String(body.itemType||"accessory"),stock_tracked:Boolean(body.stockTracked),individually_tracked:Boolean(body.individuallyTracked),minimum_stock_level:Math.max(0,Math.trunc(Number(body.minimumStockLevel)||0)),requires_approval:body.requiresApproval!==false,active:body.active!==false,updated_by:context.user.id,updated_at:new Date().toISOString()};if(!values.name)throw new Error("Item name is required");const result=body.id?await context.admin.from("asset_items").update(values).eq("id",String(body.id)):await context.admin.from("asset_items").insert({...values,created_by:context.user.id});if(result.error)throw result.error;return NextResponse.json({ok:true});
+      const id=body.id?String(body.id):null,itemType=String(body.itemType||"accessory"),durable=itemType==="durable_asset";const values={category_id:String(body.categoryId||""),name:String(body.name||"").trim(),item_type:itemType,brand:String(body.brand||"").trim()||null,model:String(body.model||"").trim()||null,notes:String(body.notes||"").trim()||null,stock_tracked:durable?false:Boolean(body.stockTracked),individually_tracked:durable||Boolean(body.individuallyTracked),minimum_stock_level:Math.max(0,Math.trunc(Number(body.minimumStockLevel)||0)),requires_approval:body.requiresApproval!==false,active:body.active!==false,updated_by:context.user.id,updated_at:new Date().toISOString()};if(!values.category_id||!values.name)throw new Error("Category and item name are required");const previous=id?await context.admin.from("asset_items").select("*").eq("id",id).single():null;const result=id?await context.admin.from("asset_items").update(values).eq("id",id):await context.admin.from("asset_items").insert({...values,current_stock:Math.max(0,Math.trunc(Number(body.currentStock)||0)),created_by:context.user.id}).select("id").single();if(result.error)throw result.error;const entityId=id||("data" in result&&result.data?result.data.id:undefined);await audit({action:id?"ITEM_UPDATED":"ITEM_CREATED",entityType:"item",entityId,oldValue:previous?.data||null,newValue:values});return NextResponse.json({ok:true,id:entityId});
+    }
+    if(action==="deactivate_item"){
+      const id=String(body.id||"");const current=await context.admin.from("asset_items").select("*").eq("id",id).single();if(current.error)throw current.error;const updated=await context.admin.from("asset_items").update({active:false,updated_by:context.user.id,updated_at:new Date().toISOString()}).eq("id",id);if(updated.error)throw updated.error;await audit({action:"ITEM_DEACTIVATED",entityType:"item",entityId:id,oldValue:current.data,newValue:{active:false}});return NextResponse.json({ok:true});
     }
     return jsonError(new Error("Unsupported asset action"));
   }catch(cause){return jsonError(cause);}
