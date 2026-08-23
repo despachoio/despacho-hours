@@ -1998,8 +1998,8 @@ return (
       </div>
     </header>
 
-    <section className="relative z-10 -mt-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:mx-4 sm:p-6">
-      {!activeTimer ? (
+    <section className="relative z-10 mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:mx-4 sm:p-6">
+  {!activeTimer ? (
         <>
           <div>
             <h2 className="mt-1 text-2xl font-bold text-slate-950">Timer</h2>
