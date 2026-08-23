@@ -236,24 +236,18 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
               value: metrics.total,
               accent: "from-[#153E90] to-cyan-400",
               surface: "from-white via-white to-blue-50/80",
-              badge: "bg-blue-50 text-[#153E90] ring-blue-100",
-              icon: "P",
             },
             {
               label: "Active",
               value: metrics.active,
               accent: "from-emerald-600 to-teal-300",
               surface: "from-white via-white to-emerald-50/80",
-              badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-              icon: "✓",
             },
             {
               label: "Archived",
               value: metrics.archived,
               accent: "from-violet-600 to-fuchsia-300",
               surface: "from-white via-white to-violet-50/75",
-              badge: "bg-violet-50 text-violet-700 ring-violet-100",
-              icon: "A",
             },
           ].map((metric) => (
             <article
@@ -264,12 +258,6 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                 aria-hidden="true"
                 className={`absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r ${metric.accent}`}
               />
-              <span
-                aria-hidden="true"
-                className={`absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-2xl text-xs font-black ring-1 ${metric.badge}`}
-              >
-                {metric.icon}
-              </span>
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">
                 {metric.label}
               </p>
