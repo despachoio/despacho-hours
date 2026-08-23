@@ -301,8 +301,10 @@ export default function DashboardPage() {
         </header>
 
         <section
-          className={`relative z-10 -mt-5 grid gap-4 px-3 sm:px-6 ${isEmployee ? "md:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-4"}`}
-        >
+  className={`mt-6 grid gap-4 px-3 sm:px-6 ${
+    isEmployee ? "md:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-4"
+  }`}
+>
           {isEmployee ? (
             <>
               <MetricCard
