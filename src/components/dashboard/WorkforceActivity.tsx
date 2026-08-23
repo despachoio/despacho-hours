@@ -46,9 +46,18 @@ function calendarDateParts(value: string) {
   };
 }
 
-function CalendarDateTile({ value, through = false }: { value: string; through?: boolean }) {
+function CalendarDateTile({
+  value,
+  through = false,
+}: {
+  value: string;
+  through?: boolean;
+}) {
   const date = calendarDateParts(value);
-  const accessibleDate = displayDate(value, { weekday: "long", year: "numeric" });
+  const accessibleDate = displayDate(value, {
+    weekday: "long",
+    year: "numeric",
+  });
 
   return (
     <div
@@ -58,13 +67,14 @@ function CalendarDateTile({ value, through = false }: { value: string; through?:
       <div className="bg-[#153E90] px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.2em] text-white">
         {through ? "Through" : date.weekday}
       </div>
-      <div className="grid grid-cols-[auto_1fr] items-center gap-2 px-3 py-2">
-        <span className="text-[11px] font-extrabold uppercase tracking-wide tabular-nums text-[#153E90]">{date.day}</span>
-        <span className="leading-tight">
-          {through ? (
-            <span className="block text-[9px] font-bold uppercase tracking-wide text-slate-500">{date.weekday}</span>
-          ) : null}
-          <span className="block text-[11px] font-extrabold uppercase tracking-wide text-slate-700">{date.monthYear}</span>
+
+      <div className="flex items-center justify-center gap-1.5 px-3 py-2">
+        <span className="text-[11px] font-extrabold uppercase tracking-wide tabular-nums text-[#153E90]">
+          {date.day}
+        </span>
+
+        <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-700">
+          {date.monthYear}
         </span>
       </div>
     </div>
