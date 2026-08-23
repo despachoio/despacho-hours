@@ -72,6 +72,10 @@ describe("dashboard workforce activity", () => {
     expect(component).toContain("Retry");
     expect(component).toContain('className="mt-9 grid items-start gap-6 xl:grid-cols-2"');
     expect(component.match(/<DashboardPanelHeader/g)).toHaveLength(2);
+    expect(component).toContain("function CalendarDateTile");
+    expect(component).toContain('trailing={<CalendarDateTile value={data.businessDate} />}');
+    expect(component).toContain('trailing={<CalendarDateTile value={data.upcomingThrough} through />}');
+    expect(component).not.toContain('className="rounded-full border border-blue-100 bg-white px-4 py-2');
     expect(panelHeader).toContain("from-blue-50/80 via-white to-emerald-50/60");
     expect(dashboard).toContain("<WorkforceActivity />");
   });

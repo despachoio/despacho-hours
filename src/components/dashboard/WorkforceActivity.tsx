@@ -27,6 +27,50 @@ function displayDate(value: string, options?: Intl.DateTimeFormatOptions) {
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function calendarDateParts(value: string) {
+  const date = new Date(`${value}T00:00:00Z`);
+  return {
+    weekday: new Intl.DateTimeFormat("en-IN", {
+      timeZone: "UTC",
+      weekday: "long",
+    }).format(date),
+    day: new Intl.DateTimeFormat("en-IN", {
+      timeZone: "UTC",
+      day: "2-digit",
+    }).format(date),
+    monthYear: new Intl.DateTimeFormat("en-IN", {
+      timeZone: "UTC",
+      month: "short",
+      year: "numeric",
+    }).format(date),
+  };
+}
+
+function CalendarDateTile({ value, through = false }: { value: string; through?: boolean }) {
+  const date = calendarDateParts(value);
+  const accessibleDate = displayDate(value, { weekday: "long", year: "numeric" });
+
+  return (
+    <div
+      aria-label={through ? `Through ${accessibleDate}` : accessibleDate}
+      className="min-w-[9.25rem] overflow-hidden rounded-xl border border-blue-100 bg-white shadow-sm"
+    >
+      <div className="bg-[#153E90] px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.2em] text-white">
+        {through ? "Through" : date.weekday}
+      </div>
+      <div className="grid grid-cols-[auto_1fr] items-center gap-2 px-3 py-2">
+        <span className="text-2xl font-black leading-none tabular-nums text-[#153E90]">{date.day}</span>
+        <span className="leading-tight">
+          {through ? (
+            <span className="block text-[9px] font-bold uppercase tracking-wide text-slate-500">{date.weekday}</span>
+          ) : null}
+          <span className="block text-[11px] font-extrabold uppercase tracking-wide text-slate-700">{date.monthYear}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function eventDate(event: WorkforceEvent) {
   if (event.endDate && event.endDate !== event.date) {
     return `${displayDate(event.date)} – ${displayDate(event.endDate)}`;
@@ -86,11 +130,7 @@ export function WorkforceActivity() {
           eyebrow="People moments"
           title="Today at Despacho"
           description="Today’s celebrations, leave and milestones."
-          trailing={
-            <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90] shadow-sm">
-              {displayDate(data.businessDate, { weekday: "long", year: "numeric" })}
-            </p>
-          }
+          trailing={<CalendarDateTile value={data.businessDate} />}
         />
         <div className="p-5 sm:p-7">
           {data.today.length ? (
@@ -111,11 +151,7 @@ export function WorkforceActivity() {
           eyebrow="Next seven days"
           title="Coming Up"
           description="Plan ahead for upcoming team moments."
-          trailing={
-            <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90] shadow-sm">
-              Through {displayDate(data.upcomingThrough, { year: "numeric" })}
-            </p>
-          }
+          trailing={<CalendarDateTile value={data.upcomingThrough} through />}
         />
         <div className="p-5 sm:p-7">
           {data.upcoming.length ? (

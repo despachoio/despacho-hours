@@ -26,6 +26,21 @@ body {
   --kairo-warning: #d97706;
   --kairo-danger: #dc2626;
   --kairo-info: #2563eb;
+  --sidebar-bg: #f6f3f3;
+  --sidebar-secondary: #eef0f2;
+  --sidebar-border: #e1e4e8;
+  --sidebar-text: #3f4a59;
+  --sidebar-text-muted: #7a8491;
+  --sidebar-icon: #667383;
+  --sidebar-icon-bg: #e9ecef;
+  --sidebar-active-bg: #d7dbe2;
+  --sidebar-active-text: #1f2937;
+  --sidebar-active-icon: #27364a;
+  --sidebar-active-icon-bg: #c9ced6;
+  --sidebar-hover-bg: #e6e9ee;
+  --sidebar-profile-bg: #f8f8f7;
+  --sidebar-profile-border: #dde1e5;
+  --sidebar-footer-text: #687483;
 }
 
 @theme inline {

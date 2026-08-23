@@ -302,9 +302,8 @@ export default function DashboardLayout({
   }
 
   const sidebar = (
-    <aside className="relative flex h-full w-[288px] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[12px_0_40px_rgba(15,23,42,0.04)]">
-      <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-blue-100/60 blur-3xl" />
-      <div className="relative border-b border-slate-100 px-7 pb-6 pt-7">
+    <aside className="relative flex h-full w-[288px] flex-col overflow-hidden border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)]">
+      <div className="relative border-b border-[var(--sidebar-border)] px-7 pb-6 pt-7">
         <div className="flex items-center justify-between">
           <Link
             href="/dashboard"
@@ -325,7 +324,7 @@ export default function DashboardLayout({
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
             aria-label="Close navigation"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--sidebar-icon)] transition-colors duration-200 hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-active-icon)] lg:hidden"
           >
             <svg
               viewBox="0 0 24 24"
@@ -338,14 +337,14 @@ export default function DashboardLayout({
             </svg>
           </button>
         </div>
-        <div className="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-800">
+        <div className="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--sidebar-text)]">
           <span className="h-px w-5 bg-[#153E90]" />
           The pulse of Despacho
         </div>
       </div>
 
       <div className="relative flex-1 overflow-y-auto px-4 py-6">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--sidebar-text-muted)]">
           Workspace
         </p>
         <nav className="mt-3 space-y-1.5" aria-label="Dashboard navigation">
@@ -358,20 +357,20 @@ export default function DashboardLayout({
                   onClick={closeNavigation}
                   aria-keyshortcuts={`Alt+${item.shortcutNumber}`}
                   aria-current={active ? "page" : undefined}
-                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 ${
+                  className={`group relative flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 ${
                     active
-                      ? "bg-[#153E90] text-white shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                      ? "border-[var(--sidebar-border)] bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active-text)] shadow-[0_1px_2px_rgba(31,41,55,0.08)]"
+                      : "border-transparent text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-active-icon)]"
                   }`}
                 >
                   <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition ${active ? "bg-white/10 text-blue-200" : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#153E90]"}`}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200 ${active ? "bg-[var(--sidebar-active-icon-bg)] text-[var(--sidebar-active-icon)]" : "bg-[var(--sidebar-icon-bg)] text-[var(--sidebar-icon)] group-hover:bg-[var(--sidebar-active-icon-bg)] group-hover:text-[var(--sidebar-active-icon)]"}`}
                   >
                     <NavigationIcon name={item.icon} />
                   </span>
                   <span>{item.name}</span>
                   {active ? (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-300 shadow-[0_0_0_4px_rgba(147,197,253,0.12)]" />
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[var(--sidebar-active-icon)] opacity-70" />
                   ) : null}
                 </Link>
               </div>
@@ -380,14 +379,14 @@ export default function DashboardLayout({
         </nav>
       </div>
 
-      <div className="relative border-t border-slate-100 bg-slate-50/70 p-4">
+      <div className="relative border-t border-[var(--sidebar-border)] bg-[var(--sidebar-secondary)] p-4">
         <div className="relative" data-profile-menu>
           <button
             type="button"
             aria-haspopup="menu"
             aria-expanded={isProfileMenuOpen}
             onClick={() => setIsProfileMenuOpen((open) => !open)}
-            className="flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35"
+            className="flex w-full items-center gap-3 rounded-2xl border border-[var(--sidebar-profile-border)] bg-[var(--sidebar-profile-bg)] px-3 py-2.5 text-left shadow-[0_4px_16px_rgba(31,41,55,0.06)] transition-colors duration-200 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35"
           >
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#153E90] text-xs font-bold text-white shadow-sm">
               {getInitials(userName) || "K"}
@@ -407,7 +406,7 @@ export default function DashboardLayout({
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isProfileMenuOpen ? "rotate-180" : ""}`}
+              className={`h-4 w-4 shrink-0 text-[var(--sidebar-icon)] transition-transform ${isProfileMenuOpen ? "rotate-180" : ""}`}
             >
               <path d="m6 9 6 6 6-6" />
             </svg>
@@ -461,7 +460,7 @@ export default function DashboardLayout({
             </div>
           ) : null}
         </div>
-        <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-slate-600">
+        <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-[var(--sidebar-footer-text)]">
           KAIRO 2.0 · DESPACHO INC.
         </p>
       </div>
@@ -569,12 +568,12 @@ export default function DashboardLayout({
         </div>
       ) : null}
 
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 backdrop-blur-xl lg:hidden">
         <button
           type="button"
           onClick={() => setIsMobileMenuOpen(true)}
           aria-label="Open navigation"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sidebar-border)] bg-[var(--sidebar-icon-bg)] text-[var(--sidebar-icon)] shadow-sm transition-colors duration-200 hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-active-icon)]"
         >
           <svg
             viewBox="0 0 24 24"
