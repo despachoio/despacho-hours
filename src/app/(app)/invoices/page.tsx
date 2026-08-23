@@ -757,7 +757,6 @@ function InvoicesPageContent() {
                   className="group relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/80 p-6 text-left shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/70"
                 >
                   <span aria-hidden="true" className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] to-cyan-400" />
-                  <span aria-hidden="true" className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-sm font-black text-[#153E90] ring-1 ring-blue-100">O</span>
                   <p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">
                     Total Open
                   </p>
@@ -786,7 +785,6 @@ function InvoicesPageContent() {
                   className="group relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/80 p-6 text-left shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-100/70"
                 >
                   <span aria-hidden="true" className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-emerald-600 to-teal-300" />
-                  <span aria-hidden="true" className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-black text-emerald-700 ring-1 ring-emerald-100">✓</span>
                   <p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">
                     Total Paid
                   </p>
@@ -815,7 +813,6 @@ function InvoicesPageContent() {
                   className="group relative overflow-hidden rounded-3xl border border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/75 p-6 text-left shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-100/70"
                 >
                   <span aria-hidden="true" className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-violet-600 to-fuchsia-300" />
-                  <span aria-hidden="true" className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-sm font-black text-violet-700 ring-1 ring-violet-100">₹</span>
                   <p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">
                     Invoices Paid in {selectedYear}
                   </p>
@@ -843,7 +840,6 @@ function InvoicesPageContent() {
                   className="group relative overflow-hidden rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-white to-rose-50/75 p-6 text-left shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-100/70"
                 >
                   <span aria-hidden="true" className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-rose-600 to-orange-300" />
-                  <span aria-hidden="true" className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-sm font-black text-rose-700 ring-1 ring-rose-100">!</span>
                   <p className="text-xs font-bold uppercase tracking-[.16em] text-red-400">
                     Overdue
                   </p>
