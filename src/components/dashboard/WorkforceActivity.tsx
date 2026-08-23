@@ -59,7 +59,7 @@ function CalendarDateTile({ value, through = false }: { value: string; through?:
         {through ? "Through" : date.weekday}
       </div>
       <div className="grid grid-cols-[auto_1fr] items-center gap-2 px-3 py-2">
-        <span className="text-2xl font-black leading-none tabular-nums text-[#153E90]">{date.day}</span>
+        <span className="text-[11px] font-extrabold uppercase tracking-wide tabular-nums text-[#153E90]">{date.day}</span>
         <span className="leading-tight">
           {through ? (
             <span className="block text-[9px] font-bold uppercase tracking-wide text-slate-500">{date.weekday}</span>
