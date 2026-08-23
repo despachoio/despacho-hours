@@ -461,7 +461,7 @@ export default function DashboardLayout({
             </div>
           ) : null}
         </div>
-        <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-slate-400">
+        <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-slate-600">
           KAIRO 2.0 · DESPACHO INC.
         </p>
       </div>
