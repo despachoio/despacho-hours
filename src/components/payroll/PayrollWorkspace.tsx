@@ -34,31 +34,197 @@ export default function PayrollWorkspace() {
   const salaryStructureAccess = isFinanceAdminRole(data?.role);
   async function action(payload: Record<string, unknown>, refresh = true) { setMessage(""); setError(""); try { await payrollRequest("/api/payroll", { method: "POST", body: JSON.stringify(payload) }); setMessage("Payroll updated successfully."); if (refresh) await load(); return true; } catch (cause) { setError(cause instanceof Error ? cause.message : "Payroll action failed"); return false; } }
   const latest = data?.ownEntries?.[0];
-  return <div className="space-y-7">
-    <header className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl"><div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" /><p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">Finance &amp; compensation</p><h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">Payroll</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">Secure salary slips, payroll snapshots, statutory deductions, and controlled month-end processing.</p><span className="mt-5 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">{administrationAccess ? "Payroll administration workspace" : "Employee self-service"}</span></header>
-    <nav aria-label="Payroll sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-      {employeeTabs.map(([value,label]) => <button key={value} onClick={() => setTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{label}</button>)}
-      {administrationAccess ? <button onClick={() => setTab("administration")} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === "administration" ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>Administration</button> : null}
+  return (
+  <div>
+    <header className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl">
+      <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
+
+      <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
+        Finance &amp; compensation
+      </p>
+
+      <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">
+        Payroll
+      </h1>
+
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
+        Secure salary slips, payroll snapshots, statutory deductions, and
+        controlled month-end processing.
+      </p>
+
+      <span className="mt-5 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
+        {administrationAccess
+          ? "Payroll administration workspace"
+          : "Employee self-service"}
+      </span>
+    </header>
+
+    <nav
+      aria-label="Payroll sections"
+      className="relative z-10 mx-3 -mt-4 flex gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6"
+    >
+      {employeeTabs.map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => setTab(value)}
+          className={`group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${
+            tab === value
+              ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20"
+              : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+
+      {administrationAccess ? (
+        <button
+          type="button"
+          onClick={() => setTab("administration")}
+          className={`group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${
+            tab === "administration"
+              ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20"
+              : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"
+          }`}
+        >
+          Administration
+        </button>
+      ) : null}
     </nav>
-    {error ? <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-700">{error}</p> : null}{message ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 font-semibold text-emerald-700">{message}</p> : null}
-    {loading ? <div className="grid gap-4 md:grid-cols-3">{[1,2,3].map((item) => <div key={item} className="h-36 animate-pulse rounded-3xl bg-slate-200" />)}</div> : !data ? null : <>
-      {tab === "overview" ? <EmployeeOverview entry={latest} entries={data.ownEntries} /> : null}
-      {tab === "history" ? <PayrollHistory entries={data.ownEntries} /> : null}
-      {tab === "policy" ? <PayrollPolicy /> : null}
-      {tab === "administration" && administrationAccess ? <div className="space-y-5">
-        <nav aria-label="Payroll administration sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 p-2 shadow-sm">
-          {administrationTabs.filter(([value]) => value !== "structures" || salaryStructureAccess).map(([value, label]) => <button key={value} onClick={() => setAdministrationTab(value)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${administrationTab === value ? "bg-[#0F172A] text-white shadow" : "text-slate-600 hover:bg-white hover:text-[#153E90]"}`}>{label}</button>)}
-        </nav>
-        {administrationTab === "dashboard" ? <FinanceDashboard data={data} onViewProcessing={() => setAdministrationTab("process")} /> : null}
-        {administrationTab === "structures" && salaryStructureAccess ? <SalaryStructures data={data} onRefresh={load} /> : null}
-        {administrationTab === "recurring" && salaryStructureAccess ? <RecurringAdjustments role={data.role} employees={data.employees || []} adjustments={data.recurringAdjustments || []} onRefresh={load} /> : null}
-        {administrationTab === "process" ? <PayrollProcessing key={`${month}:${data.selectedRun?.id || "new"}`} data={data} month={month} setMonth={setMonth} onAction={action} onRefresh={load} onEdit={setEditing} /> : null}
-        {administrationTab === "reports" ? <PayrollReports data={data} /> : null}
-        {administrationTab === "settings" && data.settings ? <Settings value={data.settings} bankDetails={data.companyBankDetails} financeAccess={salaryStructureAccess} onSave={action} /> : null}
-      </div> : null}
-    </>}
-    {editing ? <EntryDialog key={editing.id} entry={editing} onClose={() => setEditing(null)} onSave={async (payload) => { await action(payload); setEditing(null); }} /> : null}
-  </div>;
+
+    <div className="mt-7 space-y-7">
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-700"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      {message ? (
+        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 font-semibold text-emerald-700">
+          {message}
+        </p>
+      ) : null}
+
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="h-36 animate-pulse rounded-3xl bg-slate-200"
+            />
+          ))}
+        </div>
+      ) : !data ? null : (
+        <>
+          {tab === "overview" ? (
+            <EmployeeOverview
+              entry={latest}
+              entries={data.ownEntries}
+            />
+          ) : null}
+
+          {tab === "history" ? (
+            <PayrollHistory entries={data.ownEntries} />
+          ) : null}
+
+          {tab === "policy" ? <PayrollPolicy /> : null}
+
+          {tab === "administration" && administrationAccess ? (
+            <div className="space-y-5">
+              <nav
+                aria-label="Payroll administration sections"
+                className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 p-2 shadow-sm"
+              >
+                {administrationTabs
+                  .filter(
+                    ([value]) =>
+                      value !== "structures" || salaryStructureAccess,
+                  )
+                  .map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setAdministrationTab(value)}
+                      className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                        administrationTab === value
+                          ? "bg-[#0F172A] text-white shadow"
+                          : "text-slate-600 hover:bg-white hover:text-[#153E90]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+              </nav>
+
+              {administrationTab === "dashboard" ? (
+                <FinanceDashboard
+                  data={data}
+                  onViewProcessing={() => setAdministrationTab("process")}
+                />
+              ) : null}
+
+              {administrationTab === "structures" &&
+              salaryStructureAccess ? (
+                <SalaryStructures data={data} onRefresh={load} />
+              ) : null}
+
+              {administrationTab === "recurring" &&
+              salaryStructureAccess ? (
+                <RecurringAdjustments
+                  role={data.role}
+                  employees={data.employees || []}
+                  adjustments={data.recurringAdjustments || []}
+                  onRefresh={load}
+                />
+              ) : null}
+
+              {administrationTab === "process" ? (
+                <PayrollProcessing
+                  key={`${month}:${data.selectedRun?.id || "new"}`}
+                  data={data}
+                  month={month}
+                  setMonth={setMonth}
+                  onAction={action}
+                  onRefresh={load}
+                  onEdit={setEditing}
+                />
+              ) : null}
+
+              {administrationTab === "reports" ? (
+                <PayrollReports data={data} />
+              ) : null}
+
+              {administrationTab === "settings" && data.settings ? (
+                <Settings
+                  value={data.settings}
+                  bankDetails={data.companyBankDetails}
+                  financeAccess={salaryStructureAccess}
+                  onSave={action}
+                />
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+
+    {editing ? (
+      <EntryDialog
+        key={editing.id}
+        entry={editing}
+        onClose={() => setEditing(null)}
+        onSave={async (payload) => {
+          await action(payload);
+          setEditing(null);
+        }}
+      />
+    ) : null}
+  </div>
+);
 }
 
 function EmployeeOverview({
