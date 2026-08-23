@@ -2006,7 +2006,7 @@ return (
           </div>
           <div className="mt-5 grid gap-4 lg:grid-cols-[250px_0.9fr_1fr_1.35fr_auto]">
             <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-bold text-white">{getInitials(getLoggedInEmployeeName())}</div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-1150 text-sm font-bold text-white">{getInitials(getLoggedInEmployeeName())}</div>
               <div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Logged in as</p><p className="truncate font-bold">{getLoggedInEmployeeName()}</p></div>
             </div>
             <label className="block">
