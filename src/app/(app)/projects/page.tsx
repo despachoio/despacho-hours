@@ -229,21 +229,52 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
           </div>
         </div> : <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Delivery portfolio</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Projects</h2><p className="mt-1 text-sm text-slate-500">Manage projects and hour banks.</p></div>{canAdministerProjects ? <Link href="/projects/new" className="inline-flex items-center justify-center self-start rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#123578] sm:self-auto">+ New Project</Link> : null}</div>}
 
-        <section className="relative z-10 -mt-3 grid grid-cols-3 gap-4 px-3 lg:px-6">
+        <section className="relative z-10 -mt-3 grid grid-cols-1 gap-4 px-3 sm:grid-cols-3 lg:px-6">
           {[
-            ["Total Projects", metrics.total],
-            ["Active", metrics.active],
-            ["Archived", metrics.archived],
-          ].map(([label, value]) => (
+            {
+              label: "Total Projects",
+              value: metrics.total,
+              accent: "from-[#153E90] to-cyan-400",
+              surface: "from-white via-white to-blue-50/80",
+              badge: "bg-blue-50 text-[#153E90] ring-blue-100",
+              icon: "P",
+            },
+            {
+              label: "Active",
+              value: metrics.active,
+              accent: "from-emerald-600 to-teal-300",
+              surface: "from-white via-white to-emerald-50/80",
+              badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+              icon: "✓",
+            },
+            {
+              label: "Archived",
+              value: metrics.archived,
+              accent: "from-violet-600 to-fuchsia-300",
+              surface: "from-white via-white to-violet-50/75",
+              badge: "bg-violet-50 text-violet-700 ring-violet-100",
+              icon: "A",
+            },
+          ].map((metric) => (
             <article
-              key={label}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-200/60"
+              key={metric.label}
+              className={`group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br ${metric.surface} p-5 shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/70`}
             >
+              <span
+                aria-hidden="true"
+                className={`absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r ${metric.accent}`}
+              />
+              <span
+                aria-hidden="true"
+                className={`absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-2xl text-xs font-black ring-1 ${metric.badge}`}
+              >
+                {metric.icon}
+              </span>
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">
-                {label}
+                {metric.label}
               </p>
               <p className="mt-3 text-2xl font-bold text-[#153E90] sm:text-3xl">
-                {value}
+                {metric.value}
               </p>
             </article>
           ))}
@@ -336,12 +367,16 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                             }
                           : undefined
                       }
-                      className={`group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition ${
+                      className={`group relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/65 shadow-md shadow-slate-200/60 transition duration-300 ${
                         canOpenProject
-                          ? "cursor-pointer hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+                          ? "cursor-pointer hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
                           : "cursor-default"
                       }`}
                     >
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-gradient-to-b from-[#153E90] to-cyan-400"
+                      />
                       <div
                         className={
                           canAdministerProjects
@@ -350,7 +385,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                         }
                       >
                         <div className="flex min-w-0 items-center gap-4">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#153E90] text-sm font-bold text-white shadow-md shadow-blue-200">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#153E90] to-blue-600 text-sm font-bold text-white shadow-md shadow-blue-200">
                             {projectInitials(project.name)}
                           </div>
                           <div className="min-w-0">
@@ -391,7 +426,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                           </div>
                         </div>
 
-                        <div className="text-center">
+                        <div className="rounded-2xl border border-blue-100/80 bg-white/80 px-3 py-2.5 text-center shadow-sm">
                           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                             Purchased
                           </p>
@@ -401,7 +436,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                           </p>
                         </div>
 
-                        <div className="text-center">
+                        <div className="rounded-2xl border border-violet-100/80 bg-white/80 px-3 py-2.5 text-center shadow-sm">
                           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                             Used
                           </p>
@@ -411,7 +446,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                           </p>
                         </div>
 
-                        <div className="text-center">
+                        <div className="rounded-2xl border border-emerald-100/80 bg-white/80 px-3 py-2.5 text-center shadow-sm">
                           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                             Remaining
                           </p>

@@ -62,6 +62,7 @@ describe("dashboard workforce activity", () => {
   it("uses a server route, excludes sensitive fields, and isolates component failure", () => {
     const route = readFileSync("src/app/api/dashboard/workforce-activity/route.ts", "utf8");
     const component = readFileSync("src/components/dashboard/WorkforceActivity.tsx", "utf8");
+    const panelHeader = readFileSync("src/components/dashboard/DashboardPanelHeader.tsx", "utf8");
     const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
     expect(route).toContain('businessDateKey()');
     expect(route).toContain('.eq("status", "approved")');
@@ -70,6 +71,8 @@ describe("dashboard workforce activity", () => {
     expect(component).toContain("The rest of your dashboard is unaffected");
     expect(component).toContain("Retry");
     expect(component).toContain('className="mt-9 grid items-start gap-6 xl:grid-cols-2"');
+    expect(component.match(/<DashboardPanelHeader/g)).toHaveLength(2);
+    expect(panelHeader).toContain("from-blue-50/80 via-white to-emerald-50/60");
     expect(dashboard).toContain("<WorkforceActivity />");
   });
 });

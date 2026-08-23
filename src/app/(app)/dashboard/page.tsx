@@ -13,6 +13,7 @@ import {
 import { getInvoiceMetrics } from "@/lib/metrics/invoice-metrics";
 import type { InvoiceMetrics, TeamMetrics } from "@/lib/metrics/types";
 import { WorkforceActivity } from "@/components/dashboard/WorkforceActivity";
+import { DashboardPanelHeader } from "@/components/dashboard/DashboardPanelHeader";
 
 type Client = { id: string; status: string };
 
@@ -308,16 +309,19 @@ export default function DashboardPage() {
                 label="My Projects"
                 value={projects.length}
                 href="/projects"
+                tone="blue"
               />
               <MetricCard
                 label="My Hours This Week"
                 value={teamMetrics ? formatDecimalHours(teamMetrics.totalHoursLogged) : "—"}
                 href="/timer"
+                tone="green"
               />
               <MetricCard
                 label="My Weekly Utilization"
                 value={teamMetrics ? `${teamMetrics.aggregateUtilization.toFixed(0)}%` : "—"}
                 href="/timer"
+                tone="violet"
               />
             </>
           ) : (
@@ -326,21 +330,25 @@ export default function DashboardPage() {
                 label="Active Clients"
                 value={activeClients}
                 href="/clients"
+                tone="blue"
               />
               <MetricCard
                 label="Active Projects"
                 value={activeProjects}
                 href="/projects"
+                tone="violet"
               />
               <MetricCard
                 label="Hours This Week"
                 value={teamMetrics ? formatDecimalHours(teamMetrics.totalHoursLogged) : "—"}
                 href="/timer"
+                tone="green"
               />
               <MetricCard
                 label="Team Utilization"
                 value={teamMetrics ? `${teamMetrics.aggregateUtilization.toFixed(0)}%` : "—"}
                 href="/team"
+                tone="cyan"
               />
             </>
           )}
@@ -350,23 +358,11 @@ export default function DashboardPage() {
 
         {canViewInvoices ? (
           <section className="mt-9 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
-            <div className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-white to-emerald-50/60 px-6 py-6 sm:px-7">
-              <div className="absolute -right-10 -top-16 h-40 w-40 rounded-full bg-cyan-200/25 blur-3xl" />
-              <div className="relative flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_5px_rgba(16,185,129,0.12)]" />
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
-                      Billing intelligence
-                    </p>
-                  </div>
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                    Invoice Overview
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    A live view of receivables, collections, and payment health.
-                  </p>
-                </div>
+            <DashboardPanelHeader
+              eyebrow="Billing intelligence"
+              title="Invoice Overview"
+              description="A live view of receivables, collections, and payment health."
+              trailing={
                 <Link
                   href="/invoices"
                   className="group inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2.5 text-sm font-bold text-[#153E90] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
@@ -374,8 +370,8 @@ export default function DashboardPage() {
                   View invoices
                   <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
                 </Link>
-              </div>
-            </div>
+              }
+            />
             <div className="grid gap-4 p-5 sm:p-7 md:grid-cols-2 xl:grid-cols-4">
               <InvoiceCard
                 label="Total Open"
@@ -425,7 +421,9 @@ export default function DashboardPage() {
         {!isEmployee ? (
           <section className="mt-9 grid gap-5 lg:grid-cols-2">
             <HealthCard
+              eyebrow="Delivery health"
               title="Project Wallet Health"
+              description="Monitor active projects approaching their available-hours threshold."
               healthyText="All projects have healthy hours"
               items={projects
                 .filter(
@@ -440,7 +438,9 @@ export default function DashboardPage() {
                 }))}
             />
             <HealthCard
+              eyebrow="Capacity watch"
               title="Team Capacity"
+              description="Track weekly workload signals across the active team."
               healthyText="Team capacity looks healthy"
               items={(teamMetrics?.employees || [])
                 .filter((item) => item.hours > 40)
@@ -467,25 +467,74 @@ function MetricCard({
   label,
   value,
   href,
+  tone,
 }: {
   label: string;
   value: number | string;
   href: string;
+  tone: "blue" | "green" | "violet" | "cyan";
 }) {
+  const presentation = {
+    blue: {
+      accent: "bg-blue-500",
+      badge: "border-blue-100 bg-blue-50 text-[#153E90]",
+      border: "border-blue-100 hover:border-blue-200",
+      icon: "◆",
+      surface: "from-white to-blue-50/70",
+      value: "text-[#153E90]",
+    },
+    green: {
+      accent: "bg-emerald-500",
+      badge: "border-emerald-100 bg-emerald-50 text-emerald-700",
+      border: "border-emerald-100 hover:border-emerald-200",
+      icon: "◷",
+      surface: "from-white to-emerald-50/70",
+      value: "text-emerald-700",
+    },
+    violet: {
+      accent: "bg-violet-500",
+      badge: "border-violet-100 bg-violet-50 text-violet-700",
+      border: "border-violet-100 hover:border-violet-200",
+      icon: "↗",
+      surface: "from-white to-violet-50/70",
+      value: "text-violet-700",
+    },
+    cyan: {
+      accent: "bg-cyan-500",
+      badge: "border-cyan-100 bg-cyan-50 text-cyan-700",
+      border: "border-cyan-100 hover:border-cyan-200",
+      icon: "%",
+      surface: "from-white to-cyan-50/70",
+      value: "text-cyan-700",
+    },
+  }[tone];
+
   return (
     <Link
       href={href}
-      className="group rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-lg shadow-slate-200/50 transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
+      className={`group relative overflow-hidden rounded-3xl border bg-gradient-to-br p-6 text-left shadow-lg shadow-slate-200/50 transition duration-300 hover:-translate-y-1 hover:shadow-xl ${presentation.border} ${presentation.surface}`}
     >
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </p>
-      <p className="mt-4 text-3xl font-bold tracking-tight text-[#153E90]">
+      <span className={`absolute inset-x-6 top-0 h-1 rounded-b-full ${presentation.accent}`} />
+      <div className="flex items-start justify-between gap-3">
+        <p className="pt-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+          {label}
+        </p>
+        <span
+          aria-hidden="true"
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-black shadow-sm ${presentation.badge}`}
+        >
+          {presentation.icon}
+        </span>
+      </div>
+      <p className={`mt-5 text-3xl font-bold tracking-tight ${presentation.value}`}>
         {value}
       </p>
-      <p className="mt-3 text-xs font-semibold text-slate-400 group-hover:text-[#153E90]">
-        View details →
-      </p>
+      <div className="mt-5 flex items-center justify-between border-t border-slate-200/70 pt-4">
+        <p className="text-xs font-semibold text-slate-500">Current snapshot</p>
+        <span className={`text-xs font-bold ${presentation.value} transition-transform group-hover:translate-x-0.5`}>
+          View details →
+        </span>
+      </div>
     </Link>
   );
 }
@@ -587,18 +636,26 @@ function InvoiceCard({
 }
 
 function HealthCard({
+  eyebrow,
   title,
+  description,
   healthyText,
   items,
 }: {
+  eyebrow: string;
   title: string;
+  description: string;
   healthyText: string;
   items: { id: string; title: string; detail: string }[];
 }) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-slate-950">{title}</h2>
-      <div className="mt-5 space-y-3">
+    <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+      <DashboardPanelHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+      />
+      <div className="space-y-3 p-5 sm:p-7">
         {items.length ? (
           items.map((item) => (
             <div

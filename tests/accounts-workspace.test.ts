@@ -51,6 +51,19 @@ describe("Accounts navigation architecture", () => {
     expect(layout).toContain("const legacyRouteAccess");
     expect(layout).toContain('path: "/clients"');
   });
+
+  it("uses the premium card language across both account portfolios", () => {
+    for (const source of [clients, projects]) {
+      expect(source).toContain("bg-gradient-to-br");
+      expect(source).toContain("rounded-3xl");
+      expect(source).toContain("hover:-translate-y");
+      expect(source).toContain("from-[#153E90] to-cyan-400");
+    }
+
+    expect(clients).toContain("bg-gradient-to-r from-white via-white to-blue-50/75");
+    expect(projects).toContain("border border-violet-100/80");
+    expect(projects).toContain("border border-emerald-100/80");
+  });
 });
 
 describe("New workforce member cancellation", () => {

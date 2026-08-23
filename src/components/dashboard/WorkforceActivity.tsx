@@ -8,6 +8,7 @@ import type {
   WorkforceEvent,
   WorkforceEventType,
 } from "@/lib/dashboard/workforce-activity";
+import { DashboardPanelHeader } from "@/components/dashboard/DashboardPanelHeader";
 
 const tones: Record<WorkforceEventType, { accent: string; surface: string; icon: string }> = {
   birthday: { accent: "text-violet-700", surface: "bg-violet-50 border-violet-100", icon: "✦" },
@@ -81,18 +82,16 @@ export function WorkforceActivity() {
   return (
     <section className="mt-9 grid items-start gap-6 xl:grid-cols-2">
       <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/70 px-6 py-6 sm:px-7">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">People moments</p>
-          <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-950">Today at Despacho</h2>
-              <p className="mt-1 text-sm text-slate-500">Today’s celebrations, leave and milestones.</p>
-            </div>
-            <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90]">
+        <DashboardPanelHeader
+          eyebrow="People moments"
+          title="Today at Despacho"
+          description="Today’s celebrations, leave and milestones."
+          trailing={
+            <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90] shadow-sm">
               {displayDate(data.businessDate, { weekday: "long", year: "numeric" })}
             </p>
-          </div>
-        </div>
+          }
+        />
         <div className="p-5 sm:p-7">
           {data.today.length ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -108,16 +107,16 @@ export function WorkforceActivity() {
       </article>
 
       <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
-        <div className="flex min-h-[129px] items-end justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-violet-50/60 via-white to-cyan-50/60 px-6 py-6 sm:px-7">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Next seven days</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">Coming Up</h2>
-            <p className="mt-1 text-sm text-slate-500">Plan ahead for upcoming team moments.</p>
-          </div>
-          <p className="shrink-0 rounded-full border border-violet-100 bg-white px-4 py-2 text-xs font-bold text-violet-700">
-            Through {displayDate(data.upcomingThrough, { year: "numeric" })}
-          </p>
-        </div>
+        <DashboardPanelHeader
+          eyebrow="Next seven days"
+          title="Coming Up"
+          description="Plan ahead for upcoming team moments."
+          trailing={
+            <p className="rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-bold text-[#153E90] shadow-sm">
+              Through {displayDate(data.upcomingThrough, { year: "numeric" })}
+            </p>
+          }
+        />
         <div className="p-5 sm:p-7">
           {data.upcoming.length ? (
             <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">

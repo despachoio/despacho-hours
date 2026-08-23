@@ -5,10 +5,27 @@ const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
 
 describe("dashboard invoice overview", () => {
   it("presents invoice intelligence as a premium, cohesive financial panel", () => {
+    const panelHeader = readFileSync("src/components/dashboard/DashboardPanelHeader.tsx", "utf8");
     expect(dashboard).toContain("A live view of receivables, collections, and payment health.");
-    expect(dashboard).toContain("bg-gradient-to-r from-blue-50/80 via-white to-emerald-50/60");
+    expect(dashboard).toContain("<DashboardPanelHeader");
+    expect(panelHeader).toContain("bg-gradient-to-r from-blue-50/80 via-white to-emerald-50/60");
     expect(dashboard).toContain("rounded-[2rem]");
     expect(dashboard).toContain("View invoices");
+  });
+
+  it("uses the same premium header for wallet health and team capacity", () => {
+    expect(dashboard).toContain('eyebrow="Delivery health"');
+    expect(dashboard).toContain('eyebrow="Capacity watch"');
+    expect(dashboard.match(/<DashboardPanelHeader/g)?.length).toBe(2);
+  });
+
+  it("extends the premium visual language to the top dashboard KPIs", () => {
+    for (const label of ["Active Clients", "Active Projects", "Hours This Week", "Team Utilization"]) {
+      expect(dashboard).toContain(`label="${label}"`);
+    }
+    expect(dashboard).toContain("Current snapshot");
+    expect(dashboard).toContain('tone="cyan"');
+    expect(dashboard).toContain("bg-gradient-to-br");
   });
 
   it("preserves the existing metrics, destinations, and whole-number formatting", () => {
