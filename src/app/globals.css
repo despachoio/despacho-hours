@@ -26,21 +26,28 @@ body {
   --kairo-warning: #d97706;
   --kairo-danger: #dc2626;
   --kairo-info: #2563eb;
-  --sidebar-bg: #f6f3f3;
-  --sidebar-secondary: #eef0f2;
-  --sidebar-border: #e1e4e8;
-  --sidebar-text: #3f4a59;
-  --sidebar-text-muted: #7a8491;
-  --sidebar-icon: #667383;
-  --sidebar-icon-bg: #e9ecef;
-  --sidebar-active-bg: #d7dbe2;
-  --sidebar-active-text: #1f2937;
-  --sidebar-active-icon: #27364a;
-  --sidebar-active-icon-bg: #c9ced6;
-  --sidebar-hover-bg: #e6e9ee;
-  --sidebar-profile-bg: #f8f8f7;
-  --sidebar-profile-border: #dde1e5;
-  --sidebar-footer-text: #687483;
+  /* Kairo Sidebar — Blue-Grey Pearl */
+--sidebar-bg: #f1f3f7;
+--sidebar-secondary: #e9edf3;
+--sidebar-border: #dce2ea;
+
+--sidebar-text: #3e4d63;
+--sidebar-text-muted: #718096;
+
+--sidebar-icon: #66768c;
+--sidebar-icon-bg: #e5eaf1;
+
+--sidebar-active-bg: #dfe6f0;
+--sidebar-active-text: #263b57;
+--sidebar-active-icon: #294a73;
+--sidebar-active-icon-bg: #cfd9e7;
+
+--sidebar-hover-bg: #e8edf4;
+
+--sidebar-profile-bg: #f7f8fa;
+--sidebar-profile-border: #d9e0e9;
+
+--sidebar-footer-text: #68788d;
 }
 
 @theme inline {
