@@ -119,24 +119,29 @@ function EmployeeOverview({
           label={`${financialYear.label} Earnings`}
           value={money(ytd.earnings)}
           colour="text-emerald-700"
+          tone="emerald"
         />
 
         <Metric
           label={`${financialYear.label} Deductions`}
           value={money(ytd.deductions)}
           colour="text-rose-700"
+          tone="rose"
         />
 
         <Metric
           label={`${financialYear.label} Net Pay`}
           value={money(ytd.net)}
           colour="text-[#153E90]"
+          tone="blue"
         />
       </div>
 
-      <Card className="p-7">
+      <Card className="border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/75 p-7 shadow-lg shadow-blue-100/45">
+        <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] to-cyan-400" />
+        <span aria-hidden="true" className="absolute right-6 top-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-lg font-black text-[#153E90] ring-1 ring-blue-100">₹</span>
         {entry ? (
-          <div className="flex flex-wrap items-center justify-between gap-5">
+          <div className="flex flex-wrap items-center justify-between gap-5 pr-14">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Latest published salary slip
@@ -179,7 +184,9 @@ function EmployeeOverview({
         ) : null}
       </Card>
 
-      <Card className="p-7">
+      <Card className="border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/70 p-7 shadow-lg shadow-violet-100/40">
+        <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-violet-600 to-fuchsia-300" />
+        <span aria-hidden="true" className="absolute right-6 top-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-sm font-black text-violet-700 ring-1 ring-violet-100">16</span>
         <h2 className="text-xl font-bold">Form 16</h2>
 
         <p className="mt-2 text-slate-500">
@@ -193,7 +200,19 @@ function EmployeeOverview({
     </div>
   );
 }
-function Metric({ label,value,colour }: { label:string;value:string;colour:string }) { return <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{label}</p><p className={`mt-4 text-2xl font-bold ${colour}`}>{value}</p></Card>; }
+function Metric({ label,value,colour,tone }: { label:string;value:string;colour:string;tone:"blue"|"emerald"|"rose" }) {
+  const styles = {
+    blue: { surface: "from-white via-white to-blue-50/80", accent: "from-[#153E90] to-cyan-400", badge: "bg-blue-50 text-[#153E90] ring-blue-100" },
+    emerald: { surface: "from-white via-white to-emerald-50/80", accent: "from-emerald-600 to-teal-300", badge: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+    rose: { surface: "from-white via-white to-rose-50/75", accent: "from-rose-600 to-pink-300", badge: "bg-rose-50 text-rose-700 ring-rose-100" },
+  }[tone];
+  return <Card className={`group border-slate-200/80 bg-gradient-to-br ${styles.surface} p-6 shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/70`}>
+    <span aria-hidden="true" className={`absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r ${styles.accent}`} />
+    <span aria-hidden="true" className={`absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-black ring-1 ${styles.badge}`}>₹</span>
+    <p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{label}</p>
+    <p className={`mt-4 text-2xl font-bold ${colour}`}>{value}</p>
+  </Card>;
+}
 function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
   const defaultFinancialYear = useMemo(() => currentFinancialYear(), []);
   const [selectedYear, setSelectedYear] = useState("");

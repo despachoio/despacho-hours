@@ -46,20 +46,21 @@ export default function EmployeeCard({
         canViewDetails ? `/team/${employee.id}` : undefined
       }
       data-shortcut-edit-href={canEdit ? `/team/${employee.id}?action=edit` : undefined}
-      className={`group relative block rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition ${
-        canViewDetails ? "hover:border-blue-200 hover:shadow-md" : ""
+      className={`group relative block overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-r from-white via-white to-blue-50/70 px-5 py-4 shadow-md shadow-slate-200/55 transition duration-300 ${
+        canViewDetails ? "hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/70" : ""
       }`}
     >
+      <span aria-hidden="true" className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-gradient-to-b from-[#153E90] to-cyan-400" />
       {canViewDetails ? (
         <Link
           href={`/team/${employee.id}`}
           aria-label={`View ${employee.name}'s employee details`}
-          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+          className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
         />
       ) : null}
       <div className="pointer-events-none relative grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_.75fr_1.1fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#153E90] text-xs font-bold text-white shadow-sm">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#153E90] to-blue-600 text-xs font-bold text-white shadow-md shadow-blue-200">
             {initials(employee.name)}
             {isOnline ? (
               <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500" />
@@ -122,7 +123,7 @@ export default function EmployeeCard({
             <span><span className="mr-1 text-[#A78BFA]">●</span>Non-billable</span>
           </div>
         </div>
-        <div className="min-w-0 rounded-xl bg-slate-50 px-3.5 py-3">
+        <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-white/80 px-3.5 py-3 shadow-sm">
           {timer ? (
             <>
               <div className="flex items-center justify-between gap-2">
