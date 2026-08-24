@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import KairoSegmentedControl from "@/components/ui/KairoSegmentedControl";
+import ModuleHeader from "@/components/ui/ModuleHeader";
 import { supabase } from "@/lib/supabase";
 
 type Contact = {
@@ -190,7 +191,13 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
               </button>
             ) : null}
           </div>
-        </section> : <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Client portfolio</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Clients</h2><p className="mt-1 text-sm text-slate-500">Manage client relationships, contacts, and active projects.</p></div>{isAdmin ? <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center justify-center gap-2 self-start rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm sm:self-auto"><span className="text-base leading-none">+</span>New Client</button> : null}</div>}
+        </section> : <ModuleHeader
+          className="mb-6"
+          eyebrow="Client portfolio"
+          title="Clients"
+          description="Manage client relationships, contacts, and active projects."
+          actions={isAdmin ? <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#123578]"><span className="text-base leading-none">+</span>New Client</button> : null}
+        />}
 
         <section className="relative z-10 -mt-3 grid grid-cols-1 gap-4 px-3 sm:grid-cols-3 lg:px-6">
           {[
