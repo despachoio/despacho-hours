@@ -5,6 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { formatDecimalHours } from "@/lib/format-hours";
+import TimeOffIcon from "@/components/time-off/TimeOffIcon";
+import {
+  emptyWalletActivityFilters,
+  walletActivityDateKey,
+  type WalletActivityFilter as WalletFilter,
+  type WalletActivityFilters,
+  type WalletActivityTransaction as WalletTransaction,
+  type WalletActivityTransactionWithBalance as TransactionWithBalance,
+} from "@/lib/project-wallet-activity";
 
 type Project = {
   id: string;
@@ -28,66 +37,6 @@ type WalletSummary = {
   remaining_hours: number;
 };
 
-type WalletTransaction = {
-  id: string;
-  project_id: string;
-  invoice_id: string | null;
-  invoice_item_id: string | null;
-  payment_id: string | null;
-  time_entry_id: string | null;
-  transaction_type: string;
-  hours_delta: number;
-  notes: string | null;
-  created_at: string;
-
-  invoices: {
-    invoice_number: string;
-  } | null;
-
-  time_entries: {
-    description: string | null;
-
-    employees: {
-      name: string;
-    } | null;
-  } | null;
-};
-
-type TransactionWithBalance = WalletTransaction & {
-  balance_after: number;
-};
-
-type WalletFilter =
-  | "all"
-  | "credits"
-  | "usage"
-  | "adjustments"
-  | "invoices";
-
-type WalletActivityFilters = {
-  type: WalletFilter;
-  employee: string;
-  fromDate: string;
-  toDate: string;
-  search: string;
-};
-
-const emptyActivityFilters: WalletActivityFilters = {
-  type: "all",
-  employee: "all",
-  fromDate: "",
-  toDate: "",
-  search: "",
-};
-
-function WalletMetricIcon({ children }: { children: string }) {
-  return (
-    <span aria-hidden="true" className="text-lg font-black leading-none">
-      {children}
-    </span>
-  );
-}
-
 export default function ProjectWalletPage() {
   const params = useParams();
   const router = useRouter();
@@ -102,9 +51,14 @@ export default function ProjectWalletPage() {
   >([]);
 
   const [activityFilters, setActivityFilters] =
-    useState<WalletActivityFilters>(emptyActivityFilters);
+    useState<WalletActivityFilters>(emptyWalletActivityFilters);
   const [appliedActivityFilters, setAppliedActivityFilters] =
     useState<WalletActivityFilters | null>(null);
+  const [activityTransactions, setActivityTransactions] = useState<
+    TransactionWithBalance[]
+  >([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState("");
   const [exporting, setExporting] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -120,12 +74,25 @@ export default function ProjectWalletPage() {
     return formatDecimalHours(value);
   }
 
-  function formatDate(date: string) {
+  function formatDateKey(date: string) {
+    const [year, month, day] = date.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day))
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+      .replace(/ /g, "-");
+  }
+
+  function formatTimestampDate(date: string) {
     return new Date(date)
       .toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
+        timeZone: "Asia/Kolkata",
       })
       .replace(/ /g, "-");
   }
@@ -134,51 +101,9 @@ export default function ProjectWalletPage() {
     return new Date(date).toLocaleTimeString("en-IN", {
       hour: "2-digit",
       minute: "2-digit",
-    });
-  }
-
-  function getTransactionTitle(
-    transaction: WalletTransaction
-  ) {
-    if (
-      transaction.transaction_type === "invoice_credit" &&
-      transaction.invoices?.invoice_number
-    ) {
-      return `Invoice #${transaction.invoices.invoice_number}`;
-    }
-
-    if (
-      transaction.transaction_type === "time_debit" &&
-      transaction.time_entries?.employees?.name
-    ) {
-      return transaction.time_entries.employees.name;
-    }
-
-    switch (transaction.transaction_type) {
-      case "opening_credit":
-        return "Opening Balance";
-
-      case "invoice_credit":
-        return "Invoice Credit";
-
-      case "time_debit":
-        return "Hours Consumed";
-
-      case "manual_credit":
-        return "Manual Credit";
-
-      case "manual_debit":
-        return "Manual Debit";
-
-      case "adjustment":
-        return "Wallet Adjustment";
-
-      case "refund":
-        return "Refund";
-
-      default:
-        return "Wallet Transaction";
-    }
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    }).toUpperCase();
   }
 
   function getTransactionDescription(
@@ -248,18 +173,6 @@ export default function ProjectWalletPage() {
           className: "bg-slate-100 text-slate-700",
         };
     }
-  }
-
-  function getTransactionReference(transaction: WalletTransaction) {
-    if (transaction.invoices?.invoice_number) {
-      return `Invoice #${transaction.invoices.invoice_number}`;
-    }
-
-    if (transaction.time_entry_id) {
-      return `Time entry ${transaction.time_entry_id.slice(0, 8)}`;
-    }
-
-    return "—";
   }
 
   async function loadWallet() {
@@ -383,8 +296,13 @@ export default function ProjectWalletPage() {
           invoice_number
         ),
         time_entries(
+          entry_date,
+          started_at,
+          stopped_at,
           description,
+          employee_id,
           employees(
+            id,
             name
           )
         )
@@ -545,155 +463,113 @@ export default function ProjectWalletPage() {
     return Math.ceil((averageDailyUsage * 30) / 5) * 5;
   }, [averageDailyUsage]);
 
-  const transactionsWithBalance =
-    useMemo<TransactionWithBalance[]>(() => {
-      return transactions.reduce<{
-        balance: number;
-        rows: TransactionWithBalance[];
-      }>(
-        (result, transaction) => ({
-          balance:
-            result.balance - Number(transaction.hours_delta || 0),
-          rows: [
-            ...result.rows,
-            { ...transaction, balance_after: result.balance },
-          ],
-        }),
-        {
-          balance: Number(wallet?.remaining_hours || 0),
-          rows: [],
-        }
-      ).rows;
-    }, [transactions, wallet]);
-
   const employeeOptions = useMemo(
     () =>
       Array.from(
-        new Set(
-          transactionsWithBalance
-            .map(
-              (transaction) =>
-                transaction.time_entries?.employees?.name
+        new Map(
+          transactions
+            .map((transaction) => transaction.time_entries?.employees)
+            .filter(
+              (employee): employee is { id: string; name: string } =>
+                Boolean(employee?.id && employee?.name),
             )
-            .filter((name): name is string => Boolean(name))
-        )
-      ).sort((left, right) => left.localeCompare(right)),
-    [transactionsWithBalance]
+            .map((employee) => [employee.id, employee]),
+        ).values(),
+      ).sort((left, right) => left.name.localeCompare(right.name)),
+    [transactions],
   );
 
-  const filteredTransactions = useMemo(() => {
-    if (!appliedActivityFilters) return [];
-
-    let result = transactionsWithBalance;
-    const filter = appliedActivityFilters.type;
-
-    if (filter === "credits") {
-      result = result.filter(
-        (transaction) =>
-          Number(transaction.hours_delta || 0) > 0
-      );
-    }
-
-    if (filter === "usage") {
-      result = result.filter(
-        (transaction) =>
-          transaction.transaction_type === "time_debit"
-      );
-    }
-
-    if (filter === "adjustments") {
-      result = result.filter((transaction) =>
-        [
-          "manual_credit",
-          "manual_debit",
-          "adjustment",
-          "refund",
-        ].includes(transaction.transaction_type)
-      );
-    }
-
-    if (filter === "invoices") {
-      result = result.filter(
-        (transaction) =>
-          transaction.transaction_type === "invoice_credit"
-      );
-    }
-
-    if (appliedActivityFilters.employee !== "all") {
-      result = result.filter(
-        (transaction) =>
-          transaction.time_entries?.employees?.name ===
-          appliedActivityFilters.employee
-      );
-    }
-
-    if (appliedActivityFilters.fromDate) {
-      const fromDate = new Date(`${appliedActivityFilters.fromDate}T00:00:00`);
-      result = result.filter(
-        (transaction) => new Date(transaction.created_at) >= fromDate
-      );
-    }
-
-    if (appliedActivityFilters.toDate) {
-      const toDate = new Date(`${appliedActivityFilters.toDate}T23:59:59.999`);
-      result = result.filter(
-        (transaction) => new Date(transaction.created_at) <= toDate
-      );
-    }
-
-    const normalizedSearch = appliedActivityFilters.search
-      .trim()
-      .toLowerCase();
-
-    if (normalizedSearch) {
-      result = result.filter((transaction) => {
-        const searchableText = [
-          getTransactionTitle(transaction),
-          getTransactionDescription(transaction),
-          transaction.invoices?.invoice_number || "",
-          transaction.time_entries?.employees?.name || "",
-          transaction.transaction_type,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return searchableText.includes(normalizedSearch);
+  async function searchActivity() {
+    setActivityLoading(true);
+    setActivityError("");
+    setAppliedActivityFilters({ ...activityFilters });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session has expired.");
+      const query = new URLSearchParams({
+        type: activityFilters.type,
+        employee: activityFilters.employee,
+        fromDate: activityFilters.fromDate,
+        toDate: activityFilters.toDate,
+        search: activityFilters.search,
       });
+      const response = await fetch(
+        `/api/projects/${projectId}/wallet-activity?${query.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const payload = (await response.json()) as {
+        rows?: TransactionWithBalance[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error || "Unable to search wallet activity.");
+      }
+      setActivityTransactions(payload.rows || []);
+    } catch (cause) {
+      setActivityTransactions([]);
+      setActivityError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to search wallet activity.",
+      );
+    } finally {
+      setActivityLoading(false);
     }
-
-    return result;
-  }, [appliedActivityFilters, transactionsWithBalance]);
+  }
 
   async function downloadActivityExcel() {
-    if (!appliedActivityFilters || !filteredTransactions.length) return;
+    if (!appliedActivityFilters || !activityTransactions.length) return;
 
     setExporting(true);
 
     try {
       const XLSX = await import("xlsx");
-      const rows = filteredTransactions.map((transaction) => ({
-        "Date / Time": `${formatDate(transaction.created_at)} ${formatTime(
-          transaction.created_at
-        )}`,
+      const rows = activityTransactions.map((transaction) => ({
+        Date: formatDateKey(walletActivityDateKey(transaction)),
+        "Start Time": transaction.time_entries?.started_at
+          ? formatTime(transaction.time_entries.started_at)
+          : "—",
+        "Stop Time": transaction.time_entries?.stopped_at
+          ? formatTime(transaction.time_entries.stopped_at)
+          : "—",
         Type: getTransactionBadge(transaction.transaction_type).text,
         Employee:
-          transaction.time_entries?.employees?.name || "System",
+          transaction.time_entries?.employees?.name || "—",
         Description: getTransactionDescription(transaction),
         Hours: Number(transaction.hours_delta || 0),
         "Balance After": Number(transaction.balance_after || 0),
-        Reference: getTransactionReference(transaction),
       }));
       const worksheet = XLSX.utils.json_to_sheet(rows);
       worksheet["!cols"] = [
-        { wch: 22 },
+        { wch: 15 },
+        { wch: 13 },
+        { wch: 13 },
         { wch: 18 },
         { wch: 24 },
         { wch: 44 },
         { wch: 12 },
         { wch: 16 },
-        { wch: 24 },
       ];
       const workbook = XLSX.utils.book_new();
+      const summary = XLSX.utils.aoa_to_sheet([
+        ["Project", project?.name || ""],
+        ["Project Code", project?.project_code || "—"],
+        ["Client", project?.clients?.name || "—"],
+        ["Activity Type", appliedActivityFilters.type],
+        [
+          "Employee",
+          employeeOptions.find(
+            (employee) => employee.id === appliedActivityFilters.employee,
+          )?.name || "All employees",
+        ],
+        ["From Date", appliedActivityFilters.fromDate || "All dates"],
+        ["To Date", appliedActivityFilters.toDate || "All dates"],
+        ["Search", appliedActivityFilters.search || "—"],
+        ["Result Count", activityTransactions.length],
+      ]);
+      summary["!cols"] = [{ wch: 20 }, { wch: 44 }];
+      XLSX.utils.book_append_sheet(workbook, summary, "Summary");
       XLSX.utils.book_append_sheet(workbook, worksheet, "Wallet Activity");
       XLSX.writeFile(
         workbook,
@@ -755,48 +631,49 @@ export default function ProjectWalletPage() {
           ← Back to Projects
         </Link>
 
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-white via-white to-blue-50/60 p-7 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.35)] lg:p-9">
+        <section className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-12">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl" />
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+            <div className="relative">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[#153E90] ring-1 ring-blue-100">
+                <span className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-blue-100 ring-1 ring-white/15 backdrop-blur-sm">
                   {project.project_code || "No Code"}
                 </span>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${
                     project.status === "active"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-rose-100 text-rose-700"
+                      ? "bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-300/20"
+                      : "bg-rose-400/15 text-rose-200 ring-1 ring-rose-300/20"
                   }`}
                 >
                   {project.status}
                 </span>
               </div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+              <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-4xl">
                 {project.name}
               </h1>
               {project.clients?.id ? (
                 <Link
                   href={`/clients/${project.clients.id}`}
-                  className="mt-2 inline-flex text-sm font-semibold text-slate-500 hover:text-[#153E90] hover:underline"
+                  className="mt-3 inline-flex text-sm font-semibold text-blue-100/80 transition hover:text-white hover:underline"
                 >
                   Client: {project.clients.name}
                 </Link>
               ) : (
-                <p className="mt-2 text-sm font-semibold text-slate-500">
+                <p className="mt-3 text-sm font-semibold text-blue-100/80">
                   Client: No client
                 </p>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="relative flex flex-wrap gap-3">
               {canAdjustWallet ? (
                 <button
                   type="button"
                   onClick={() =>
                     router.push(`/projects/${project.id}?action=hours`)
                   }
-                  className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800"
+                  className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg shadow-slate-950/20 transition hover:bg-blue-50"
                 >
                   Wallet Adjustment
                 </button>
@@ -804,7 +681,7 @@ export default function ProjectWalletPage() {
               <button
                 type="button"
                 onClick={loadWallet}
-                className="rounded-xl border border-blue-200 bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-sm transition hover:bg-blue-50"
+                className="rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-bold text-white shadow-sm backdrop-blur-sm transition hover:bg-white/20"
               >
                 Refresh
               </button>
@@ -895,7 +772,7 @@ export default function ProjectWalletPage() {
                 <p className="mt-4 text-3xl font-black text-[#153E90]">{formatHours(averageDailyUsage)}</p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-[#153E90]">
-                <WalletMetricIcon>↗</WalletMetricIcon>
+                <TimeOffIcon name="chart" className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-500">Hours per day over the last 30 days</p>
@@ -908,14 +785,14 @@ export default function ProjectWalletPage() {
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Estimated Depletion</p>
                 <p className="mt-4 text-3xl font-black text-amber-800">
                   {estimatedDepletionDate
-                    ? formatDate(estimatedDepletionDate.toISOString())
+                    ? formatTimestampDate(estimatedDepletionDate.toISOString())
                     : averageDailyUsage <= 0
                       ? "No forecast"
                       : "Depleted"}
                 </p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
-                <WalletMetricIcon>⌁</WalletMetricIcon>
+                <TimeOffIcon name="clock" className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-500">
@@ -939,7 +816,7 @@ export default function ProjectWalletPage() {
                 </p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                <WalletMetricIcon>+</WalletMetricIcon>
+                <TimeOffIcon name="wallet" className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-500">Suggested hours for approximately 30 days</p>
@@ -979,7 +856,11 @@ export default function ProjectWalletPage() {
                 className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               >
                 <option value="all">All employees</option>
-                {employeeOptions.map((employee) => <option key={employee} value={employee}>{employee}</option>)}
+                {employeeOptions.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -1008,7 +889,7 @@ export default function ProjectWalletPage() {
               <input
                 value={activityFilters.search}
                 onChange={(event) => setActivityFilters((current) => ({ ...current, search: event.target.value }))}
-                placeholder="Description or reference"
+                placeholder="Description, employee or invoice"
                 className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               />
             </label>
@@ -1017,16 +898,19 @@ export default function ProjectWalletPage() {
           <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 px-6 py-5 sm:px-8">
             <button
               type="button"
-              onClick={() => setAppliedActivityFilters({ ...activityFilters })}
+              disabled={activityLoading}
+              onClick={() => void searchActivity()}
               className="rounded-xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800"
             >
-              Search
+              {activityLoading ? "Searching..." : "Search"}
             </button>
             <button
               type="button"
               onClick={() => {
-                setActivityFilters(emptyActivityFilters);
+                setActivityFilters(emptyWalletActivityFilters);
                 setAppliedActivityFilters(null);
+                setActivityTransactions([]);
+                setActivityError("");
               }}
               className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
             >
@@ -1034,14 +918,14 @@ export default function ProjectWalletPage() {
             </button>
             <button
               type="button"
-              disabled={!appliedActivityFilters || !filteredTransactions.length || exporting}
+              disabled={!appliedActivityFilters || !activityTransactions.length || exporting}
               onClick={() => void downloadActivityExcel()}
               className="rounded-xl border border-blue-200 bg-blue-50 px-6 py-3 text-sm font-bold text-[#153E90] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
               {exporting ? "Downloading..." : "Download Excel"}
             </button>
             {appliedActivityFilters ? (
-              <span className="ml-auto text-sm font-bold text-slate-500">{filteredTransactions.length} results</span>
+              <span className="ml-auto text-sm font-bold text-slate-500">{activityTransactions.length} results</span>
             ) : null}
           </div>
 
@@ -1050,40 +934,54 @@ export default function ProjectWalletPage() {
               <p className="font-bold text-slate-700">Wallet activity is ready to search</p>
               <p className="mt-2 text-sm text-slate-500">Apply one or more filters, then click Search.</p>
             </div>
-          ) : filteredTransactions.length ? (
+          ) : activityError ? (
+            <div className="border-t border-slate-100 px-6 py-14 text-center sm:px-8">
+              <p className="font-bold text-rose-700">Unable to load wallet activity</p>
+              <p className="mt-2 text-sm text-slate-500">{activityError}</p>
+            </div>
+          ) : activityTransactions.length ? (
             <div className="overflow-x-auto border-t border-slate-100">
-              <table className="min-w-[1120px] w-full text-left text-sm">
+              <table className="min-w-[1180px] w-full text-left text-sm">
                 <thead className="bg-[#0F172A] text-xs font-black uppercase tracking-[0.12em] text-slate-200">
                   <tr>
-                    <th className="px-6 py-4">Date / Time</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-5 py-4">Start Time</th>
+                    <th className="px-5 py-4">Stop Time</th>
                     <th className="px-5 py-4">Type</th>
                     <th className="px-5 py-4">Employee</th>
                     <th className="px-5 py-4">Description</th>
                     <th className="px-5 py-4 text-right">Hours</th>
                     <th className="px-5 py-4 text-right">Balance After</th>
-                    <th className="px-6 py-4">Reference</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredTransactions.map((transaction) => {
+                  {activityTransactions.map((transaction) => {
                     const positive = Number(transaction.hours_delta || 0) > 0;
                     const badge = getTransactionBadge(transaction.transaction_type);
                     return (
                       <tr key={transaction.id} className="transition hover:bg-blue-50/40">
                         <td className="whitespace-nowrap px-6 py-4 font-semibold text-slate-700">
-                          <span className="block">{formatDate(transaction.created_at)}</span>
-                          <span className="mt-1 block text-xs text-slate-400">{formatTime(transaction.created_at)}</span>
+                          {formatDateKey(walletActivityDateKey(transaction))}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-600">
+                          {transaction.time_entries?.started_at
+                            ? formatTime(transaction.time_entries.started_at)
+                            : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-600">
+                          {transaction.time_entries?.stopped_at
+                            ? formatTime(transaction.time_entries.stopped_at)
+                            : "—"}
                         </td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${badge.className}`}>{badge.text}</span>
                         </td>
-                        <td className="px-5 py-4 font-semibold text-slate-700">{transaction.time_entries?.employees?.name || "System"}</td>
+                        <td className="px-5 py-4 font-semibold text-slate-700">{transaction.time_entries?.employees?.name || "—"}</td>
                         <td className="max-w-md px-5 py-4 text-slate-600">{getTransactionDescription(transaction)}</td>
                         <td className={`whitespace-nowrap px-5 py-4 text-right font-black ${positive ? "text-emerald-700" : "text-rose-700"}`}>
                           {positive ? "+" : ""}{formatHours(transaction.hours_delta)} hrs
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-right font-black text-slate-900">{formatHours(transaction.balance_after)} hrs</td>
-                        <td className="whitespace-nowrap px-6 py-4 font-semibold text-[#153E90]">{getTransactionReference(transaction)}</td>
                       </tr>
                     );
                   })}
