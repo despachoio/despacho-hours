@@ -4,6 +4,22 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("main workspace tab consistency", () => {
+  it("uses one Kairo blue treatment for every primary module tab", () => {
+    const files = [
+      "src/app/(app)/team/page.tsx",
+      "src/components/time-off/TimeOffWorkspace.tsx",
+      "src/components/payroll/PayrollWorkspace.tsx",
+      "src/app/(app)/invoices/page.tsx",
+      "src/app/(app)/accounts/page.tsx",
+    ];
+    for (const file of files) {
+      const content = source(file);
+      expect(content).toContain("bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20");
+      expect(content).toContain("text-slate-500 hover:bg-blue-50 hover:text-[#153E90]");
+    }
+    expect(source("src/app/(app)/invoices/page.tsx")).not.toContain('tab === item ? "bg-[#0F172A] text-white shadow-sm"');
+  });
+
   it("adds semantic icons to every Workforce tab without changing visibility", () => {
     const workforce = source("src/app/(app)/team/page.tsx");
     for (const icon of ["chart", "check", "hierarchy", "star", "monitor", "exit", "shield"]) {
@@ -32,6 +48,22 @@ describe("main workspace tab consistency", () => {
     expect(accounts).toContain('{ value: "clients", label: "Clients", icon: "people" }');
     expect(accounts).toContain('{ value: "projects", label: "Projects", icon: "folder" }');
     expect(accounts).toContain("const visibleTabs = canViewClients ? accountTabs : accountTabs.slice(1)");
+  });
+
+  it("uses the Time Off Administration pattern for genuine second-level tabs", () => {
+    const files = [
+      "src/components/time-off/TimeOffAdmin.tsx",
+      "src/components/payroll/PayrollWorkspace.tsx",
+      "src/components/performance/ReviewsWorkspace.tsx",
+      "src/components/assets/AssetsWorkspace.tsx",
+      "src/components/team/ExitProcessWorkspace.tsx",
+    ];
+    for (const file of files) {
+      const content = source(file);
+      expect(content).toContain("from-indigo-950 via-blue-900 to-cyan-800");
+      expect(content).toContain("bg-white text-[#153E90] shadow-lg shadow-slate-950/20");
+      expect(content).toContain("text-blue-100 hover:bg-white/10 hover:text-white");
+    }
   });
 });
 

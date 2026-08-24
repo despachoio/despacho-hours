@@ -724,7 +724,7 @@ function InvoicesPageContent() {
             <button
               key={item}
               onClick={() => selectTab(item)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition ${tab === item ? "bg-[#0F172A] text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition duration-200 ${tab === item ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
             >
               <TimeOffIcon name={icon} className="h-4 w-4" />
               <span>{label}</span>

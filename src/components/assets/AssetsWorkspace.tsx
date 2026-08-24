@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { assetAction, loadAssets } from "@/lib/assets/client";
 import type { AssetItem, AssetRecord, AssetRequest, AssetsPayload } from "@/lib/assets/types";
 import { assetOptionLabel, assetsForCategory, canEmployeeCancelAssetRequest, isAssetAvailable, isLowStock, itemsForCategory, requestNeedsExistingAsset, supportsPhysicalAssets } from "@/lib/assets/workflow";
+import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type AdminTab = "my_assets" | "request_item" | "dashboard" | "assigned" | "requests" | "inventory" | "settings";
 type EmployeeTab = "my_assets" | "my_requests" | "request_item";
@@ -54,15 +55,15 @@ export default function AssetsWorkspace() {
     finally { setBusy(""); }
   };
   if (loading && !data.role) return <div className="space-y-4"><div className="h-28 animate-pulse rounded-3xl bg-white"/><div className="h-72 animate-pulse rounded-3xl bg-white"/></div>;
-  const tabs = data.canAdminister
-    ? [{ id: "my_assets", label: "My Assets" }, { id: "request_item", label: "Request Item" }, { id: "dashboard", label: "Dashboard" }, { id: "assigned", label: "Assigned Assets" }, { id: "requests", label: "Requests" }, { id: "inventory", label: "Inventory / Items" }, { id: "settings", label: "Settings" }]
-    : [{ id: "my_assets", label: "My Assets" }, { id: "my_requests", label: "My Requests" }, { id: "request_item", label: "Request Item" }];
+  const tabs: Array<{ id: AdminTab | EmployeeTab; label: string; icon: TimeOffIconName }> = data.canAdminister
+    ? [{ id: "my_assets", label: "My Assets", icon: "monitor" }, { id: "request_item", label: "Request Item", icon: "inbox" }, { id: "dashboard", label: "Dashboard", icon: "chart" }, { id: "assigned", label: "Assigned Assets", icon: "check" }, { id: "requests", label: "Requests", icon: "document" }, { id: "inventory", label: "Inventory / Items", icon: "folder" }, { id: "settings", label: "Settings", icon: "settings" }]
+    : [{ id: "my_assets", label: "My Assets", icon: "monitor" }, { id: "my_requests", label: "My Requests", icon: "document" }, { id: "request_item", label: "Request Item", icon: "inbox" }];
   const active = data.canAdminister ? adminTab : employeeTab;
   return <div className="space-y-6">
     {error ? <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="bg-gradient-to-r from-slate-50 via-white to-blue-50 px-6 py-6"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#153E90]">Workforce operations</p><h2 className="mt-1 text-2xl font-bold text-slate-950">Assets &amp; Supplies</h2><p className="mt-1 text-sm text-slate-500">Company equipment, employee requests, replacements, and inventory.</p></div>
-      <div className="flex gap-1 overflow-x-auto border-t border-slate-100 p-2">{tabs.map((tab) => <button key={tab.id} onClick={() => { if (data.canAdminister) { if (tab.id === "my_assets" || tab.id === "request_item") setData((current) => ({ ...current, assignments: [] })); setAdminTab(tab.id as AdminTab); } else setEmployeeTab(tab.id as EmployeeTab); }} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${active === tab.id ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"}`}>{tab.label}</button>)}</div>
+      <div className="flex gap-2 overflow-x-auto border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]">{tabs.map((tab) => <button key={tab.id} onClick={() => { if (data.canAdminister) { if (tab.id === "my_assets" || tab.id === "request_item") setData((current) => ({ ...current, assignments: [] })); setAdminTab(tab.id as AdminTab); } else setEmployeeTab(tab.id as EmployeeTab); }} className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${active === tab.id ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}><TimeOffIcon name={tab.icon} className="h-4 w-4"/>{tab.label}</button>)}</div>
     </section>
     {loading ? <div className="h-1 animate-pulse rounded-full bg-blue-200"/> : null}
     {data.canAdminister && adminTab === "my_assets" ? <MyAssets data={data}/> : null}

@@ -21,7 +21,7 @@ type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun
 type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
 const employeeTabs: Array<[Exclude<Tab, "administration" | "policy">, string, TimeOffIconName]> = [["overview", "My Payroll", "wallet"], ["history", "Payroll History", "clock"]];
-const administrationTabs: Array<[AdministrationTab, string]> = [["dashboard", "Payroll Dashboard"], ["structures", "Salary Structures"], ["recurring", "Recurring Adjustments"], ["process", "Payroll Processing"], ["reports", "Reports"], ["settings", "Settings"]];
+const administrationTabs: Array<[AdministrationTab, string, TimeOffIconName]> = [["dashboard", "Payroll Dashboard", "chart"], ["structures", "Salary Structures", "wallet"], ["recurring", "Recurring Adjustments", "repeat"], ["process", "Payroll Processing", "clock"], ["reports", "Reports", "document"], ["settings", "Settings", "settings"]];
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const fieldClass = "mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100";
 const monthValue = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; };
@@ -130,25 +130,26 @@ export default function PayrollWorkspace() {
             <div className="space-y-5">
               <nav
                 aria-label="Payroll administration sections"
-                className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 p-2 shadow-sm"
+                className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
               >
                 {administrationTabs
                   .filter(
                     ([value]) =>
                       value !== "structures" || salaryStructureAccess,
                   )
-                  .map(([value, label]) => (
+                  .map(([value, label, icon]) => (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setAdministrationTab(value)}
-                      className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                      className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${
                         administrationTab === value
-                          ? "bg-[#0F172A] text-white shadow"
-                          : "text-slate-600 hover:bg-white hover:text-[#153E90]"
+                          ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20"
+                          : "text-blue-100 hover:bg-white/10 hover:text-white"
                       }`}
                     >
-                      {label}
+                      <TimeOffIcon name={icon} className="h-4 w-4" />
+                      <span>{label}</span>
                     </button>
                   ))}
               </nav>

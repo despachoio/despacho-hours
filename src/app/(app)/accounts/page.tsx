@@ -72,7 +72,7 @@ function AccountsPageContent() {
               key={tab.value}
               type="button"
               onClick={() => selectTab(tab.value)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition ${selectedTab === tab.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition duration-200 ${selectedTab === tab.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
             >
               <TimeOffIcon name={tab.icon as TimeOffIconName} className="h-4 w-4" />
               <span>{tab.label}</span>
