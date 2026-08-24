@@ -275,24 +275,24 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
           <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-blue-400/10 blur-3xl" />
-          <div className="relative flex h-full flex-col justify-between gap-8 sm:flex-row sm:items-end">
+          <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-200">
+              <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
                 Kairo command center
               </p>
               <h1 className="mt-3 text-4xl font-bold tracking-tight lg:text-5xl">
                 Dashboard
               </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
                 Delivery, financial health, and live operations in one clear
                 view.
               </p>
             </div>
             <div className="w-fit rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
                 Signed in as
               </p>
               <p className="mt-1 font-bold">{profile?.role || "Loading"}</p>
@@ -301,7 +301,7 @@ export default function DashboardPage() {
         </header>
 
         <section
-  className={`mt-6 grid gap-4 px-3 sm:px-6 ${
+  className={`mt-7 grid gap-4 px-3 sm:px-6 ${
     isEmployee ? "md:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-4"
   }`}
 >

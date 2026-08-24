@@ -1970,16 +1970,16 @@ return (
 
 <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
   <div className="mx-auto max-w-[1500px]">
-    <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+    <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
       <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
       <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
-      <div className="relative flex min-h-[156px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
+      <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">
+          <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
             Despacho workforce
           </p>
           <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">Time Tracking</h1>
-          <p className="mt-3 text-sm text-slate-300">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
             Track project time and monitor live work.
           </p>
         </div>
@@ -1999,7 +1999,7 @@ return (
       </div>
     </header>
 
-    <section className="relative z-10 mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:mx-4 sm:p-6">
+    <section className="relative z-10 mt-7 rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:mx-4 sm:p-6">
   {!activeTimer ? (
         <>
           <div>

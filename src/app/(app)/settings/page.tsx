@@ -183,16 +183,16 @@ export default function CompanySettingsPage() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
           <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#153E90]/70 blur-3xl" />
-          <div className="relative flex min-h-[156px] flex-col justify-end">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-200">
+          <div className="relative flex min-h-[170px] flex-col justify-end">
+            <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
               Workspace administration
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight lg:text-5xl">
               Company Settings
             </h1>
-            <p className="mt-3 text-sm text-slate-300">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
               Manage company information, billing defaults, and workspace
               preferences.
             </p>

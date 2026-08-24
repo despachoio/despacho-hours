@@ -49,16 +49,16 @@ function AccountsPageContent() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
-          <div className="relative flex min-h-[156px] flex-col justify-end">
-            <p className="text-xs font-bold uppercase tracking-[.22em] text-cyan-200">
+          <div className="relative flex min-h-[170px] flex-col justify-end">
+            <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
               Relationships &amp; delivery
             </p>
             <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">
               Accounts
             </h1>
-            <p className="mt-3 text-sm text-blue-100">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
               Manage client accounts, projects and service delivery.
             </p>
           </div>
@@ -79,7 +79,7 @@ function AccountsPageContent() {
             </button>
           ))}
         </nav>
-        <section className="mt-8">
+        <section className="mt-7">
           {loadingRole ? (
             <div className="h-96 animate-pulse rounded-3xl bg-white" />
           ) : selectedTab === "clients" ? (

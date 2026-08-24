@@ -368,17 +368,17 @@ export default function WorkforcePage() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
-          <div className="relative flex min-h-[156px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
+          <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">
+              <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
                 People and capacity
               </p>
               <h1 className="mt-2 text-4xl font-bold tracking-tight lg:text-5xl">
                 Workforce
               </h1>
-              <p className="mt-3 text-sm text-slate-300">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
                 Manage your organization&apos;s workforce, reporting structure,
                 approvals and company policies.
               </p>
@@ -397,7 +397,7 @@ export default function WorkforcePage() {
           </div>
         ) : null}
         {tab === "overview" && showNewMember && isAdmin ? (
-          <section className="relative z-10 -mt-4 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:mx-5">
+          <section className="relative z-10 mt-7 rounded-3xl border border-blue-100 bg-white p-6 shadow-xl sm:mx-5">
             <div className="flex items-start justify-between gap-6">
               <div>
                 <h2 className="text-xl font-bold">Add workforce member</h2>
@@ -479,7 +479,7 @@ export default function WorkforcePage() {
             </div>
           </section>
         ) : null}
-        {tab === "overview" ? <div className="mt-8 space-y-7">
+        {tab === "overview" ? <div className="mt-7 space-y-7">
           <TeamFilters
             value={filters}
             onChange={setFilters}
@@ -544,12 +544,12 @@ export default function WorkforcePage() {
             </>
           )}
         </div> : null}
-        {tab === "approvals" && isAdmin ? <div className="mt-8"><ProfileApprovals/></div> : null}
-        {tab === "organization" ? <div className="mt-8"><OrganizationChartLoader/></div> : null}
-        {tab === "reviews" ? <div className="mt-8"><ReviewsWorkspace/></div> : null}
-        {tab === "assets" ? <div className="mt-8"><AssetsWorkspace/></div> : null}
-        {tab === "exit" ? <div className="mt-8"><ExitProcessWorkspace/></div> : null}
-        {tab === "policies" ? <div className="mt-8"><TeamPolicies/></div> : null}
+        {tab === "approvals" && isAdmin ? <div className="mt-7"><ProfileApprovals/></div> : null}
+        {tab === "organization" ? <div className="mt-7"><OrganizationChartLoader/></div> : null}
+        {tab === "reviews" ? <div className="mt-7"><ReviewsWorkspace/></div> : null}
+        {tab === "assets" ? <div className="mt-7"><AssetsWorkspace/></div> : null}
+        {tab === "exit" ? <div className="mt-7"><ExitProcessWorkspace/></div> : null}
+        {tab === "policies" ? <div className="mt-7"><TeamPolicies/></div> : null}
       </div>
     </main>
   );

@@ -42,10 +42,10 @@ export default function PayrollWorkspace() {
   const latest = data?.ownEntries?.[0];
   return (
   <div>
-    <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+    <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
       <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
 
-      <div className="relative flex min-h-[156px] flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
+      <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
         Finance &amp; compensation
       </p>
 
@@ -58,7 +58,7 @@ export default function PayrollWorkspace() {
         controlled month-end processing.
       </p>
 
-      </div><span className="inline-flex w-fit rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
+      </div><span className="inline-flex w-fit rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200 backdrop-blur">
         {administrationAccess
           ? "Payroll administration workspace"
           : "Employee self-service"}

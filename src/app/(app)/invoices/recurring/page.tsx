@@ -276,14 +276,14 @@ function RecurringInvoicesWorkspace({
     >
       <div className={embedded ? "" : "mx-auto max-w-[1500px]"}>
         {!embedded ? (
-          <div className="relative flex min-h-[220px] flex-col justify-between gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:flex-row sm:items-end sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+          <div className="relative flex min-h-[250px] flex-col justify-between gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 sm:flex-row sm:items-end lg:px-12">
             <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative">
-              <p className="text-xs font-bold uppercase tracking-[.22em] text-blue-200">
+              <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
                 Invoice Automation
               </p>
               <h1 className="mt-2 text-4xl font-bold">Recurring Invoices</h1>
-              <p className="mt-2 text-sm text-blue-100">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
                 Plan, review, and generate editable invoice Drafts.
               </p>
             </div>
