@@ -409,12 +409,16 @@ export default function WorkOrdersWorkspace() {
 
   return (
     <div className="space-y-6">
-      <nav className="flex gap-2 overflow-x-auto rounded-2xl bg-gradient-to-r from-[#153E90] to-cyan-600 p-2 shadow-lg shadow-blue-900/10">
+      <nav
+        aria-label="Work Order sections"
+        className="flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
+      >
         {tabs.map((item) => (
           <button
             key={item.value}
             onClick={() => setTab(item.value)}
-            className={`flex h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold ${tab === item.value ? "bg-white text-[#153E90] shadow" : "text-blue-100 hover:bg-white/10"}`}
+            aria-current={tab === item.value ? "page" : undefined}
+            className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === item.value ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}
           >
             <TimeOffIcon name={item.icon} className="h-4 w-4" />
             {item.label}

@@ -52,6 +52,20 @@ describe("Work Order authorization", () => {
   });
 });
 describe("Work Order identity", () => {
+  it("qualifies sequence columns in the deployed identity repair", () => {
+    const sql = readFileSync(
+      resolve(
+        root,
+        "supabase/migrations/202608250001_fix_work_order_identity_sequence.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("max(reservation.sequence_number)");
+    expect(sql).toContain("max(work_order.sequence_number)");
+    expect(sql).toContain("max(client.business_client_id)");
+    expect(sql).not.toContain("max(sequence_number)");
+  });
+
   it("keeps the approved Work Order to Customer relationship", () => {
     expect(workOrderNumber(93)).toBe("0093");
     expect(customerIdForSequence(93)).toBe(1093);
@@ -98,6 +112,21 @@ describe("Work Order document and workspace", () => {
     expect(workspace).toContain("Create or Link Client");
     expect(workspace).toContain("Create Project");
     expect(workspace).toContain("Download PDF");
+  });
+
+  it("matches the recurring-invoice secondary navigation treatment", () => {
+    const workspace = readFileSync(
+      resolve(root, "src/components/work-orders/WorkOrdersWorkspace.tsx"),
+      "utf8",
+    );
+    expect(workspace).toContain(
+      "from-indigo-950 via-blue-900 to-cyan-800",
+    );
+    expect(workspace).toContain("border-blue-800/60");
+    expect(workspace).toContain(
+      'bg-white text-[#153E90] shadow-lg shadow-slate-950/20',
+    );
+    expect(workspace).toContain('aria-label="Work Order sections"');
   });
 
   it("keeps generated versions immutable and signed commercial data protected", () => {
