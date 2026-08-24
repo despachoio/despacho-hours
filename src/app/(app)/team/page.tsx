@@ -28,6 +28,7 @@ import {
   type EmployeeProfileChanges,
 } from "@/lib/employee-profile";
 import { EmployeeProfileFormSections } from "@/components/team/EmployeeProfileSections";
+import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 import {
   resolveWorkforceTab,
   workforceTabUrl,
@@ -385,7 +386,7 @@ export default function WorkforcePage() {
           </div>
         </header>
         <nav aria-label="Workforce sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-          {([...[{ value: "overview", label: "Overview" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals" }] : []), { value: "organization", label: "Organization Chart" }, { value: "reviews", label: "Reviews" }, { value: "assets", label: "Assets" }, { value: "exit", label: "Exit Process" }, { value: "policies", label: "Policies" }] as Array<{ value: WorkforceTab; label: string }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}>{item.label}</Link>)}
+          {([...[{ value: "overview", label: "Overview", icon: "chart" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals", icon: "check" }] : []), { value: "organization", label: "Organization Chart", icon: "hierarchy" }, { value: "reviews", label: "Reviews", icon: "star" }, { value: "assets", label: "Assets", icon: "monitor" }, { value: "exit", label: "Exit Process", icon: "exit" }, { value: "policies", label: "Policies", icon: "shield" }] as Array<{ value: WorkforceTab; label: string; icon: TimeOffIconName }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${tab === item.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}><TimeOffIcon name={item.icon} className="h-4 w-4"/><span>{item.label}</span></Link>)}
         </nav>
         {error ? (
           <div

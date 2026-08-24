@@ -28,6 +28,7 @@ import {
 import type { InvoiceMetrics } from "@/lib/metrics/types";
 import RecurringInvoicesPage from "./recurring/page";
 import { RecurringInvoicesEmbeddedProvider } from "@/components/invoices/RecurringInvoicesEmbeddedContext";
+import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type InvoiceTab = "overview" | "all" | "recurring";
 type Invoice = {
@@ -715,17 +716,18 @@ function InvoicesPageContent() {
           className="relative z-10 mx-3 -mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2.5 shadow-lg shadow-slate-200/60 sm:mx-8"
           aria-label="Invoice sections"
         >
-          {(["overview", "all", "recurring"] as InvoiceTab[]).map((item) => (
+          {([
+            ["overview", "Overview", "chart"],
+            ["all", "All Invoices", "receipt"],
+            ["recurring", "Recurring Invoices", "repeat"],
+          ] as Array<[InvoiceTab, string, TimeOffIconName]>).map(([item, label, icon]) => (
             <button
               key={item}
               onClick={() => selectTab(item)}
-              className={`whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition ${tab === item ? "bg-[#0F172A] text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition ${tab === item ? "bg-[#0F172A] text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
             >
-              {item === "all"
-                ? "All Invoices"
-                : item === "recurring"
-                  ? "Recurring Invoices"
-                  : "Overview"}
+              <TimeOffIcon name={icon} className="h-4 w-4" />
+              <span>{label}</span>
             </button>
           ))}
         </nav>

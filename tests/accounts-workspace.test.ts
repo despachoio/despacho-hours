@@ -36,8 +36,8 @@ describe("Accounts navigation architecture", () => {
   });
 
   it("supports client and project tabs without loading both at once", () => {
-    expect(accounts).toContain('{ value: "clients", label: "Clients" }');
-    expect(accounts).toContain('{ value: "projects", label: "Projects" }');
+    expect(accounts).toContain('{ value: "clients", label: "Clients", icon: "people" }');
+    expect(accounts).toContain('{ value: "projects", label: "Projects", icon: "folder" }');
     expect(accounts).toContain('router.replace(tab === "clients" ? "/accounts" : "/accounts?tab=projects"');
     expect(accounts).toContain("<ClientsWorkspace embedded />");
     expect(accounts).toContain("<ProjectsWorkspace embedded />");

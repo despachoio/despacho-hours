@@ -14,12 +14,13 @@ import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollA
 import SalaryStructures from "@/components/payroll/SalaryStructures";
 import RecurringAdjustments from "@/components/payroll/RecurringAdjustments";
 import PayrollPolicy from "@/components/payroll/PayrollPolicy";
+import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
 type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
-const employeeTabs: Array<[Exclude<Tab, "administration">, string]> = [["overview", "My Payroll"], ["history", "Payroll History"], ["policy", "Policies"]];
+const employeeTabs: Array<[Exclude<Tab, "administration" | "policy">, string, TimeOffIconName]> = [["overview", "My Payroll", "wallet"], ["history", "Payroll History", "clock"]];
 const administrationTabs: Array<[AdministrationTab, string]> = [["dashboard", "Payroll Dashboard"], ["structures", "Salary Structures"], ["recurring", "Recurring Adjustments"], ["process", "Payroll Processing"], ["reports", "Reports"], ["settings", "Settings"]];
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const fieldClass = "mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100";
@@ -32,6 +33,11 @@ export default function PayrollWorkspace() {
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
   const administrationAccess = isFinanceAdminRole(data?.role);
   const salaryStructureAccess = isFinanceAdminRole(data?.role);
+  const mainTabs: Array<[Tab, string, TimeOffIconName]> = [
+    ...employeeTabs,
+    ...(administrationAccess ? [["administration", "Administration", "settings"] as [Tab, string, TimeOffIconName]] : []),
+    ["policy", "Policies", "shield"],
+  ];
   async function action(payload: Record<string, unknown>, refresh = true) { setMessage(""); setError(""); try { await payrollRequest("/api/payroll", { method: "POST", body: JSON.stringify(payload) }); setMessage("Payroll updated successfully."); if (refresh) await load(); return true; } catch (cause) { setError(cause instanceof Error ? cause.message : "Payroll action failed"); return false; } }
   const latest = data?.ownEntries?.[0];
   return (
@@ -63,34 +69,21 @@ export default function PayrollWorkspace() {
       aria-label="Payroll sections"
       className="relative z-10 mx-3 -mt-4 flex gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6"
     >
-      {employeeTabs.map(([value, label]) => (
+      {mainTabs.map(([value, label, icon]) => (
         <button
           key={value}
           type="button"
           onClick={() => setTab(value)}
-          className={`group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${
+          className={`group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${
             tab === value
               ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20"
               : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"
           }`}
         >
-          {label}
+          <TimeOffIcon name={icon} className="h-4 w-4" />
+          <span>{label}</span>
         </button>
       ))}
-
-      {administrationAccess ? (
-        <button
-          type="button"
-          onClick={() => setTab("administration")}
-          className={`group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${
-            tab === "administration"
-              ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20"
-              : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"
-          }`}
-        >
-          Administration
-        </button>
-      ) : null}
     </nav>
 
     <div className="mt-7 space-y-7">

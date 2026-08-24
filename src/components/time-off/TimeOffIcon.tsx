@@ -13,7 +13,14 @@ export type TimeOffIconName =
   | "chart"
   | "document"
   | "bell"
-  | "search";
+  | "search"
+  | "hierarchy"
+  | "star"
+  | "monitor"
+  | "exit"
+  | "repeat"
+  | "receipt"
+  | "folder";
 
 const paths: Record<TimeOffIconName, ReactNode> = {
   calendar: <><path d="M7 3v3M17 3v3M4 9h16"/><rect x="4" y="5" width="16" height="16" rx="3"/><path d="m9 15 2 2 4-5"/></>,
@@ -29,6 +36,13 @@ const paths: Record<TimeOffIconName, ReactNode> = {
   document: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></>,
   bell: <><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 8h18c0-1-3-1-3-8M10 21h4"/></>,
   search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
+  hierarchy: <><rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="17" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/><path d="M12 7v5M6 17v-5h12v5"/></>,
+  star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"/>,
+  monitor: <><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></>,
+  exit: <><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></>,
+  repeat: <><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></>,
+  receipt: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/></>,
+  folder: <><path d="M3 6h7l2 2h9v11H3z"/><path d="M3 9h18"/></>,
 };
 
 export default function TimeOffIcon({ name, ...props }: { name: TimeOffIconName } & SVGProps<SVGSVGElement>) {

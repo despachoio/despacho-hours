@@ -206,7 +206,8 @@ describe("Payroll security and snapshot contracts", () => {
   it("provides employee PDF and payroll administration workflow surfaces", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
     expect(workspace).toContain("Download Payslip");
-    expect(workspace).toContain('setTab("administration")');
+    expect(workspace).toContain('["administration", "Administration", "settings"]');
+    expect(workspace).toContain("onClick={() => setTab(value)}");
     expect(workspace).toContain('aria-label="Payroll administration sections"');
     for (const section of ["Payroll Dashboard", "Salary Structures", "Recurring Adjustments", "Payroll Processing", "Reports", "Settings"]) expect(workspace).toContain(section);
     expect(workspace).not.toContain('["register", "Salary Register"]');
@@ -512,9 +513,9 @@ describe("Payroll security and snapshot contracts", () => {
   it("publishes payroll policies to every payroll user", () => {
     const workspace = source("src/components/payroll/PayrollWorkspace.tsx");
     const policy = source("src/components/payroll/PayrollPolicy.tsx");
-    expect(workspace).toContain('["policy", "Policies"]');
+    expect(workspace).toContain('["policy", "Policies", "shield"]');
     expect(workspace).toContain('tab === "policy" ? <PayrollPolicy />');
-    expect(workspace.indexOf('["policy", "Policies"]')).toBeLessThan(workspace.indexOf("administrationTabs"));
+    expect(workspace.indexOf('["policy", "Policies", "shield"]')).toBeGreaterThan(workspace.indexOf('["administration", "Administration", "settings"]'));
     for (const section of ["Payroll Access and Records", "Processing Period and Financial Year", "Salary Structure Policy", "Payroll Calculation Rules", "Payroll Processing and Adjustments"]) expect(policy).toContain(section);
     expect(policy).not.toContain('id: "rewards"');
   });

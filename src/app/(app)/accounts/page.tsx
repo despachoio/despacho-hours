@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ClientsWorkspace } from "@/app/(app)/clients/page";
 import { ProjectsWorkspace } from "@/app/(app)/projects/page";
 import { supabase } from "@/lib/supabase";
+import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 const accountTabs = [
-  { value: "clients", label: "Clients" },
-  { value: "projects", label: "Projects" },
+  { value: "clients", label: "Clients", icon: "people" },
+  { value: "projects", label: "Projects", icon: "folder" },
 ] as const;
 
 type AccountTab = (typeof accountTabs)[number]["value"];
@@ -71,9 +72,10 @@ function AccountsPageContent() {
               key={tab.value}
               type="button"
               onClick={() => selectTab(tab.value)}
-              className={`whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition ${selectedTab === tab.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition ${selectedTab === tab.value ? "bg-[#153E90] text-white shadow" : "text-slate-500 hover:bg-slate-100"}`}
             >
-              {tab.label}
+              <TimeOffIcon name={tab.icon as TimeOffIconName} className="h-4 w-4" />
+              <span>{tab.label}</span>
             </button>
           ))}
         </nav>
