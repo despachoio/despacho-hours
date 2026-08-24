@@ -39,6 +39,11 @@ export function canAccessInvoices(role: unknown) {
   return hasSuperAdminAccess(role);
 }
 
+/** Commercial Work Orders are intentionally restricted to the two highest roles. */
+export function canAccessWorkOrders(role: unknown) {
+  return hasSuperAdminAccess(role);
+}
+
 export function canonicalRole(role: unknown): KairoRole | null {
   const normalized = normalizeRole(role);
   if (normalized === "finance admin") return "Finance Admin";

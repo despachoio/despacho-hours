@@ -1,0 +1,75 @@
+import type { WorkOrderStatus } from "./access";
+
+export type WorkOrderCurrency = "USD" | "CAD";
+
+export type PricingPhase = {
+  label: string;
+  description?: string;
+  startMonth?: number;
+  endMonth?: number;
+  amount: number;
+  currency: WorkOrderCurrency;
+  billingBasis: string;
+};
+export type WorkOrderInput = {
+  id?: string;
+  reservationId?: string;
+  customerType: "existing_client" | "new_client";
+  clientId?: string;
+  companyName: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  templateType: string;
+  commercialModel: string;
+  billingBasis: string;
+  resourceCount?: number;
+  hoursPerResourceMonth?: number;
+  hoursPerDay?: number;
+  daysPerWeek?: number;
+  workingCommitmentCustom?: string;
+  currency: WorkOrderCurrency;
+  monthlyFee?: number;
+  pricingNotes?: string;
+  pricingPhases?: PricingPhase[];
+  location?: string;
+  rateIncreaseTerms?: string;
+  effectiveDate: string;
+  firstInvoiceDate?: string;
+  projectStartDate: string;
+  endingType: "ongoing" | "specific_date" | "custom";
+  endDate?: string;
+  serviceType: string;
+  engagementModel: string;
+  engagementOverview: string;
+  paymentTermsDays?: number;
+  paymentTermsCustom?: string;
+  latePaymentTerms?: string;
+  longTermClauseEnabled?: boolean;
+  futureHiresClauseEnabled?: boolean;
+  additionalHeadcountClauseEnabled?: boolean;
+  premiumWorkClauseEnabled?: boolean;
+  customTerms?: string;
+  termsTemplateId?: string;
+};
+
+export type WorkOrderListItem = {
+  id: string;
+  work_order_number: string;
+  client_business_id: number | null;
+  company_name: string;
+  status: WorkOrderStatus;
+  effective_date: string;
+  project_start_date: string;
+  resource_count: number | null;
+  commercial_model: string;
+  currency: WorkOrderCurrency;
+  monthly_fee: number | null;
+  current_version: number;
+  updated_at: string;
+};

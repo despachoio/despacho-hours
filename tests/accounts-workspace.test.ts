@@ -8,6 +8,8 @@ describe("Accounts navigation architecture", () => {
   const accounts = read("src/app/(app)/accounts/page.tsx");
   const clients = read("src/app/(app)/clients/page.tsx");
   const projects = read("src/app/(app)/projects/page.tsx");
+  const reviews = read("src/components/performance/ReviewsWorkspace.tsx");
+  const moduleHeader = read("src/components/ui/ModuleHeader.tsx");
 
   it("uses the consolidated sidebar order", () => {
     const expectedOrder = [
@@ -30,15 +32,26 @@ describe("Accounts navigation architecture", () => {
     expect(layout).not.toContain('name: "Projects"');
   });
 
-  it("places the embedded new-project action beside its section heading", () => {
-    expect(projects).toContain("sm:flex-row sm:items-end sm:justify-between");
-    expect(projects).toContain("sm:self-auto");
+  it("uses the shared premium module header for embedded account sections", () => {
+    expect(clients).toContain("<ModuleHeader");
+    expect(clients).toContain('eyebrow="Client portfolio"');
+    expect(projects).toContain("<ModuleHeader");
+    expect(projects).toContain('eyebrow="Delivery portfolio"');
+    expect(reviews).toContain("<ModuleHeader");
+    expect(moduleHeader).toContain("from-slate-50 via-white to-blue-50");
+    expect(moduleHeader).toContain("sm:flex-row sm:items-end");
   });
 
   it("supports client and project tabs without loading both at once", () => {
-    expect(accounts).toContain('{ value: "clients", label: "Clients", icon: "people" }');
-    expect(accounts).toContain('{ value: "projects", label: "Projects", icon: "folder" }');
-    expect(accounts).toContain('router.replace(tab === "clients" ? "/accounts" : "/accounts?tab=projects"');
+    expect(accounts).toContain(
+      '{ value: "clients", label: "Clients", icon: "people" }',
+    );
+    expect(accounts).toContain(
+      '{ value: "projects", label: "Projects", icon: "folder" }',
+    );
+    expect(accounts).toContain(
+      'router.replace(tab === "clients" ? "/accounts" : `/accounts?tab=${tab}`',
+    );
     expect(accounts).toContain("<ClientsWorkspace embedded />");
     expect(accounts).toContain("<ProjectsWorkspace embedded />");
   });
@@ -60,7 +73,9 @@ describe("Accounts navigation architecture", () => {
       expect(source).toContain("from-[#153E90] to-cyan-400");
     }
 
-    expect(clients).toContain("bg-gradient-to-r from-white via-white to-blue-50/75");
+    expect(clients).toContain(
+      "bg-gradient-to-r from-white via-white to-blue-50/75",
+    );
     expect(projects).toContain("border border-violet-100/80");
     expect(projects).toContain("border border-emerald-100/80");
   });
@@ -74,6 +89,8 @@ describe("New workforce member cancellation", () => {
     expect(workforce).toContain('aria-label="Close new workforce member form"');
     expect(workforce).toContain("onClick={closeNewMemberForm}");
     expect(workforce).toContain("Cancel");
-    expect(workforce).toContain("setMemberDraft(emptyEmployeeProfileChanges())");
+    expect(workforce).toContain(
+      "setMemberDraft(emptyEmployeeProfileChanges())",
+    );
   });
 });

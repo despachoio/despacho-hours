@@ -4,12 +4,17 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ClientsWorkspace } from "@/app/(app)/clients/page";
 import { ProjectsWorkspace } from "@/app/(app)/projects/page";
+import WorkOrdersWorkspace from "@/components/work-orders/WorkOrdersWorkspace";
 import { supabase } from "@/lib/supabase";
-import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
+import { canAccessWorkOrders } from "@/lib/roles";
+import TimeOffIcon, {
+  type TimeOffIconName,
+} from "@/components/time-off/TimeOffIcon";
 
 const accountTabs = [
   { value: "clients", label: "Clients", icon: "people" },
   { value: "projects", label: "Projects", icon: "folder" },
+  { value: "work-orders", label: "Work Orders", icon: "document" },
 ] as const;
 
 type AccountTab = (typeof accountTabs)[number]["value"];
@@ -21,8 +26,13 @@ function AccountsPageContent() {
   const [role, setRole] = useState("");
   const [loadingRole, setLoadingRole] = useState(true);
   const canViewClients = role.trim().toLowerCase() !== "employee";
+  const workOrdersAllowed = canAccessWorkOrders(role);
   const selectedTab: AccountTab =
-    requestedTab === "projects" || !canViewClients ? "projects" : "clients";
+    requestedTab === "work-orders" && workOrdersAllowed
+      ? "work-orders"
+      : requestedTab === "projects" || !canViewClients
+        ? "projects"
+        : "clients";
 
   useEffect(() => {
     async function loadRole() {
@@ -39,9 +49,13 @@ function AccountsPageContent() {
     void loadRole();
   }, []);
 
-  const visibleTabs = canViewClients ? accountTabs : accountTabs.slice(1);
+  const visibleTabs = accountTabs.filter((tab) =>
+    tab.value !== "work-orders"
+      ? tab.value !== "clients" || canViewClients
+      : workOrdersAllowed,
+  );
   function selectTab(tab: AccountTab) {
-    router.replace(tab === "clients" ? "/accounts" : "/accounts?tab=projects", {
+    router.replace(tab === "clients" ? "/accounts" : `/accounts?tab=${tab}`, {
       scroll: false,
     });
   }
@@ -74,7 +88,10 @@ function AccountsPageContent() {
               onClick={() => selectTab(tab.value)}
               className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${selectedTab === tab.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
             >
-              <TimeOffIcon name={tab.icon as TimeOffIconName} className="h-4 w-4" />
+              <TimeOffIcon
+                name={tab.icon as TimeOffIconName}
+                className="h-4 w-4"
+              />
               <span>{tab.label}</span>
             </button>
           ))}
@@ -84,8 +101,10 @@ function AccountsPageContent() {
             <div className="h-96 animate-pulse rounded-3xl bg-white" />
           ) : selectedTab === "clients" ? (
             <ClientsWorkspace embedded />
-          ) : (
+          ) : selectedTab === "projects" ? (
             <ProjectsWorkspace embedded />
+          ) : (
+            <WorkOrdersWorkspace />
           )}
         </section>
       </div>
