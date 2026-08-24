@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import TimeOffIcon, {
+  type TimeOffIconName,
+} from "@/components/time-off/TimeOffIcon";
 
 type Tab =
   | "company"
@@ -14,37 +17,53 @@ type Tab =
 
 type Settings = Record<string, string | number | boolean | number[] | null>;
 
-const tabs: { id: Tab; label: string; description: string }[] = [
+const tabs: {
+  id: Tab;
+  label: string;
+  description: string;
+  icon: TimeOffIconName;
+}[] = [
   {
     id: "company",
     label: "Company",
     description: "Identity and contact details",
+    icon: "folder",
   },
   {
     id: "branding",
     label: "Branding",
     description: "Workspace and invoice logos",
+    icon: "star",
   },
   {
     id: "invoices",
     label: "Invoices",
     description: "Billing and numbering defaults",
+    icon: "receipt",
   },
   {
     id: "payments",
     label: "Payments",
     description: "Bank and remittance information",
+    icon: "wallet",
   },
   {
     id: "reminders",
     label: "Reminders",
     description: "Default cadence and templates",
+    icon: "bell",
   },
-  { id: "recurring", label: "Recurring", description: "New schedule defaults" },
+  {
+    id: "recurring",
+    label: "Recurring",
+    description: "New schedule defaults",
+    icon: "repeat",
+  },
   {
     id: "regional",
     label: "Regional",
     description: "Timezone and display formats",
+    icon: "settings",
   },
 ];
 
@@ -163,10 +182,10 @@ export default function CompanySettingsPage() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-11">
+      <div className="mx-auto max-w-[1500px]">
+        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
           <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#153E90]/70 blur-3xl" />
-          <div className="relative">
+          <div className="relative flex min-h-[156px] flex-col justify-end">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-200">
               Workspace administration
             </p>
@@ -182,7 +201,7 @@ export default function CompanySettingsPage() {
 
         <div className="mt-7 grid gap-6 lg:grid-cols-[260px_1fr]">
           <nav
-            className="h-fit rounded-3xl border border-slate-200 bg-white p-3 shadow-sm"
+            className="h-fit rounded-3xl border border-blue-800/60 bg-gradient-to-b from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
             aria-label="Settings sections"
           >
             {availableTabs.map((tab) => (
@@ -193,13 +212,16 @@ export default function CompanySettingsPage() {
                   setActiveTab(tab.id);
                   setMessage(null);
                 }}
-                className={`mb-1 w-full rounded-2xl px-4 py-3 text-left transition last:mb-0 ${activeTab === tab.id ? "bg-[#0F172A] text-white shadow-md" : "text-slate-600 hover:bg-slate-50"}`}
+                className={`mb-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 last:mb-0 ${activeTab === tab.id ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}
               >
-                <span className="block text-sm font-bold">{tab.label}</span>
-                <span
-                  className={`mt-0.5 block text-[11px] ${activeTab === tab.id ? "text-slate-300" : "text-slate-400"}`}
-                >
-                  {tab.description}
+                <TimeOffIcon name={tab.icon} className="h-4 w-4 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">{tab.label}</span>
+                  <span
+                    className={`mt-0.5 block text-[11px] ${activeTab === tab.id ? "text-slate-500" : "text-blue-200"}`}
+                  >
+                    {tab.description}
+                  </span>
                 </span>
               </button>
             ))}

@@ -275,7 +275,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[210px] overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
           <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-blue-400/10 blur-3xl" />
           <div className="relative flex h-full flex-col justify-between gap-8 sm:flex-row sm:items-end">

@@ -368,9 +368,9 @@ export default function WorkforcePage() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-11">
+        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="relative flex min-h-[156px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">
                 People and capacity
@@ -385,8 +385,8 @@ export default function WorkforcePage() {
             </div>
           </div>
         </header>
-        <nav aria-label="Workforce sections" className="relative z-20 -mt-4 mx-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-          {([...[{ value: "overview", label: "Overview", icon: "chart" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals", icon: "check" }] : []), { value: "organization", label: "Organization Chart", icon: "hierarchy" }, { value: "reviews", label: "Reviews", icon: "star" }, { value: "assets", label: "Assets", icon: "monitor" }, { value: "exit", label: "Exit Process", icon: "exit" }, { value: "policies", label: "Policies", icon: "shield" }] as Array<{ value: WorkforceTab; label: string; icon: TimeOffIconName }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${tab === item.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}><TimeOffIcon name={item.icon} className="h-4 w-4"/><span>{item.label}</span></Link>)}
+        <nav aria-label="Workforce sections" className="relative z-10 mx-3 -mt-4 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6">
+          {([...[{ value: "overview", label: "Overview", icon: "chart" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals", icon: "check" }] : []), { value: "organization", label: "Organization Chart", icon: "hierarchy" }, { value: "reviews", label: "Reviews", icon: "star" }, { value: "assets", label: "Assets", icon: "monitor" }, { value: "exit", label: "Exit Process", icon: "exit" }, { value: "policies", label: "Policies", icon: "shield" }] as Array<{ value: WorkforceTab; label: string; icon: TimeOffIconName }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${tab === item.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}><TimeOffIcon name={item.icon} className="h-4 w-4"/><span>{item.label}</span></Link>)}
         </nav>
         {error ? (
           <div

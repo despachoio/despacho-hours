@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRecurringInvoicesEmbedded } from "@/components/invoices/RecurringInvoicesEmbeddedContext";
+import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type Tab = "upcoming" | "active" | "paused";
 type Schedule = {
@@ -41,10 +42,10 @@ type Occurrence = {
 };
 type Client = { id: string; name: string };
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: "upcoming", label: "Upcoming" },
-  { id: "active", label: "Active Schedules" },
-  { id: "paused", label: "Paused" },
+const tabs: { id: Tab; label: string; icon: TimeOffIconName }[] = [
+  { id: "upcoming", label: "Upcoming", icon: "clock" },
+  { id: "active", label: "Active Schedules", icon: "repeat" },
+  { id: "paused", label: "Paused", icon: "pause" },
 ];
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en-GB", {
@@ -273,10 +274,11 @@ function RecurringInvoicesWorkspace({
     <div
       className={embedded ? "" : "min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8"}
     >
-      <div className="mx-auto max-w-7xl">
+      <div className={embedded ? "" : "mx-auto max-w-[1500px]"}>
         {!embedded ? (
-          <div className="flex flex-col gap-5 rounded-[2rem] bg-gradient-to-br from-[#0F172A] to-[#153E90] px-7 py-8 text-white shadow-xl shadow-blue-950/10 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+          <div className="relative flex min-h-[220px] flex-col justify-between gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:flex-row sm:items-end sm:px-8 sm:py-9 lg:px-12 lg:py-10">
+            <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
+            <div className="relative">
               <p className="text-xs font-bold uppercase tracking-[.22em] text-blue-200">
                 Invoice Automation
               </p>
@@ -287,24 +289,26 @@ function RecurringInvoicesWorkspace({
             </div>
             <Link
               href="/invoices/recurring/new"
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg"
+              className="relative rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg"
             >
               + New Schedule
             </Link>
           </div>
         ) : null}
-        <div className="mt-7 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2">
+        <nav aria-label="Recurring invoice sections" className="mt-7 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]">
           {tabs.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold ${tab === item.id ? "bg-[#0F172A] text-white" : "text-slate-500 hover:bg-slate-50"}`}
+              aria-current={tab === item.id ? "page" : undefined}
+              className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === item.id ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}
             >
-              {item.label}
+              <TimeOffIcon name={item.icon} className="h-4 w-4 shrink-0" />
+              <span>{item.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
         <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-6">
           <select
             value={clientId}

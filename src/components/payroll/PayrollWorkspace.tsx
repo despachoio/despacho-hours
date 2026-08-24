@@ -42,10 +42,10 @@ export default function PayrollWorkspace() {
   const latest = data?.ownEntries?.[0];
   return (
   <div>
-    <header className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl">
+    <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
       <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
 
-      <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
+      <div className="relative flex min-h-[156px] flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
         Finance &amp; compensation
       </p>
 
@@ -58,23 +58,23 @@ export default function PayrollWorkspace() {
         controlled month-end processing.
       </p>
 
-      <span className="mt-5 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
+      </div><span className="inline-flex w-fit rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
         {administrationAccess
           ? "Payroll administration workspace"
           : "Employee self-service"}
-      </span>
+      </span></div>
     </header>
 
     <nav
       aria-label="Payroll sections"
-      className="relative z-10 mx-3 -mt-4 flex gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6"
+      className="relative z-10 mx-3 -mt-4 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6"
     >
       {mainTabs.map(([value, label, icon]) => (
         <button
           key={value}
           type="button"
           onClick={() => setTab(value)}
-          className={`group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition duration-200 ${
+          className={`group flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${
             tab === value
               ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20"
               : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"
@@ -130,7 +130,7 @@ export default function PayrollWorkspace() {
             <div className="space-y-5">
               <nav
                 aria-label="Payroll administration sections"
-                className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
+                className="flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
               >
                 {administrationTabs
                   .filter(
@@ -142,13 +142,13 @@ export default function PayrollWorkspace() {
                       key={value}
                       type="button"
                       onClick={() => setAdministrationTab(value)}
-                      className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                      className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
                         administrationTab === value
                           ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20"
                           : "text-blue-100 hover:bg-white/10 hover:text-white"
                       }`}
                     >
-                      <TimeOffIcon name={icon} className="h-4 w-4" />
+                      <TimeOffIcon name={icon} className="h-4 w-4 shrink-0" />
                       <span>{label}</span>
                     </button>
                   ))}

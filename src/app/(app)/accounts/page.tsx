@@ -49,9 +49,9 @@ function AccountsPageContent() {
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl lg:px-11">
+        <header className="relative min-h-[220px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl sm:px-8 sm:py-9 lg:px-12 lg:py-10">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
-          <div className="relative">
+          <div className="relative flex min-h-[156px] flex-col justify-end">
             <p className="text-xs font-bold uppercase tracking-[.22em] text-cyan-200">
               Relationships &amp; delivery
             </p>
@@ -65,14 +65,14 @@ function AccountsPageContent() {
         </header>
         <nav
           aria-label="Accounts sections"
-          className="relative z-20 mx-4 -mt-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg"
+          className="relative z-10 mx-3 -mt-4 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6"
         >
           {visibleTabs.map((tab) => (
             <button
               key={tab.value}
               type="button"
               onClick={() => selectTab(tab.value)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition duration-200 ${selectedTab === tab.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
+              className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${selectedTab === tab.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
             >
               <TimeOffIcon name={tab.icon as TimeOffIconName} className="h-4 w-4" />
               <span>{tab.label}</span>

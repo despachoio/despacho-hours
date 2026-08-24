@@ -687,8 +687,8 @@ function InvoicesPageContent() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="relative flex min-h-[200px] items-center overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+      <div className="mx-auto max-w-[1500px]">
+        <header className="relative flex min-h-[220px] items-center overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-6 py-8 text-white shadow-xl shadow-slate-300/50 sm:px-8 sm:py-9 lg:px-12 lg:py-10">
           <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
           <div className="absolute bottom-0 right-1/3 h-36 w-36 rounded-full bg-blue-400/10 blur-2xl" />
           <div className="relative flex w-full flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
@@ -713,7 +713,7 @@ function InvoicesPageContent() {
           </div>
         </header>
         <nav
-          className="relative z-10 mx-3 -mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2.5 shadow-lg shadow-slate-200/60 sm:mx-8"
+          className="relative z-10 mx-3 -mt-4 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6"
           aria-label="Invoice sections"
         >
           {([
@@ -724,7 +724,7 @@ function InvoicesPageContent() {
             <button
               key={item}
               onClick={() => selectTab(item)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-bold transition duration-200 ${tab === item ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
+              className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${tab === item ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
             >
               <TimeOffIcon name={icon} className="h-4 w-4" />
               <span>{label}</span>
