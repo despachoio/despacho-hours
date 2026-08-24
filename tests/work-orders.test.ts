@@ -52,6 +52,22 @@ describe("Work Order authorization", () => {
   });
 });
 describe("Work Order identity", () => {
+  it("reserves identities with the authenticated actor context", () => {
+    const server = readFileSync(
+      resolve(root, "src/lib/work-orders/server.ts"),
+      "utf8",
+    );
+    expect(server).toContain(
+      'global: { headers: { Authorization: `Bearer ${token}` } }',
+    );
+    expect(server).toContain(
+      'actor.client.rpc("reserve_work_order_identity"',
+    );
+    expect(server).not.toContain(
+      'actor.admin.rpc("reserve_work_order_identity"',
+    );
+  });
+
   it("qualifies sequence columns in the deployed identity repair", () => {
     const sql = readFileSync(
       resolve(

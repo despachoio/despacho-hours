@@ -10,6 +10,7 @@ import type { WorkOrderInput } from "./types";
 
 export type WorkOrderActor = {
   admin: SupabaseClient;
+  client: SupabaseClient;
   userId: string;
   employeeId: string;
   role: string;
@@ -23,10 +24,16 @@ export async function workOrderActor(
     "",
   );
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
-    key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!token || !url || !key) throw new Error("Unauthorized");
-  const admin = createClient(url, key, {
+    serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY,
+    anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!token || !url || !serviceKey || !anonKey)
+    throw new Error("Unauthorized");
+  const admin = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const client = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
   });
   const user = await admin.auth.getUser(token);
   if (user.error || !user.data.user) throw new Error("Unauthorized");
@@ -40,6 +47,7 @@ export async function workOrderActor(
   assertWorkOrderAccess(role);
   return {
     admin,
+    client,
     userId: user.data.user.id,
     employeeId: profile.data.employee_id,
     role,
@@ -188,7 +196,7 @@ export async function reserveWorkOrderNumber(
   newClient: boolean,
 ) {
   const actor = await workOrderActor(request);
-  const r = await actor.admin.rpc("reserve_work_order_identity", {
+  const r = await actor.client.rpc("reserve_work_order_identity", {
     p_new_client: newClient,
   });
   if (r.error) throw new Error(r.error.message);
@@ -500,7 +508,7 @@ export async function createWorkOrderRevision(request: Request, id: string) {
     throw new Error(
       "Only generated, sent or signed Work Orders require a revision",
     );
-  const reserved = await actor.admin.rpc("reserve_work_order_identity", {
+  const reserved = await actor.client.rpc("reserve_work_order_identity", {
     p_new_client: false,
   });
   if (reserved.error) throw new Error(reserved.error.message);
