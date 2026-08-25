@@ -6,7 +6,7 @@ const styles = StyleSheet.create({
   page: { paddingTop: 30, paddingHorizontal: 38, paddingBottom: 38, fontFamily: "Helvetica", fontSize: 8, color: colors.navy, lineHeight: 1.35 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderBottom: `2 solid ${colors.blue}`, paddingBottom: 9, marginBottom: 12 },
   logo: { width: 72.5, height: 21, objectFit: "contain" },
-  title: { fontSize: 11, fontWeight: 700, color: colors.blue, textAlign: "right", marginBottom: 5 },
+  title: { fontSize: 11, fontWeight: 700, color: colors.blue, textAlign: "right", marginBottom: 3 },
   meta: { fontSize: 8, color: colors.slate, textAlign: "right", marginTop: 5 },
   termsTitle: { fontSize: 15, fontWeight: 700, color: colors.blue, marginBottom: 14 },
   clause: { marginBottom: 8 },
@@ -28,11 +28,11 @@ const styles = StyleSheet.create({
   bullet: { flexDirection: "row", marginBottom: 3 }, bulletMark: { width: 11, color: colors.blue, fontWeight: 700 }, bulletText: { flex: 1, fontSize: 7.3, color: "#334155", lineHeight: 1.25 },
   signatureGrid: { flexDirection: "row", gap: 18 },
   signatureColumn: { width: "50%", border: `1 solid ${colors.line}`, borderRadius: 7, padding: 7, backgroundColor: colors.pale },
-  signatureParty: { fontSize: 8.5, fontWeight: 700, color: colors.blue, marginBottom: 5 },
+  signatureParty: { fontSize: 8.5, fontWeight: 700, color: colors.blue, marginBottom: 8 },
   signatureLine: {
   flexDirection: "row",
   alignItems: "center",
-  marginTop: 8,
+  marginTop: 12,
 },
 
 signatureLabel: {
