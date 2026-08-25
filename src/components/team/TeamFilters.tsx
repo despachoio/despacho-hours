@@ -117,13 +117,15 @@ export default function TeamFilters({
 export function PeriodSelect({
   value,
   onChange,
+  ariaLabel = "Period",
 }: {
   value: string;
   onChange: (value: string) => void;
+  ariaLabel?: string;
 }) {
   return (
     <select
-      aria-label="Period"
+      aria-label={ariaLabel}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"

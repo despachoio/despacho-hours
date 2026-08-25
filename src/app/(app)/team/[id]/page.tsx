@@ -5,7 +5,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import EmployeeHeader from "@/components/team/EmployeeHeader";
-import EmployeePeriodFilter from "@/components/team/EmployeePeriodFilter";
+import EmployeePeriodFilter, {
+  type AnalyticsFilterValue,
+} from "@/components/team/EmployeePeriodFilter";
 import EmployeeTimeline from "@/components/team/EmployeeTimeline";
 import {
   ClientSummary,
@@ -21,6 +23,11 @@ import type {
   TeamTimer,
 } from "@/components/team/types";
 import { dateRange, employeeAnalytics } from "@/components/team/utils";
+import { formatDate } from "@/components/reports/utils";
+import {
+  buildEmployeeAnalyticsCsv,
+  buildEmployeeAnalyticsPdf,
+} from "@/lib/employee-analytics-export";
 import {
   emptyEmployeeProfileChanges,
   validateEmployeeProfileChanges,
@@ -37,6 +44,25 @@ type EditSnapshot = {
   accessRole: string;
 };
 
+const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilterValue = {
+  period: "this_week",
+  customFrom: "",
+  customTo: "",
+  clientId: "",
+  projectId: "",
+};
+const PERIOD_LABELS: Record<string, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  this_week: "This Week",
+  last_week: "Last Week",
+  this_month: "This Month",
+  last_month: "Last Month",
+  this_quarter: "This Quarter",
+  last_quarter: "Last Quarter",
+  custom: "Custom Range",
+};
+
 function TeamDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -45,9 +71,15 @@ function TeamDetailPageContent() {
   const [member, setMember] = useState<TeamEmployee | null>(null);
   const [entries, setEntries] = useState<TeamEntry[]>([]);
   const [timer, setTimer] = useState<TeamTimer | null>(null);
-  const [period, setPeriod] = useState("this_week");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const [analyticsFilters, setAnalyticsFilters] = useState<AnalyticsFilterValue>(
+    DEFAULT_ANALYTICS_FILTERS,
+  );
+  const [appliedAnalyticsFilters, setAppliedAnalyticsFilters] =
+    useState<AnalyticsFilterValue>(DEFAULT_ANALYTICS_FILTERS);
+  const [analyticsFilterError, setAnalyticsFilterError] = useState("");
+  const [exportingAnalytics, setExportingAnalytics] = useState<
+    "csv" | "pdf" | ""
+  >("");
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [error, setError] = useState("");
@@ -107,8 +139,13 @@ function TeamDetailPageContent() {
     aadhaar_number: aadhaarNumber || null,
   };
   const range = useMemo(
-    () => dateRange(period, customFrom, customTo),
-    [customFrom, customTo, period],
+    () =>
+      dateRange(
+        appliedAnalyticsFilters.period,
+        appliedAnalyticsFilters.customFrom,
+        appliedAnalyticsFilters.customTo,
+      ),
+    [appliedAnalyticsFilters],
   );
 
   useEffect(() => {
@@ -345,13 +382,140 @@ function TeamDetailPageContent() {
     void loadEntries();
   }, [accessDenied, id, member, range.from, range.to]);
 
+  const clientOptions = useMemo(() => {
+    const clients = new Map<string, string>();
+    for (const entry of entries) {
+      const client = entry.projects?.clients;
+      if (client) clients.set(client.id, client.name);
+    }
+    return Array.from(clients, ([id, label]) => ({ id, label })).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+  }, [entries]);
+  const projectOptions = useMemo(() => {
+    const projects = new Map<string, string>();
+    for (const entry of entries) {
+      if (
+        analyticsFilters.clientId &&
+        entry.projects?.clients?.id !== analyticsFilters.clientId
+      )
+        continue;
+      if (entry.projects)
+        projects.set(
+          entry.projects.id,
+          `${entry.projects.project_code ? `[${entry.projects.project_code}] ` : ""}${entry.projects.name}`,
+        );
+    }
+    return Array.from(projects, ([id, label]) => ({ id, label })).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+  }, [analyticsFilters.clientId, entries]);
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter(
+        (entry) =>
+          (!appliedAnalyticsFilters.clientId ||
+            entry.projects?.clients?.id === appliedAnalyticsFilters.clientId) &&
+          (!appliedAnalyticsFilters.projectId ||
+            entry.project_id === appliedAnalyticsFilters.projectId),
+      ),
+    [appliedAnalyticsFilters.clientId, appliedAnalyticsFilters.projectId, entries],
+  );
+
   const analytics = useMemo(
     () =>
       member
-        ? employeeAnalytics(member, entries, timer, range.from, range.to)
+        ? employeeAnalytics(member, filteredEntries, timer, range.from, range.to)
         : null,
-    [entries, member, range.from, range.to, timer],
+    [filteredEntries, member, range.from, range.to, timer],
   );
+
+  const appliedPeriodLabel =
+    PERIOD_LABELS[appliedAnalyticsFilters.period] || "Selected Period";
+  const appliedClientLabel =
+    clientOptions.find((item) => item.id === appliedAnalyticsFilters.clientId)
+      ?.label || "All Clients";
+  const appliedProjectLabel =
+    (() => {
+      const project = entries.find(
+        (entry) => entry.project_id === appliedAnalyticsFilters.projectId,
+      )?.projects;
+      return project
+        ? `${project.project_code ? `[${project.project_code}] ` : ""}${project.name}`
+        : "All Projects";
+    })();
+
+  function applyAnalyticsSearch() {
+    if (analyticsFilters.period === "custom") {
+      if (!analyticsFilters.customFrom || !analyticsFilters.customTo) {
+        setAnalyticsFilterError("Select both From Date and To Date.");
+        return;
+      }
+      if (analyticsFilters.customFrom > analyticsFilters.customTo) {
+        setAnalyticsFilterError("From Date cannot be later than To Date.");
+        return;
+      }
+    }
+    setAnalyticsFilterError("");
+    setAppliedAnalyticsFilters({ ...analyticsFilters });
+  }
+
+  function resetAnalyticsSearch() {
+    const defaults = { ...DEFAULT_ANALYTICS_FILTERS };
+    setAnalyticsFilters(defaults);
+    setAppliedAnalyticsFilters(defaults);
+    setAnalyticsFilterError("");
+  }
+
+  function analyticsExportInput() {
+    if (!member || !analytics) return null;
+    return {
+      employeeName: member.name,
+      employeeCode: member.employee_code || "",
+      periodLabel: appliedPeriodLabel,
+      from: range.from,
+      to: range.to,
+      clientLabel: appliedClientLabel,
+      projectLabel: appliedProjectLabel,
+      analytics,
+      entries: filteredEntries,
+    };
+  }
+
+  function downloadBlob(content: BlobPart, type: string, extension: string) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Employee_Analytics_${member?.employee_code || id}_${range.from}_${range.to}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadAnalytics(format: "csv" | "pdf") {
+    const input = analyticsExportInput();
+    if (!input || exportingAnalytics) return;
+    setExportingAnalytics(format);
+    setAnalyticsFilterError("");
+    try {
+      if (format === "csv") {
+        downloadBlob(
+          `\uFEFF${buildEmployeeAnalyticsCsv(input)}`,
+          "text/csv;charset=utf-8",
+          "csv",
+        );
+      } else {
+        const pdf = await buildEmployeeAnalyticsPdf(input);
+        downloadBlob(Uint8Array.from(pdf).buffer, "application/pdf", "pdf");
+      }
+    } catch {
+      setAnalyticsFilterError(
+        `The ${format.toUpperCase()} report could not be downloaded. Please try again.`,
+      );
+    } finally {
+      setExportingAnalytics("");
+    }
+  }
 
   function updateProfileField<K extends keyof EmployeeProfileChanges>(
     key: K,
@@ -938,26 +1102,42 @@ if (profileError) {
             onCancel={() => router.push(`/team/${id}`)}
           />
         ) : null}
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6">
           <EmployeePeriodFilter
-            period={period}
-            from={customFrom}
-            to={customTo}
-            onPeriod={setPeriod}
-            onFrom={setCustomFrom}
-            onTo={setCustomTo}
+            value={analyticsFilters}
+            clients={clientOptions}
+            projects={projectOptions}
+            error={analyticsFilterError}
+            exporting={exportingAnalytics}
+            onChange={(next) => {
+              setAnalyticsFilters(next);
+              setAnalyticsFilterError("");
+            }}
+            onSearch={applyAnalyticsSearch}
+            onReset={resetAnalyticsSearch}
+            onDownloadCsv={() => void downloadAnalytics("csv")}
+            onDownloadPdf={() => void downloadAnalytics("pdf")}
           />
+          <p className="mt-3 text-sm font-medium text-slate-500">
+            {appliedPeriodLabel} · {formatDate(range.from)} –{" "}
+            {formatDate(range.to)} · {appliedClientLabel} ·{" "}
+            {appliedProjectLabel}
+          </p>
         </div>
         <div className="mt-7 space-y-7">
           <EmployeeStats analytics={analytics} />
           <section className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-            <EmployeeTimeline entries={entries} />
+            <EmployeeTimeline entries={filteredEntries} />
             <div className="space-y-6">
-              <ProjectSummary entries={entries} />
-              <ClientSummary entries={entries} />
+              <ProjectSummary entries={filteredEntries} />
+              <ClientSummary entries={filteredEntries} />
             </div>
           </section>
-          <EmployeeCharts entries={entries} from={range.from} to={range.to} />
+          <EmployeeCharts
+            entries={filteredEntries}
+            from={range.from}
+            to={range.to}
+          />
         </div>
       </div>
     </main>
