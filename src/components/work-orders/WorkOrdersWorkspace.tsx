@@ -45,6 +45,17 @@ type Duplicate = {
   name: string;
   business_client_id: number | null;
 };
+type PendingAction =
+  | "download"
+  | "edit"
+  | "sent"
+  | "signed"
+  | "revision"
+  | "delete"
+  | "cancel"
+  | "client"
+  | "project"
+  | null;
 const tabs: ReadonlyArray<{
   value: "create" | "generated";
   label: string;
@@ -154,6 +165,11 @@ export default function WorkOrdersWorkspace() {
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [detailFeedback, setDetailFeedback] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
   const [project, setProject] = useState({ code: "", name: "" });
   const set = <K extends keyof WorkOrderInput>(
@@ -190,6 +206,45 @@ export default function WorkOrdersWorkspace() {
     () => boot.clients.find((client) => client.id === form.clientId),
     [boot.clients, form.clientId],
   );
+  const formHasMeaningfulData = useMemo(() => {
+    const current = { ...form } as Record<string, unknown>;
+    const defaults = {
+      ...blank,
+      termsTemplateId: boot.terms[0]?.id,
+    } as Record<string, unknown>;
+    delete current.reservationId;
+    delete defaults.reservationId;
+    return JSON.stringify(current) !== JSON.stringify(defaults);
+  }, [boot.terms, form]);
+
+  function friendlyActionError(error: unknown, fallback: string) {
+    const text = error instanceof Error ? error.message : "";
+    if (/permission|forbidden|unauthorized/i.test(text))
+      return "You do not have permission to complete this Work Order action.";
+    if (/network|fetch/i.test(text))
+      return "The action could not reach Kairo. Check your connection and try again.";
+    return fallback;
+  }
+
+  function resetForm() {
+    if (
+      formHasMeaningfulData &&
+      !window.confirm(
+        "Reset this Work Order form? All unsaved information will be cleared.",
+      )
+    )
+      return;
+    const editingExisting = Boolean(form.id);
+    setForm({
+      ...blank,
+      termsTemplateId: boot.terms[0]?.id,
+      reservationId: editingExisting ? undefined : form.reservationId,
+    });
+    if (editingExisting) setIdentity(null);
+    setMessage("");
+    setDuplicates([]);
+    setProject({ code: "", name: "" });
+  }
   async function reserve() {
     setBusy("reserve");
     setMessage("");
@@ -266,6 +321,7 @@ export default function WorkOrdersWorkspace() {
     setBusy(`detail-${id}`);
     try {
       setDetail(await request(`/api/work-orders?mode=detail&id=${id}`));
+      setDetailFeedback(null);
       setDuplicates([]);
       setProject({ code: "", name: "" });
     } catch (error) {
@@ -281,6 +337,24 @@ export default function WorkOrdersWorkspace() {
     id: string,
     extra: Record<string, unknown> = {},
   ) {
+    const nextPending: PendingAction =
+      name === "revision"
+        ? "revision"
+        : name === "delete"
+          ? "delete"
+          : name === "create_client"
+            ? "client"
+            : name === "create_project"
+              ? "project"
+              : name === "status" && extra.status === "sent"
+                ? "sent"
+                : name === "status" && extra.status === "signed"
+                  ? "signed"
+                  : name === "status" && extra.status === "cancelled"
+                    ? "cancel"
+                    : null;
+    if (nextPending) setPendingAction(nextPending);
+    setDetailFeedback(null);
     setBusy(`${name}-${id}`);
     try {
       const result = await request("/api/work-orders", {
@@ -293,14 +367,31 @@ export default function WorkOrdersWorkspace() {
       }
       setMessage("Work Order updated successfully.");
       await openDetail(name === "revision" ? result.id : id);
+      setDetailFeedback({
+        kind: "success",
+        text:
+          nextPending === "revision"
+            ? "Revision created successfully."
+            : nextPending === "cancel"
+              ? "Work Order cancelled successfully."
+              : "Work Order updated successfully.",
+      });
       await search(page);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Action failed");
+      const text = friendlyActionError(
+        error,
+        "This Work Order action could not be completed. Please try again.",
+      );
+      setMessage(text);
+      setDetailFeedback({ kind: "error", text });
     } finally {
       setBusy("");
+      setPendingAction(null);
     }
   }
   async function download(row: { id: string; work_order_number?: string }) {
+    setPendingAction("download");
+    setDetailFeedback(null);
     setBusy(`pdf-${row.id}`);
     try {
       const { data } = await supabase.auth.getSession();
@@ -314,10 +405,20 @@ export default function WorkOrdersWorkspace() {
       anchor.download = `Work_Order_${row.work_order_number || row.id}.pdf`;
       anchor.click();
       URL.revokeObjectURL(href);
+      setDetailFeedback({
+        kind: "success",
+        text: "Work Order PDF downloaded successfully.",
+      });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Download failed");
+      const text = friendlyActionError(
+        error,
+        "The Work Order PDF could not be downloaded. Please try again.",
+      );
+      setMessage(text);
+      setDetailFeedback({ kind: "error", text });
     } finally {
       setBusy("");
+      setPendingAction(null);
     }
   }
   function addPhase() {
@@ -984,7 +1085,15 @@ export default function WorkOrdersWorkspace() {
               />
             </Field>
           </Card>
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              disabled={!!busy}
+              onClick={resetForm}
+              className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[#153E90] disabled:opacity-50"
+            >
+              Reset
+            </button>
             <button
               disabled={!!busy}
               onClick={() => save(false)}
@@ -1221,7 +1330,8 @@ export default function WorkOrdersWorkspace() {
           <section
             role="dialog"
             aria-modal="true"
-            className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            aria-busy={pendingAction !== null}
+            className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
           >
             <header className="sticky top-0 z-10 flex items-start justify-between border-b bg-gradient-to-r from-[#0F172A] to-[#153E90] px-7 py-6 text-white">
               <div>
@@ -1238,13 +1348,22 @@ export default function WorkOrdersWorkspace() {
               </div>
               <button
                 aria-label="Close"
+                disabled={pendingAction !== null}
                 onClick={() => setDetail(null)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ×
               </button>
             </header>
             <div className="space-y-6 p-7">
+              {detailFeedback && (
+                <div
+                  role={detailFeedback.kind === "error" ? "alert" : "status"}
+                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${detailFeedback.kind === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+                >
+                  {detailFeedback.text}
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   ["Version", `v${detail.workOrder.current_version}`],
@@ -1268,6 +1387,7 @@ export default function WorkOrdersWorkspace() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
+                  disabled={pendingAction !== null}
                   onClick={() =>
                     download({
                       id: String(detail.workOrder.id),
@@ -1276,80 +1396,86 @@ export default function WorkOrdersWorkspace() {
                       ),
                     })
                   }
-                  className="rounded-full bg-[#153E90] px-4 py-2 text-sm font-bold text-white"
+                  className="min-w-36 rounded-full bg-[#153E90] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
-                  Download PDF
+                  {pendingAction === "download" ? "Downloading…" : "Download PDF"}
                 </button>
                 {["draft", "generated"].includes(
                   String(detail.workOrder.status),
                 ) && (
                   <button
+                    disabled={pendingAction !== null}
                     onClick={() => loadForEdit(detail)}
-                    className="rounded-full border border-blue-200 px-4 py-2 text-sm font-bold text-[#153E90]"
+                    className="min-w-24 rounded-full border border-blue-200 px-4 py-2 text-sm font-bold text-[#153E90] disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Edit
+                    {pendingAction === "edit" ? "Opening…" : "Edit"}
                   </button>
                 )}
                 {String(detail.workOrder.status) === "generated" && (
                   <button
+                    disabled={pendingAction !== null}
                     onClick={() =>
                       action("status", String(detail.workOrder.id), {
                         status: "sent",
                       })
                     }
-                    className="rounded-full bg-cyan-600 px-4 py-2 text-sm font-bold text-white"
+                    className="min-w-32 rounded-full bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    Mark Sent
+                    {pendingAction === "sent" ? "Marking Sent…" : "Mark Sent"}
                   </button>
                 )}
                 {String(detail.workOrder.status) === "sent" && (
                   <button
+                    disabled={pendingAction !== null}
                     onClick={() =>
                       action("status", String(detail.workOrder.id), {
                         status: "signed",
                       })
                     }
-                    className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
+                    className="min-w-32 rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    Mark Signed
+                    {pendingAction === "signed" ? "Marking Signed…" : "Mark Signed"}
                   </button>
                 )}
                 {["generated", "sent", "signed"].includes(
                   String(detail.workOrder.status),
                 ) && (
                   <button
+                    disabled={pendingAction !== null}
                     onClick={() =>
                       action("revision", String(detail.workOrder.id))
                     }
-                    className="rounded-full bg-violet-600 px-4 py-2 text-sm font-bold text-white"
+                    className="min-w-40 rounded-full bg-violet-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    Create Revision
+                    {pendingAction === "revision" ? "Creating Revision…" : "Create Revision"}
                   </button>
                 )}
                 {String(detail.workOrder.status) === "draft" && (
                   <button
+                    disabled={pendingAction !== null}
                     onClick={() =>
                       action("delete", String(detail.workOrder.id)).then(() =>
                         setDetail(null),
                       )
                     }
-                    className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white"
+                    className="min-w-32 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    Delete Draft
+                    {pendingAction === "delete" ? "Deleting…" : "Delete Draft"}
                   </button>
                 )}
                 {["draft", "generated", "sent"].includes(
                   String(detail.workOrder.status),
                 ) && (
                   <button
+                    disabled={pendingAction !== null}
                     onClick={() =>
                       action("status", String(detail.workOrder.id), {
                         status: "cancelled",
                       })
                     }
-                    className="rounded-full border border-red-200 px-4 py-2 text-sm font-bold text-red-600"
+                    className="min-w-44 rounded-full border border-red-200 px-4 py-2 text-sm font-bold text-red-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                   >
-                    Cancel Work Order
+                    {pendingAction === "cancel" ? "Cancelling…" : "Cancel Work Order"}
                   </button>
                 )}
               </div>
@@ -1360,12 +1486,13 @@ export default function WorkOrdersWorkspace() {
                   </h3>
                   {!detail.workOrder.client_id && (
                     <button
+                      disabled={pendingAction !== null}
                       onClick={() =>
                         action("create_client", String(detail.workOrder.id))
                       }
-                      className="mt-3 rounded-xl bg-emerald-700 px-4 py-2 font-bold text-white"
+                      className="mt-3 rounded-xl bg-emerald-700 px-4 py-2 font-bold text-white disabled:bg-slate-300"
                     >
-                      Create or Link Client
+                      {pendingAction === "client" ? "Processing…" : "Create or Link Client"}
                     </button>
                   )}
                   {duplicates.length > 0 && (
@@ -1377,6 +1504,7 @@ export default function WorkOrdersWorkspace() {
                       {duplicates.map((candidate) => (
                         <button
                           key={candidate.id}
+                          disabled={pendingAction !== null}
                           onClick={() =>
                             action(
                               "create_client",
@@ -1390,6 +1518,7 @@ export default function WorkOrdersWorkspace() {
                         </button>
                       ))}
                       <button
+                        disabled={pendingAction !== null}
                         onClick={() =>
                           action("create_client", String(detail.workOrder.id), {
                             existingClientId: "__create_new__",
@@ -1426,6 +1555,7 @@ export default function WorkOrdersWorkspace() {
                         }
                       />
                       <button
+                        disabled={pendingAction !== null}
                         onClick={() =>
                           action(
                             "create_project",
@@ -1436,9 +1566,9 @@ export default function WorkOrdersWorkspace() {
                             },
                           )
                         }
-                        className="rounded-xl bg-[#153E90] px-4 font-bold text-white"
+                        className="rounded-xl bg-[#153E90] px-4 font-bold text-white disabled:bg-slate-300"
                       >
-                        Create Project
+                        {pendingAction === "project" ? "Creating…" : "Create Project"}
                       </button>
                     </div>
                   )}
@@ -1494,6 +1624,25 @@ export default function WorkOrdersWorkspace() {
                 </div>
               </div>
             </div>
+            {pendingAction &&
+              ["sent", "revision", "cancel"].includes(pendingAction) && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 p-6 backdrop-blur-[2px]">
+                  <div
+                    role="status"
+                    className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white px-6 py-4 font-bold text-[#153E90] shadow-xl"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-[#153E90]"
+                    />
+                    {pendingAction === "sent"
+                      ? "Marking Work Order as sent…"
+                      : pendingAction === "revision"
+                        ? "Creating a new revision…"
+                        : "Cancelling Work Order…"}
+                  </div>
+                </div>
+              )}
           </section>
         </div>
       )}

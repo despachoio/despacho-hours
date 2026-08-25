@@ -1,361 +1,115 @@
 /* eslint-disable jsx-a11y/alt-text -- @react-pdf Image does not support HTML alt. */
-import {
-  Document,
-  Image,
-  Page,
-  StyleSheet,
-  Text,
-  View,
-} from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
-const colors = {
-  blue: "#153E90",
-  navy: "#0F172A",
-  slate: "#475569",
-  line: "#CBD5E1",
-  pale: "#EFF6FF",
-  cyan: "#0891B2",
-};
+const colors = { blue: "#153E90", navy: "#0F172A", slate: "#475569", line: "#CBD5E1", label: "#E8EDF4", paleBlue: "#EEF3F8", pale: "#F8FAFC" };
 const styles = StyleSheet.create({
-  page: {
-    paddingTop: 38,
-    paddingHorizontal: 42,
-    paddingBottom: 44,
-    fontFamily: "Helvetica",
-    fontSize: 9,
-    color: colors.navy,
-    lineHeight: 1.45,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: `2 solid ${colors.blue}`,
-    paddingBottom: 12,
-    marginBottom: 16,
-  },
+  page: { paddingTop: 30, paddingHorizontal: 38, paddingBottom: 38, fontFamily: "Helvetica", fontSize: 8, color: colors.navy, lineHeight: 1.35 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderBottom: `2 solid ${colors.blue}`, paddingBottom: 9, marginBottom: 12 },
   logo: { width: 72.5, height: 21, objectFit: "contain" },
-  title: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: colors.blue,
-    textAlign: "right",
-  },
-  meta: {
-    fontSize: 8.5,
-    color: colors.slate,
-    textAlign: "right",
-    marginTop: 3,
-  },
-  banner: {
-    backgroundColor: colors.navy,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 14,
-  },
-  bannerTitle: { fontSize: 14, fontWeight: 700, color: "#FFFFFF" },
-  bannerText: { fontSize: 8.5, color: "#DBEAFE", marginTop: 3 },
-  section: { marginTop: 13 },
-  heading: {
-    fontSize: 10.5,
-    fontWeight: 700,
-    color: colors.blue,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 7,
-  },
-  card: {
-    border: `1 solid ${colors.line}`,
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#FFFFFF",
-  },
-  row: {
-    flexDirection: "row",
-    borderBottom: "1 solid #E2E8F0",
-    paddingVertical: 5,
-  },
-  label: { width: "36%", color: colors.slate },
-  value: { width: "64%", fontWeight: 600 },
-  termsTitle: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: colors.blue,
-    marginBottom: 9,
-  },
-  clause: { marginBottom: 9 },
-  clauseTitle: {
-    fontSize: 9.5,
-    fontWeight: 700,
-    color: colors.navy,
-    marginBottom: 2,
-  },
-  body: { fontSize: 8.3, color: "#334155", textAlign: "justify" },
-  phaseHeader: {
-    flexDirection: "row",
-    backgroundColor: colors.pale,
-    padding: 6,
-  },
-  phase: { flexDirection: "row", borderBottom: "1 solid #E2E8F0", padding: 6 },
-  phaseName: { width: "28%", fontWeight: 700 },
-  phasePeriod: { width: "18%", color: colors.slate },
-  phaseTerms: { width: "32%", color: colors.slate },
-  phaseAmount: { width: "22%", fontWeight: 700, textAlign: "right" },
-  signature: { flexDirection: "row", gap: 24, marginTop: 24 },
-  sign: { width: "48%", borderTop: `1 solid ${colors.line}`, paddingTop: 8 },
-  footer: {
-    position: "absolute",
-    bottom: 20,
-    left: 42,
-    right: 42,
-    borderTop: `1 solid ${colors.line}`,
-    paddingTop: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    fontSize: 7.5,
-    color: colors.slate,
-  },
+  title: { fontSize: 13, fontWeight: 700, color: colors.blue, textAlign: "right" },
+  meta: { fontSize: 8, color: colors.slate, textAlign: "right", marginTop: 5 },
+  termsTitle: { fontSize: 15, fontWeight: 700, color: colors.blue, marginBottom: 8 },
+  clause: { marginBottom: 8 },
+  clauseTitle: { fontSize: 9, fontWeight: 700, color: colors.navy, marginBottom: 2 },
+  body: { fontSize: 8, color: "#334155", textAlign: "justify" },
+  compactBody: { fontSize: 7.5, color: "#334155", lineHeight: 1.3 },
+  section: { marginTop: 9 },
+  heading: { fontSize: 9.5, fontWeight: 700, color: colors.blue, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 },
+  exhibit: { flexDirection: "row", border: `1 solid ${colors.line}`, borderRadius: 7, overflow: "hidden", backgroundColor: "#FFFFFF" },
+  exhibitColumn: { width: "50%" },
+  exhibitColumnRight: { width: "50%", borderLeft: `1 solid ${colors.line}` },
+  fieldRow: { flexDirection: "row", minHeight: 21, borderBottom: "1 solid #E2E8F0" },
+  fieldLabel: { width: "42%", paddingVertical: 4, paddingHorizontal: 6, backgroundColor: colors.label, color: colors.blue, fontWeight: 700, fontSize: 7 },
+  fieldValue: { width: "58%", paddingVertical: 4, paddingHorizontal: 6, color: colors.navy, fontWeight: 600, fontSize: 7.2 },
+  card: { border: `1 solid ${colors.line}`, borderRadius: 7, padding: 7, backgroundColor: "#FFFFFF" },
+  phaseHeader: { flexDirection: "row", backgroundColor: colors.paleBlue, padding: 5 },
+  phase: { flexDirection: "row", borderBottom: "1 solid #E2E8F0", padding: 5 },
+  phaseName: { width: "28%", fontWeight: 700 }, phasePeriod: { width: "18%", color: colors.slate }, phaseTerms: { width: "32%", color: colors.slate }, phaseAmount: { width: "22%", fontWeight: 700, textAlign: "right" },
+  bullet: { flexDirection: "row", marginBottom: 3 }, bulletMark: { width: 11, color: colors.blue, fontWeight: 700 }, bulletText: { flex: 1, fontSize: 7.3, color: "#334155", lineHeight: 1.25 },
+  signatureGrid: { flexDirection: "row", gap: 18 },
+  signatureColumn: { width: "50%", border: `1 solid ${colors.line}`, borderRadius: 7, padding: 7, backgroundColor: colors.pale },
+  signatureParty: { fontSize: 8.5, fontWeight: 700, color: colors.blue, marginBottom: 5 },
+  signatureLine: { flexDirection: "row", marginTop: 5 }, signatureLabel: { width: 32, color: colors.slate, fontSize: 7 }, signatureRule: { flex: 1, borderBottom: `1 solid ${colors.line}`, height: 8 },
+  footer: { position: "absolute", bottom: 17, left: 38, right: 38, borderTop: `1 solid ${colors.line}`, paddingTop: 5, flexDirection: "row", justifyContent: "space-between", fontSize: 7, color: colors.slate },
 });
+
 type Section = { title: string; content: string };
-type Phase = {
-  label: string;
-  currency: string;
-  amount: number;
-  billing_basis: string;
-  description?: string | null;
-  start_month?: number | null;
-  end_month?: number | null;
-};
-type Snapshot = {
-  workOrder: Record<string, unknown>;
-  terms?: { structured_sections?: Section[] };
-  pricingPhases?: Phase[];
-};
+type Phase = { label: string; currency: string; amount: number; billing_basis: string; description?: string | null; start_month?: number | null; end_month?: number | null };
+type Snapshot = { workOrder: Record<string, unknown>; terms?: { structured_sections?: Section[] }; pricingPhases?: Phase[] };
 type Props = { logoSrc: string; snapshot: Snapshot; version: number };
-const present = (value: unknown) =>
-  value !== null && value !== undefined && value !== "";
+const present = (value: unknown) => value !== null && value !== undefined && value !== "";
 const clean = (value: unknown) => String(value ?? "").replaceAll("_", " ");
-function Field({ label, value }: { label: string; value: unknown }) {
-  if (!present(value)) return null;
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{clean(value)}</Text>
-    </View>
-  );
+const titleCase = (value: unknown) => clean(value).replace(/\b\w/g, (letter) => letter.toUpperCase());
+const formatDate = (value: unknown) => {
+  const raw = clean(value);
+  if (!raw) return "—";
+  const date = new Date(`${raw}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? raw : date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+function CompactField({ label, value }: { label: string; value: unknown }) {
+  return <View style={styles.fieldRow}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{present(value) ? clean(value) : "—"}</Text></View>;
 }
 function replaceTerms(content: string, workOrder: Record<string, unknown>) {
-  return content
-    .replaceAll("{{EFFECTIVE_DATE}}", clean(workOrder.effective_date))
-    .replaceAll("{{CUSTOMER_NAME}}", clean(workOrder.company_name));
+  return content.replaceAll("{{EFFECTIVE_DATE}}", clean(workOrder.effective_date)).replaceAll("{{CUSTOMER_NAME}}", clean(workOrder.company_name));
 }
-function Clause({
-  section,
-  workOrder,
-}: {
-  section: Section;
-  workOrder: Record<string, unknown>;
-}) {
-  return (
-    <View style={styles.clause}>
-      <Text style={styles.clauseTitle}>{section.title}</Text>
-      <Text style={styles.body}>
-        {replaceTerms(section.content, workOrder)}
-      </Text>
-    </View>
-  );
+function Clause({ section, workOrder }: { section: Section; workOrder: Record<string, unknown> }) {
+  return <View style={styles.clause}><Text style={styles.clauseTitle}>{section.title}</Text><Text style={styles.body}>{replaceTerms(section.content, workOrder)}</Text></View>;
+}
+function SignatureLine({ label }: { label: string }) {
+  return <View style={styles.signatureLine}><Text style={styles.signatureLabel}>{label}</Text><View style={styles.signatureRule} /></View>;
 }
 
-export function WorkOrderPdfDocument({ logoSrc, snapshot, version }: Props) {
+export function WorkOrderPdfDocument({ logoSrc, snapshot }: Props) {
   const workOrder = snapshot.workOrder || {};
   const terms = snapshot.terms || {};
   const phases = snapshot.pricingPhases || [];
-  const sections = Array.isArray(terms.structured_sections)
-    ? terms.structured_sections
-    : [];
-  const commitment =
-    workOrder.working_commitment_custom ||
-    (workOrder.hours_per_resource_month
-      ? `${workOrder.hours_per_resource_month} hours / resource / month`
-      : workOrder.hours_per_day
-        ? `${workOrder.hours_per_day} hours / day${workOrder.days_per_week ? `, ${workOrder.days_per_week} days / week` : ""}`
-        : null);
-  const optionalClauses = [
-    workOrder.long_term_clause_enabled && "Long-term engagement clause",
-    workOrder.future_hires_clause_enabled && "Future hires clause",
-    workOrder.additional_headcount_clause_enabled &&
-      "Additional headcount clause",
-    workOrder.premium_work_clause_enabled && "Premium work clause",
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const sections = Array.isArray(terms.structured_sections) ? terms.structured_sections : [];
+  const commitment = workOrder.working_commitment_custom || (workOrder.hours_per_resource_month ? `${workOrder.hours_per_resource_month} hours / resource / month` : workOrder.hours_per_day ? `${workOrder.hours_per_day} hours / day${workOrder.days_per_week ? `, ${workOrder.days_per_week} days / week` : ""}` : "—");
+  const ending = workOrder.ending_type === "specific_date" ? formatDate(workOrder.end_date) : workOrder.ending_type === "ongoing" ? "Ongoing" : clean(workOrder.ending_custom || workOrder.end_date || "Custom");
+  const paymentTerms = workOrder.payment_terms_days ? `${workOrder.payment_terms_days} days` : clean(workOrder.payment_terms_custom || "As mutually agreed");
+  const paymentTiming = workOrder.payment_terms_days ? `(${workOrder.payment_terms_days}) days following` : paymentTerms;
+  const fee = workOrder.monthly_fee ? `${clean(workOrder.currency)} ${Number(workOrder.monthly_fee).toLocaleString("en-US")}` : "Custom pricing";
   return (
-    <Document
-      title={`Work Order ${clean(workOrder.work_order_number)}`}
-      author="Despacho Inc."
-    >
+    <Document title={`Work Order ${clean(workOrder.work_order_number)}`} author="Despacho Inc.">
       <Page size="A4" style={styles.page} wrap>
         <View style={styles.header} fixed>
           <Image src={logoSrc} style={styles.logo} />
-          <View>
-            <Text style={styles.title}>
-              WORK ORDER {clean(workOrder.work_order_number)}
-            </Text>
-            <Text style={styles.meta}>
-              Customer ID{" "}
-              {clean(workOrder.client_business_id || "Existing Client")} ·
-              Version {version}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.banner}>
-          <Text style={styles.bannerTitle}>
-            {clean(workOrder.company_name)}
-          </Text>
-          <Text style={styles.bannerText}>
-            {clean(workOrder.service_type)} ·{" "}
-            {clean(workOrder.engagement_model)}
-          </Text>
+          <View><Text style={styles.title}>WORK ORDER {clean(workOrder.work_order_number)}</Text><Text style={styles.meta}>Customer ID {clean(workOrder.client_business_id || "Existing Client")}</Text></View>
         </View>
         <Text style={styles.termsTitle}>Despacho Terms of Service</Text>
-        {sections.map((section, index) => (
-          <Clause
-            key={`${section.title}-${index}`}
-            section={section}
-            workOrder={workOrder}
-          />
-        ))}
-        <View break style={styles.section}>
+        {sections.map((section, index) => <Clause key={`${section.title}-${index}`} section={section} workOrder={workOrder} />)}
+
+        <View break style={styles.section} wrap={false}>
           <Text style={styles.heading}>Exhibit A — Work Order</Text>
-          <View style={styles.card}>
-            <Field label="Company" value={workOrder.company_name} />
-            <Field label="Primary Contact" value={workOrder.contact_name} />
-            <Field label="Contact Email" value={workOrder.email} />
-            <Field label="Effective Date" value={workOrder.effective_date} />
-            <Field
-              label="Project Starting Date"
-              value={workOrder.project_start_date}
-            />
-            <Field
-              label="Ending"
-              value={
-                workOrder.ending_type === "specific_date"
-                  ? workOrder.end_date
-                  : workOrder.ending_type
-              }
-            />
-            <Field
-              label="First Invoice Date"
-              value={workOrder.first_invoice_date}
-            />
-            <Field label="Service Type" value={workOrder.service_type} />
-            <Field
-              label="Engagement Model"
-              value={workOrder.engagement_model}
-            />
-            <Field
-              label="Commercial Model"
-              value={workOrder.commercial_model}
-            />
-            <Field label="Billing Basis" value={workOrder.billing_basis} />
-            <Field label="Resources" value={workOrder.resource_count} />
-            <Field label="Working Commitment" value={commitment} />
-            <Field
-              label="Monthly Fee"
-              value={
-                workOrder.monthly_fee
-                  ? `${workOrder.currency} ${Number(workOrder.monthly_fee).toLocaleString("en-US")}`
-                  : null
-              }
-            />
-            <Field label="Location" value={workOrder.location} />
-            <Field
-              label="Payment Terms"
-              value={
-                workOrder.payment_terms_days
-                  ? `${workOrder.payment_terms_days} days`
-                  : workOrder.payment_terms_custom
-              }
-            />
-            <Field
-              label="Late Payment Terms"
-              value={workOrder.late_payment_terms}
-            />
-            <Field
-              label="Rate Increase Terms"
-              value={workOrder.rate_increase_terms}
-            />
-          </View>
-        </View>
-        {phases.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.heading}>Pricing Schedule</Text>
-            <View style={styles.card}>
-              <View style={styles.phaseHeader}>
-                <Text style={styles.phaseName}>Phase</Text>
-                <Text style={styles.phasePeriod}>Period</Text>
-                <Text style={styles.phaseTerms}>Basis / Notes</Text>
-                <Text style={styles.phaseAmount}>Amount</Text>
-              </View>
-              {phases.map((phase, index) => (
-                <View key={`${phase.label}-${index}`} style={styles.phase}>
-                  <Text style={styles.phaseName}>{phase.label}</Text>
-                  <Text style={styles.phasePeriod}>
-                    {phase.start_month
-                      ? `M${phase.start_month}${phase.end_month ? `–M${phase.end_month}` : "+"}`
-                      : "—"}
-                  </Text>
-                  <Text style={styles.phaseTerms}>
-                    {clean(phase.billing_basis)}
-                    {phase.description ? ` · ${phase.description}` : ""}
-                  </Text>
-                  <Text style={styles.phaseAmount}>
-                    {phase.currency}{" "}
-                    {Number(phase.amount).toLocaleString("en-US")}
-                  </Text>
-                </View>
-              ))}
+          <View style={styles.exhibit}>
+            <View style={styles.exhibitColumn}>
+              <CompactField label="Company" value={workOrder.company_name} /><CompactField label="Primary Contact" value={workOrder.contact_name} /><CompactField label="Contact Email" value={workOrder.email} /><CompactField label="Effective Date" value={formatDate(workOrder.effective_date)} /><CompactField label="Project Starting Date" value={formatDate(workOrder.project_start_date)} /><CompactField label="Project Ending Date" value={ending} /><CompactField label="First Invoice Date" value={formatDate(workOrder.first_invoice_date)} />
+            </View>
+            <View style={styles.exhibitColumnRight}>
+              <CompactField label="Service Type" value={titleCase(workOrder.service_type)} /><CompactField label="Engagement Model" value={titleCase(workOrder.engagement_model)} /><CompactField label="Billing Basis" value={titleCase(workOrder.billing_basis)} /><CompactField label="No. of Resources" value={workOrder.resource_count} /><CompactField label="Working Commitment" value={commitment} /><CompactField label="Monthly Fee" value={fee} /><CompactField label="Payment Terms" value={paymentTerms} />
             </View>
           </View>
-        )}
-        <View style={styles.section}>
-          <Text style={styles.heading}>Engagement Overview</Text>
-          <View style={styles.card}>
-            <Text style={styles.body}>
-              {clean(workOrder.engagement_overview)}
-            </Text>
+        </View>
+
+        {phases.length > 0 && <View style={styles.section} wrap={false}>
+          <Text style={styles.heading}>Pricing Schedule</Text><View style={styles.card}><View style={styles.phaseHeader}><Text style={styles.phaseName}>Phase</Text><Text style={styles.phasePeriod}>Period</Text><Text style={styles.phaseTerms}>Basis / Notes</Text><Text style={styles.phaseAmount}>Amount</Text></View>
+          {phases.map((phase, index) => <View key={`${phase.label}-${index}`} style={styles.phase}><Text style={styles.phaseName}>{phase.label}</Text><Text style={styles.phasePeriod}>{phase.start_month ? `M${phase.start_month}${phase.end_month ? `–M${phase.end_month}` : "+"}` : "—"}</Text><Text style={styles.phaseTerms}>{clean(phase.billing_basis)}{phase.description ? ` · ${phase.description}` : ""}</Text><Text style={styles.phaseAmount}>{phase.currency} {Number(phase.amount).toLocaleString("en-US")}</Text></View>)}</View>
+        </View>}
+
+        <View style={styles.section} wrap={false}><Text style={styles.heading}>Engagement Overview</Text><View style={styles.card}><Text style={styles.compactBody}>{clean(workOrder.engagement_overview) || "—"}</Text></View></View>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.heading}>Payment Details</Text><View style={styles.card}>
+            <View style={styles.bullet}><Text style={styles.bulletMark}>•</Text><Text style={styles.bulletText}>All payment shall be billed at the beginning of service and payment is to be expected {paymentTiming}</Text></View>
+            <View style={styles.bullet}><Text style={styles.bulletMark}>•</Text><Text style={styles.bulletText}>Any delay in payment will attract a penalty of one percent (1%) per month on the outstanding amount. This penalty is compounded if payments remain unpaid over several payment periods</Text></View>
+            <View style={styles.bullet}><Text style={styles.bulletMark}>•</Text><Text style={styles.bulletText}>Any urgent turnaround or project requiring Despacho to work on weekends would be charged at premium and discussed with the Despacho Account Executive</Text></View>
           </View>
         </View>
-        {(optionalClauses ||
-          present(workOrder.custom_terms) ||
-          present(workOrder.pricing_notes)) && (
-          <View style={styles.section}>
-            <Text style={styles.heading}>Additional Commercial Terms</Text>
-            <View style={styles.card}>
-              <Field label="Enabled Clauses" value={optionalClauses} />
-              <Field label="Pricing Notes" value={workOrder.pricing_notes} />
-              <Field label="Custom Terms" value={workOrder.custom_terms} />
-            </View>
-          </View>
-        )}
-        <View style={styles.signature}>
-          <View style={styles.sign}>
-            <Text>Despacho Inc.</Text>
-            <Text style={styles.meta}>Authorized signatory / Date</Text>
-          </View>
-          <View style={styles.sign}>
-            <Text>{clean(workOrder.company_name)}</Text>
-            <Text style={styles.meta}>Authorized signatory / Date</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.heading}>Signatures</Text><View style={styles.signatureGrid}>
+            {["Despacho Inc.", clean(workOrder.company_name)].map((party) => <View key={party} style={styles.signatureColumn}><Text style={styles.signatureParty}>{party}</Text><SignatureLine label="Sign" /><SignatureLine label="Name" /><SignatureLine label="Title" /><SignatureLine label="Date" /></View>)}
           </View>
         </View>
-        <View style={styles.footer} fixed>
-          <Text>Despacho Inc. · Confidential</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} of ${totalPages}`
-            }
-          />
-        </View>
+        <View style={styles.footer} fixed><Text>Despacho Inc. · Confidential</Text><Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} /></View>
       </Page>
     </Document>
   );
