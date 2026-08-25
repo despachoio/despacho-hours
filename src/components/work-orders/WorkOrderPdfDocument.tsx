@@ -6,9 +6,9 @@ const styles = StyleSheet.create({
   page: { paddingTop: 30, paddingHorizontal: 38, paddingBottom: 38, fontFamily: "Helvetica", fontSize: 8, color: colors.navy, lineHeight: 1.35 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderBottom: `2 solid ${colors.blue}`, paddingBottom: 9, marginBottom: 12 },
   logo: { width: 72.5, height: 21, objectFit: "contain" },
-  title: { fontSize: 13, fontWeight: 700, color: colors.blue, textAlign: "right" },
+  title: { fontSize: 11, fontWeight: 700, color: colors.blue, textAlign: "right", marginBottom: 8 },
   meta: { fontSize: 8, color: colors.slate, textAlign: "right", marginTop: 5 },
-  termsTitle: { fontSize: 15, fontWeight: 700, color: colors.blue, marginBottom: 8 },
+  termsTitle: { fontSize: 15, fontWeight: 700, color: colors.blue, marginBottom: 14 },
   clause: { marginBottom: 8 },
   clauseTitle: { fontSize: 9, fontWeight: 700, color: colors.navy, marginBottom: 2 },
   body: { fontSize: 8, color: "#334155", textAlign: "justify" },
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   signatureGrid: { flexDirection: "row", gap: 18 },
   signatureColumn: { width: "50%", border: `1 solid ${colors.line}`, borderRadius: 7, padding: 7, backgroundColor: colors.pale },
   signatureParty: { fontSize: 8.5, fontWeight: 700, color: colors.blue, marginBottom: 5 },
-  signatureLine: { flexDirection: "row", marginTop: 5 }, signatureLabel: { width: 32, color: colors.slate, fontSize: 7 }, signatureRule: { flex: 1, borderBottom: `1 solid ${colors.line}`, height: 8 },
+  signatureLine: { flexDirection: "row", marginTop: 8 }, signatureLabel: { width: 32, color: colors.slate, fontSize: 7 }, signatureRule: { flex: 1, borderBottom: `1 solid ${colors.line}`, height: 12 },
   footer: { position: "absolute", bottom: 17, left: 38, right: 38, borderTop: `1 solid ${colors.line}`, paddingTop: 5, flexDirection: "row", justifyContent: "space-between", fontSize: 7, color: colors.slate },
 });
 
