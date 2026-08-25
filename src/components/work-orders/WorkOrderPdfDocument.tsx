@@ -97,7 +97,6 @@ export function WorkOrderPdfDocument({ logoSrc, snapshot }: Props) {
         {sections.map((section, index) => (
   <View
     key={`${section.title}-${index}`}
-    break={section.title.startsWith("16. Severability")}
     wrap={false}
   >
     <Clause
