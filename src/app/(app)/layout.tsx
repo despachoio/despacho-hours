@@ -11,6 +11,7 @@ import {
 } from "@/components/shortcuts/ShortcutProvider";
 import { isAdminLevelRole } from "@/lib/roles";
 import { requiresAdminMobileAccess } from "@/lib/client-device";
+import RoleGuideCallout from "@/components/user-guide/RoleGuideCallout";
 
 type IconName =
   | "dashboard"
@@ -22,7 +23,8 @@ type IconName =
   | "payroll"
   | "reports"
   | "invoices"
-  | "settings";
+  | "settings"
+  | "guide";
 
 type MenuItem = {
   name: string;
@@ -164,6 +166,12 @@ const iconPaths: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.14.4.36.75.66 1 .3.25.68.39 1.08.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
+    </>
+  ),
+  guide: (
+    <>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5Z" />
+      <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z" />
     </>
   ),
 };
@@ -418,6 +426,9 @@ export default function DashboardLayout({
               aria-label="Profile menu"
               className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
             >
+              <div className="mb-1.5">
+                <RoleGuideCallout role={userRole || "User"} compact />
+              </div>
               <Link
                 href="/profile"
                 role="menuitem"
@@ -426,6 +437,15 @@ export default function DashboardLayout({
               >
                 <NavigationIcon name="team" />
                 My Profile
+              </Link>
+              <Link
+                href={`/user-guide?role=${userRole.trim().toLowerCase().replace(/\s+/g, "_")}`}
+                role="menuitem"
+                onClick={closeNavigation}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#153E90] focus:bg-blue-50 focus:text-[#153E90] focus:outline-none"
+              >
+                <NavigationIcon name="guide" />
+                User Guide
               </Link>
               {isAdminLevelRole(userRole) ? (
                 <Link
