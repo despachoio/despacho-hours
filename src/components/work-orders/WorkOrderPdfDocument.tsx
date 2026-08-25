@@ -94,7 +94,18 @@ export function WorkOrderPdfDocument({ logoSrc, snapshot }: Props) {
           <View><Text style={styles.title}>WORK ORDER - {clean(workOrder.work_order_number)}</Text></View>
         </View>
         <Text style={styles.termsTitle}>Despacho Terms of Service</Text>
-        {sections.map((section, index) => <Clause key={`${section.title}-${index}`} section={section} workOrder={workOrder} />)}
+        {sections.map((section, index) => (
+  <View
+    key={`${section.title}-${index}`}
+    break={section.title.startsWith("16. Severability")}
+    wrap={false}
+  >
+    <Clause
+      section={section}
+      workOrder={workOrder}
+    />
+  </View>
+))}
 
         <View break style={styles.section} wrap={false}>
           <Text style={styles.heading}>Exhibit A — Work Order</Text>
