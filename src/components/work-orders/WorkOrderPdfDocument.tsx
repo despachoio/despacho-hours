@@ -91,7 +91,7 @@ export function WorkOrderPdfDocument({ logoSrc, snapshot }: Props) {
       <Page size="A4" style={styles.page} wrap>
         <View style={styles.header} fixed>
           <Image src={logoSrc} style={styles.logo} />
-          <View><Text style={styles.title}>WORK ORDER - {clean(workOrder.work_order_number)}</Text><Text style={styles.meta}>Customer ID - {clean(workOrder.client_business_id || "Existing Client")}</Text></View>
+          <View><Text style={styles.title}>WORK ORDER - {clean(workOrder.work_order_number)}</View>
         </View>
         <Text style={styles.termsTitle}>Despacho Terms of Service</Text>
         {sections.map((section, index) => <Clause key={`${section.title}-${index}`} section={section} workOrder={workOrder} />)}
