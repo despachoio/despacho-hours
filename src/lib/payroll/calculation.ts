@@ -17,11 +17,40 @@ export type PayrollCalculationInput = {
   tds?: number;
   professionalTaxThreshold?: number;
   professionalTaxAmount?: number;
+  pfWageCeiling?: number;
 };
+
+export const PF_WAGE_CEILING_CHANGE_DATE = "2026-09-01";
+export const LEGACY_PF_WAGE_CEILING = 15_000;
+export const CURRENT_PF_WAGE_CEILING = 25_000;
 
 const money = (value: number) =>
   Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const safe = (value: number | undefined) => Math.max(Number(value || 0), 0);
+
+export function pfWageCeilingForDate(effectiveDate?: string) {
+  return effectiveDate && effectiveDate >= PF_WAGE_CEILING_CHANGE_DATE
+    ? CURRENT_PF_WAGE_CEILING
+    : LEGACY_PF_WAGE_CEILING;
+}
+
+export function calculateProvidentFund(
+  basicPay: number,
+  effectiveDate?: string,
+) {
+  const wageCeiling = pfWageCeilingForDate(effectiveDate);
+  const epfSalary = money(Math.min(safe(basicPay), wageCeiling));
+  const employeePf = money(Math.round(epfSalary * 0.12));
+  const employerEps = money(
+    Math.min(
+      Math.round(epfSalary * 0.0833),
+      Math.round(wageCeiling * 0.0833),
+    ),
+  );
+  const employerPf = money(employeePf - employerEps);
+
+  return { wageCeiling, epfSalary, employeePf, employerPf, employerEps };
+}
 
 export function calculatePayroll(input: PayrollCalculationInput) {
   const grossSalary = safe(input.grossSalary);
@@ -29,10 +58,13 @@ export function calculatePayroll(input: PayrollCalculationInput) {
   const hra = money(input.hra == null ? (grossSalary <= 16_800 ? 0 : basicPay * 0.4) : input.hra);
   const conveyanceAllowance = money(safe(input.conveyanceAllowance ?? 1_600));
   const otherAllowance = money(input.otherAllowance == null ? grossSalary - basicPay - hra - conveyanceAllowance : input.otherAllowance);
-  const epfSalary = money(input.epfSalary == null ? Math.min(basicPay, 15_000) : input.epfSalary);
+  const pfWageCeiling = safe(
+    input.pfWageCeiling ?? LEGACY_PF_WAGE_CEILING,
+  );
+  const epfSalary = money(input.epfSalary == null ? Math.min(basicPay, pfWageCeiling) : input.epfSalary);
   const employeePf = money(input.employeePf == null ? Math.round(epfSalary * 0.12) : input.employeePf);
 
-  const employerEps = money(input.employerEps == null ? Math.min(Math.round(epfSalary * 0.0833), 1_250) : input.employerEps);
+  const employerEps = money(input.employerEps == null ? Math.min(Math.round(epfSalary * 0.0833), Math.round(pfWageCeiling * 0.0833)) : input.employerEps);
 
   const employerPf = money(input.employerPf == null ? employeePf - employerEps : input.employerPf);
   const employerTotalContribution = money(employerPf + employerEps);

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { calculatePayroll, payrollPeriod } from "./calculation";
+import { calculatePayroll, calculateProvidentFund, payrollPeriod } from "./calculation";
 import { toPayrollEntryDto } from "./entry";
 import { calculateSalaryStructure, latestSalaryStructure, selectEffectiveSalaryStructures, type SalaryStructureComponents } from "./salaryStructures";
 import type {
@@ -283,7 +283,7 @@ export async function createSalaryStructure(request: Request, input: { employeeI
   await ensureUniqueEffectiveDate(actor.admin, input.employeeId, effectiveFrom);
   await ensureNoAffectedPayroll(actor.admin, effectiveFrom);
   const config = await settings(actor.admin);
-  const components = validStructureComponents(calculateSalaryStructure(input.grossSalary, config.conveyance_allowance));
+  const components = validStructureComponents(calculateSalaryStructure(input.grossSalary, config.conveyance_allowance, effectiveFrom));
   const version = await nextStructureVersion(actor.admin, input.employeeId);
   const insert = await actor.admin.from("salary_structures").insert({ employee_id: input.employeeId, version, ...components, effective_from: effectiveFrom, effective_to: null, is_active: false, notes: input.notes || null, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
   if (insert.error) throw new Error(insert.error.code === "23505" ? "A salary structure already exists for this employee with this effective date." : insert.error.message);
@@ -332,7 +332,8 @@ export async function duplicateSalaryStructure(request: Request, structureId: st
   await ensureUniqueEffectiveDate(actor.admin, source.data.employee_id, effectiveFrom);
   await ensureNoAffectedPayroll(actor.admin, effectiveFrom);
   const version = await nextStructureVersion(actor.admin, source.data.employee_id);
-  const components = validStructureComponents({ gross_salary: source.data.gross_salary, basic_pay: source.data.basic_pay, hra: source.data.hra, conveyance_allowance: source.data.conveyance_allowance, other_allowance: source.data.other_allowance, epf_salary: source.data.epf_salary, employee_pf: source.data.employee_pf, employer_pf: source.data.employer_pf, employer_eps: source.data.employer_eps });
+  const providentFund = calculateProvidentFund(Number(source.data.basic_pay), effectiveFrom);
+  const components = validStructureComponents({ gross_salary: source.data.gross_salary, basic_pay: source.data.basic_pay, hra: source.data.hra, conveyance_allowance: source.data.conveyance_allowance, other_allowance: source.data.other_allowance, epf_salary: providentFund.epfSalary, employee_pf: providentFund.employeePf, employer_pf: providentFund.employerPf, employer_eps: providentFund.employerEps });
   const inserted = await actor.admin.from("salary_structures").insert({ employee_id: source.data.employee_id, version, ...components, effective_from: effectiveFrom, effective_to: null, is_active: false, notes: source.data.notes, created_by: actor.userId, updated_by: actor.userId }).select("*").single();
   if (inserted.error) throw new Error(inserted.error.code === "23505" ? "A salary structure already exists for this employee with this effective date." : inserted.error.message);
   await audit(actor.admin, actor, { action: "salary_structure_duplicated", structureId: inserted.data.id, previous: source.data, next: inserted.data });
@@ -425,7 +426,7 @@ export async function updatePayrollEntry(request: Request, entryId: string, valu
   if (!['draft','under_review'].includes(current.data.status)) throw new Error("Manual fields are locked for this payroll");
   const config = await settings(actor.admin);
   const periodDays = Math.round((new Date(current.data.period_end).getTime() - new Date(current.data.period_start).getTime()) / 86_400_000) + 1;
-  const calculated = calculatePayroll({ grossSalary: current.data.gross_salary, conveyanceAllowance: current.data.conveyance_allowance, bonus: values.bonus ?? current.data.bonus, leaveEncashment: values.leaveEncashment ?? current.data.leave_encashment, lopDays: current.data.lop_days, periodDays, confirmedLopDeduction: values.lopDeduction ?? current.data.lop_deduction, previousMonthAdjustment: values.previousMonthAdjustment ?? current.data.previous_month_adjustment, tds: values.tds ?? current.data.tds, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
+  const calculated = calculatePayroll({ grossSalary: current.data.gross_salary, basicPay: current.data.basic_pay, hra: current.data.hra, conveyanceAllowance: current.data.conveyance_allowance, otherAllowance: current.data.other_allowance, epfSalary: current.data.epf_salary, employeePf: current.data.employee_pf, employerPf: current.data.employer_pf, employerEps: current.data.employer_eps, bonus: values.bonus ?? current.data.bonus, leaveEncashment: values.leaveEncashment ?? current.data.leave_encashment, lopDays: current.data.lop_days, periodDays, confirmedLopDeduction: values.lopDeduction ?? current.data.lop_deduction, previousMonthAdjustment: values.previousMonthAdjustment ?? current.data.previous_month_adjustment, tds: values.tds ?? current.data.tds, professionalTaxThreshold: config.professional_tax_threshold, professionalTaxAmount: config.professional_tax_amount });
   const manualOverrideFields = new Set<string>(Array.isArray(current.data.manual_override_fields) ? current.data.manual_override_fields.map(String) : []);
   const changedFields: Array<[string, number | undefined, unknown]> = [["bonus", values.bonus, current.data.bonus], ["leave_encashment", values.leaveEncashment, current.data.leave_encashment], ["lop_deduction", values.lopDeduction, current.data.lop_deduction], ["previous_month_adjustment", values.previousMonthAdjustment, current.data.previous_month_adjustment], ["tds", values.tds, current.data.tds]];
   for (const [field, next, previous] of changedFields) if (next !== undefined && Number(next) !== Number(previous)) manualOverrideFields.add(field);

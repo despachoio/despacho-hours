@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { calculatePayroll, payrollPeriod } from "../src/lib/payroll/calculation";
+import { calculatePayroll, calculateProvidentFund, payrollPeriod, pfWageCeilingForDate } from "../src/lib/payroll/calculation";
 import { toPayrollEntryDto } from "../src/lib/payroll/entry";
 import { currentFinancialYear, financialYearForPayrollMonth, financialYearFromValue, financialYearOptions, isInFinancialYear } from "../src/lib/payroll/financialYear";
 import { bankTransferFilename, payslipFilename, ytdFilename } from "../src/lib/payroll/filenames";
@@ -70,6 +70,14 @@ describe("Payroll calculation engine", () => {
   it("auto-calculates complete salary structure components with existing payroll rules", () => {
     expect(calculateSalaryStructure(16_800)).toEqual({ gross_salary: 16_800, basic_pay: 15_000, hra: 0, conveyance_allowance: 1_600, other_allowance: 200, epf_salary: 15_000, employee_pf: 1_800, employer_pf: 550, employer_eps: 1_250 });
     expect(calculateSalaryStructure(30_000)).toEqual({ gross_salary: 30_000, basic_pay: 15_000, hra: 6_000, conveyance_allowance: 1_600, other_allowance: 7_400, epf_salary: 15_000, employee_pf: 1_800, employer_pf: 550, employer_eps: 1_250 });
+  });
+
+  it("uses the effective-dated PF wage ceiling from September 2026", () => {
+    expect(pfWageCeilingForDate("2026-08-31")).toBe(15_000);
+    expect(pfWageCeilingForDate("2026-09-01")).toBe(25_000);
+    expect(calculateSalaryStructure(50_000, 1_600, "2026-08-31")).toMatchObject({ epf_salary: 15_000, employee_pf: 1_800, employer_pf: 550, employer_eps: 1_250 });
+    expect(calculateSalaryStructure(50_000, 1_600, "2026-09-01")).toMatchObject({ epf_salary: 25_000, employee_pf: 3_000, employer_pf: 917, employer_eps: 2_083 });
+    expect(calculateProvidentFund(20_000, "2026-09-01")).toMatchObject({ epfSalary: 20_000, employeePf: 2_400, employerPf: 734, employerEps: 1_666 });
   });
 
   it("honours manually overridden salary components without changing deduction rules", () => {
@@ -562,6 +570,14 @@ describe("Payroll security and snapshot contracts", () => {
       administrationCharges: 75,
       edliCharges: 75,
       totalPf: 3_750,
+    });
+    expect(payrollPfAmounts({ epf_salary: 25_000, employee_pf: 3_000, employer_pf: 917, employer_eps: 2_083 })).toEqual({
+      employeePf: 3_000,
+      employerPf: 917,
+      employerEps: 2_083,
+      administrationCharges: 125,
+      edliCharges: 125,
+      totalPf: 6_250,
     });
   });
 

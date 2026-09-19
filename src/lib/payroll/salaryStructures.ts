@@ -1,4 +1,4 @@
-import { calculatePayroll } from "./calculation";
+import { calculatePayroll, pfWageCeilingForDate } from "./calculation";
 import type { SalaryStructure } from "./types";
 
 export type SalaryStructureComponents = Pick<
@@ -14,8 +14,8 @@ export type SalaryStructureComponents = Pick<
   | "employer_eps"
 >;
 
-export function calculateSalaryStructure(grossSalary: number, conveyanceAllowance = 1_600): SalaryStructureComponents {
-  const calculated = calculatePayroll({ grossSalary, conveyanceAllowance });
+export function calculateSalaryStructure(grossSalary: number, conveyanceAllowance = 1_600, effectiveDate?: string): SalaryStructureComponents {
+  const calculated = calculatePayroll({ grossSalary, conveyanceAllowance, pfWageCeiling: pfWageCeilingForDate(effectiveDate) });
   return {
     gross_salary: calculated.grossSalary,
     basic_pay: calculated.basicPay,
