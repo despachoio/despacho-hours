@@ -4,6 +4,7 @@ import {
   publicInvoiceState,
   safeInvoicePayload,
 } from "@/lib/public-invoice-payment";
+import { invoiceReceiptEmail } from "@/lib/invoice-recipients";
 import {
   reconcileStripePaymentIntent,
   validatePaymentIntentForInvoice,
@@ -100,7 +101,7 @@ export async function POST(
     const replaceCanceledIntent = body.replaceCanceledIntent === true;
     const currency = supportedCurrency(invoice.currency);
     const amount = toMinorUnits(invoice.total_amount, currency);
-    const receiptEmail = invoice.sent_to?.split(",")[0]?.trim() || undefined;
+    const receiptEmail = invoiceReceiptEmail(invoice.sent_to);
     const stripe = getStripe();
     let customerId = invoice.clients?.stripe_customer_id || null;
     if (!customerId) {

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { invoiceReceiptEmail } from "@/lib/invoice-recipients";
 import { loadPublicInvoice } from "@/lib/public-invoice-payment";
 import { reconcileStripePaymentIntent } from "@/lib/stripe-reconciliation";
 import {
@@ -98,8 +99,7 @@ export async function attemptRecurringInvoiceAutopay(
           payment_method: client.stripe_default_payment_method_id,
           payment_method_types: stripePaymentMethodTypes(),
           description: `Kairo recurring Invoice #${invoice.invoice_number}`,
-          receipt_email:
-            invoice.sent_to?.split(",")[0]?.trim() || undefined,
+          receipt_email: invoiceReceiptEmail(invoice.sent_to),
           metadata: {
             kairo_invoice_id: invoice.id,
             kairo_invoice_number: String(invoice.invoice_number),

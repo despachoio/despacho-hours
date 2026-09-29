@@ -32,31 +32,37 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
     async (replaceCanceledIntent = false) => {
       setPreparing(true);
       setError("");
-      const response = await fetch(
-        `/api/public/invoices/${token}/payment-intent`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            autopayConsent: false,
-            replaceCanceledIntent,
-          }),
-        },
-      );
-      const result = (await response.json()) as StatusResponse & {
-        clientSecret?: string;
-      };
-      if (result.invoice) setInvoice(result.invoice);
-      if (result.status) setPaymentStatus(result.status);
-      if (result.clientSecret) {
-        setClientSecret(result.clientSecret);
-      } else {
+      try {
+        const response = await fetch(
+          `/api/public/invoices/${token}/payment-intent`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              autopayConsent: false,
+              replaceCanceledIntent,
+            }),
+          },
+        );
+        const result = (await response.json()) as StatusResponse & {
+          clientSecret?: string;
+        };
+        if (result.invoice) setInvoice(result.invoice);
+        if (result.status) setPaymentStatus(result.status);
+        if (result.clientSecret) {
+          setClientSecret(result.clientSecret);
+        } else {
+          setClientSecret("");
+        }
+        if (!response.ok) {
+          setError(result.error || "Unable to prepare secure payment.");
+        }
+      } catch {
         setClientSecret("");
+        setError("Unable to prepare secure payment. Please try again.");
+      } finally {
+        setPreparing(false);
       }
-      if (!response.ok) {
-        setError(result.error || "Unable to prepare payment");
-      }
-      setPreparing(false);
     },
     [token],
   );
@@ -169,11 +175,24 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
                   </a>
                 ) : null}
               </section>
-            ) : !error ? (
+            ) : error ? (
+              <section className="rounded-3xl border border-red-200 bg-white p-8 shadow-sm">
+                <h2 className="text-2xl font-bold text-slate-950">Unable to prepare secure payment</h2>
+                <p role="alert" className="mt-3 leading-7 text-red-700">{error}</p>
+                <button
+                  type="button"
+                  disabled={preparing}
+                  onClick={() => void preparePayment(false)}
+                  className="mt-6 rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {preparing ? "Preparing…" : "Try again"}
+                </button>
+              </section>
+            ) : (
               <section className="rounded-3xl border border-slate-200 bg-white p-8 text-slate-600 shadow-sm">
                 {preparing ? "Preparing secure payment…" : "Stripe configuration is missing."}
               </section>
-            ) : null}
+            )}
           </div>
         ) : null}
       </div>
