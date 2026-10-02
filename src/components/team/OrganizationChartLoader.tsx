@@ -17,6 +17,7 @@ type OrganizationEmployeeRow = {
   reporting_manager_name: string | null;
   reporting_manager_title: string | null;
   status: string | null;
+  can_view_profile: boolean;
 };
 
 function toTeamEmployee(row: OrganizationEmployeeRow): TeamEmployee {
@@ -44,6 +45,7 @@ function toTeamEmployee(row: OrganizationEmployeeRow): TeamEmployee {
       : null,
     status: row.status,
     hourly_cost: null,
+    can_view_profile: row.can_view_profile,
   };
 }
 
@@ -56,7 +58,7 @@ export default function OrganizationChartLoader() {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const result = await supabase.rpc("get_workforce_overview_employees");
+      const result = await supabase.rpc("get_organization_chart_employees");
       if (cancelled) return;
       if (result.error) setError(result.error.message);
       else {

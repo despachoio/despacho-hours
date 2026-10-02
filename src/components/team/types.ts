@@ -22,6 +22,7 @@ export type TeamEmployee = {
   } | null;
   status: string | null;
   hourly_cost?: number | null;
+  can_view_profile?: boolean;
 };
 
 export type ReportingManagerOption = {

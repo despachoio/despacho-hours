@@ -114,6 +114,16 @@ function OrgNode({
   const tone =
     depth === 0 ? rootTone : levelTones[(depth - 1) % levelTones.length];
   const name = organizationChartEmployeeName(node.name);
+  const cardContent = (
+    <>
+      <span className="block truncate text-base font-black tracking-wide">
+        {name}
+      </span>
+      <span className="mt-1 block truncate text-[10px] font-bold uppercase tracking-[0.24em] text-white/80">
+        {node.role || "Workforce Member"}
+      </span>
+    </>
+  );
 
   return (
     <li className={`${styles.node} ${depth === 0 ? styles.rootNode : ""}`}>
@@ -121,18 +131,23 @@ function OrgNode({
         id={`org-node-${node.id}`}
         className={`relative z-10 w-64 overflow-hidden rounded-[1.35rem] border bg-gradient-to-br text-center text-white shadow-[0_18px_40px_-20px_rgba(15,23,42,.65)] transition duration-300 hover:-translate-y-1 hover:shadow-2xl ${tone} ${selectedId === node.id ? "ring-4 ring-cyan-300/50" : ""}`}
       >
-        <Link
-          href={`/team/${node.id}`}
-          className="block px-5 pb-5 pt-5 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-white/60"
-          aria-label={`Open ${name}'s employee profile`}
-        >
-          <span className="block truncate text-base font-black tracking-wide">
-            {name}
-          </span>
-          <span className="mt-1 block truncate text-[10px] font-bold uppercase tracking-[0.24em] text-white/80">
-            {node.role || "Workforce Member"}
-          </span>
-        </Link>
+        {node.can_view_profile ? (
+          <Link
+            href={`/team/${node.id}`}
+            className="block px-5 pb-5 pt-5 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-white/60"
+            aria-label={`Open ${name}'s employee profile`}
+          >
+            {cardContent}
+          </Link>
+        ) : (
+          <div
+            className="cursor-default px-5 pb-5 pt-5"
+            aria-label={`${name}'s organization chart entry. Profile access is restricted.`}
+            title="Profile access is restricted"
+          >
+            {cardContent}
+          </div>
+        )}
         {node.children.length ? (
           <button
             type="button"

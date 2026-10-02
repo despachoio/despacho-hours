@@ -41,6 +41,27 @@ describe("Workforce organization chart", () => {
     expect(styles).toContain(".node::before");
     expect(styles).toContain(".node::after");
   });
+
+  it("shows the full active hierarchy while preserving profile access", () => {
+    const loader = source("src/components/team/OrganizationChartLoader.tsx");
+    const migration = source(
+      "supabase/migrations/202610020001_organization_chart_all_active_employees.sql",
+    );
+    const detail = source("src/app/(app)/team/[id]/page.tsx");
+
+    expect(loader).toContain('rpc("get_organization_chart_employees")');
+    expect(loader).toContain("can_view_profile: row.can_view_profile");
+    expect(migration).toContain(
+      "where lower(trim(coalesce(employee.status, 'active'))) = 'active'",
+    );
+    expect(migration).toContain("can_view_profile boolean");
+    expect(migration).toContain("employee.reporting_manager_id = actor.employee_id");
+    expect(chart).toContain("node.can_view_profile ?");
+    expect(chart).toContain("Profile access is restricted");
+    expect(detail).toContain('currentRole === "employee"');
+    expect(detail).toContain('currentRole === "manager"');
+    expect(detail).toContain('"get_team_metric_employees"');
+  });
 });
 
 describe("Workforce terminology", () => {
