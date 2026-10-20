@@ -9,6 +9,7 @@ import { MANUAL_PAYROLL_FIELDS, type ManualPayrollField } from "@/lib/payroll/la
 import { normalizePayrollNumber } from "@/lib/payroll/numbers";
 import { payrollPfAmounts, salaryRegisterGrossPay } from "@/lib/payroll/exports";
 import { calculateGratuityEstimate, GRATUITY_CEILING, REGULAR_GRATUITY_ELIGIBILITY_MONTHS, type GratuityProfile } from "@/lib/payroll/gratuity";
+import type { GratuityRegisterRow } from "@/lib/payroll/gratuityRegister";
 import { isFinanceAdminRole } from "@/lib/roles";
 import type { CompanyPayrollBankDetails, EmployeeBankDetails, Form16Document, PayrollEntry, PayrollRun, PayrollSettings, RecurringPayrollAdjustment, SalaryStructure } from "@/lib/payroll/types";
 import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollAdministration";
@@ -18,7 +19,7 @@ import PayrollPolicy from "@/components/payroll/PayrollPolicy";
 import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
-type PayrollData = { role: string; ownEntries: PayrollEntry[]; ownForm16Documents: Form16Document[]; gratuityProfile: GratuityProfile; form16Documents?: Form16Document[]; form16Employees?: Array<Employee & { status: string }>; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
+type PayrollData = { role: string; ownEntries: PayrollEntry[]; ownForm16Documents: Form16Document[]; gratuityProfile: GratuityProfile; gratuityRegister?: GratuityRegisterRow[]; form16Documents?: Form16Document[]; form16Employees?: Array<Employee & { status: string }>; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
 const employeeTabs: Array<[Exclude<Tab, "administration" | "policy">, string, TimeOffIconName]> = [["overview", "My Payroll", "wallet"], ["history", "Payroll History", "clock"]];

@@ -19,6 +19,7 @@ import { businessDateKey } from "@/lib/metrics/date-ranges";
 import { buildBankTransferFile, salaryRegisterGrossPay } from "./exports";
 import { bankTransferFilename } from "./filenames";
 import { applicableRecurringAdjustments, payrollMonthDate, recurringComponentTotal } from "./recurringAdjustments";
+import { loadGratuityRegister } from "./gratuityRegister";
 
 const payrollBankFields = "payroll_bank_customer_id,payroll_bank_account_number,payroll_bank_ifsc_code,payroll_bank_branch_code,payroll_bank_currency";
 
@@ -99,7 +100,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
   const salaryStructures = isFinanceAdminRole(actor.role)
     ? actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").order("effective_from", { ascending: false }).order("version", { ascending: false })
     : Promise.resolve({ data: [], error: null });
-  const [runs, structures, payrollSettings, employees, auditRows, companyBank, recurringAdjustments, form16Documents, form16Employees] = await Promise.all([
+  const [runs, structures, payrollSettings, employees, auditRows, companyBank, recurringAdjustments, form16Documents, form16Employees, gratuityRegister] = await Promise.all([
     actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(120),
     salaryStructures,
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
@@ -109,6 +110,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     actor.admin.from("recurring_payroll_adjustments").select("*,employees(id,employee_code,name,title,status)").order("from_month", { ascending: false }).order("created_at", { ascending: false }),
     actor.admin.from("payroll_form16_documents").select("id,employee_id,financial_year,storage_path,file_name,file_size_bytes,issued_on,uploaded_at,employees(id,employee_code,name)").order("financial_year", { ascending: false }),
     actor.admin.from("employees").select("id,employee_code,name,status").order("employee_code"),
+    loadGratuityRegister(actor.admin, asOfDate),
   ]);
   const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error || recurringAdjustments.error || form16Documents.error || form16Employees.error;
   if (failure) throw new Error(failure.message);
@@ -160,6 +162,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     recurringAdjustments: recurringAdjustments.data || [],
     form16Documents: form16Documents.data || [],
     form16Employees: form16Employees.data || [],
+    gratuityRegister,
     selectedRun,
     bankDetails,
     companyBankDetails: (companyBank.data || {

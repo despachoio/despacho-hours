@@ -45,6 +45,11 @@ export async function downloadPayrollSummary(financialYear: string, fromMonth: s
   await downloadResponse(`/api/payroll/reports/summary?${query}`, `Payroll_Summary_${financialYear}.${format}`);
 }
 
+export async function downloadGratuityRegister(filters: { search: string; status: string; eligibility: string; asOfDate: string }, format: "xlsx" | "pdf") {
+  const query = new URLSearchParams({ ...filters, format });
+  await downloadResponse(`/api/payroll/reports/gratuity?${query}`, `Gratuity_Liability_Register_${filters.asOfDate}.${format}`);
+}
+
 export async function downloadForm16(id: string, financialYear: string) {
   await downloadResponse(`/api/payroll/form-16/${encodeURIComponent(id)}`, `Form16_FY ${financialYear}.pdf`);
 }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
-import { downloadBankTransfer, downloadPayrollSummary, downloadPayrollYtd, downloadPayslip, processPayslipDistribution, uploadForm16 } from "@/lib/payroll/client";
+import { downloadBankTransfer, downloadGratuityRegister, downloadPayrollSummary, downloadPayrollYtd, downloadPayslip, processPayslipDistribution, uploadForm16 } from "@/lib/payroll/client";
 import { currentFinancialYear, financialYearFromValue, financialYearOptions } from "@/lib/payroll/financialYear";
 import {
   buildBankTransferFile,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/payroll/exports";
 import { canApprovePayroll, canEditPayroll, canExportPayroll, canSubmitPayroll, payrollLifecycleStatus } from "@/lib/payroll/lifecycle";
 import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
+import type { GratuityRegisterRow } from "@/lib/payroll/gratuityRegister";
 import type {
   CompanyPayrollBankDetails,
   EmployeeBankDetails,
@@ -34,6 +35,7 @@ type PayrollData = {
   companyBankDetails?: CompanyPayrollBankDetails;
   form16Documents?: Form16Document[];
   form16Employees?: Array<Employee & { status: string }>;
+  gratuityRegister?: GratuityRegisterRow[];
 };
 type Action = (payload: Record<string, unknown>, refresh?: boolean) => Promise<boolean>;
 
@@ -228,8 +230,65 @@ export function PayrollReports({ data, onRefresh }: { data: PayrollData; onRefre
 
   return <div className="space-y-5">
     <Card><div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5"><h2 className="text-xl font-bold">Employee Payroll</h2><p className="mt-1 text-sm text-slate-500">Download submitted payslips or a YTD statement for a selected financial-year range.</p></div><div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4"><Select label="Financial Year" value={filters.financialYear} onChange={updateYear} options={years.map((year) => [year.value, year.label])}/><Select label="From Month" value={filters.fromMonth} onChange={(value) => setFilters((current) => ({ ...current, fromMonth: value }))} options={financialYear.months.map((month) => [month, payrollMonthLabel(month)])}/><Select label="To Month" value={filters.toMonth} onChange={(value) => setFilters((current) => ({ ...current, toMonth: value }))} options={financialYear.months.map((month) => [month, payrollMonthLabel(month)])}/><Select label="Employee" value={filters.employeeId} onChange={(value) => setFilters((current) => ({ ...current, employeeId: value }))} options={[["all", "All Employees"], ...(data.employees || []).map((employee) => [employee.id, `${employee.employee_code} · ${employee.name}`])]}/></div><div className="flex flex-wrap gap-3 border-t border-slate-100 px-6 py-5"><KairoButton type="button" disabled={!entries.length || Boolean(busy) || filters.fromMonth > filters.toMonth} onClick={() => void perform("payslips", payslips)}>{busy === "payslips" ? "Downloading..." : "Download Payslip"}</KairoButton><KairoButton type="button" disabled={!entries.length || Boolean(busy) || filters.fromMonth > filters.toMonth} onClick={() => void perform("ytd", ytd)}>{busy === "ytd" ? "Downloading..." : "Download YTD"}</KairoButton>{filters.employeeId !== "all" ? <><KairoButton type="button" disabled={!entries.length || Boolean(busy)} onClick={() => void perform("resend", () => distribute("resend"))}>{busy === "resend" ? "Sending..." : "Resend Email"}</KairoButton><KairoButton type="button" disabled={!entries.length || Boolean(busy)} onClick={() => void perform("regenerate", () => distribute("regenerate"))}>{busy === "regenerate" ? "Regenerating..." : "Regenerate Payslip"}</KairoButton></> : null}<KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={reset}>Reset</KairoButton><span className="self-center text-sm text-slate-500">{entries.length} submitted payroll records</span></div>{error ? <p role="alert" className="mx-6 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}</Card>
-    {data.role === "finance admin" ? <><Form16Administration data={data} years={years.map((year) => [year.value, year.label])} onRefresh={onRefresh} /><PayrollSummaryReport filters={filters} years={years.map((year) => [year.value, year.label])} busy={busy} perform={perform} /></> : null}
+    {data.role === "finance admin" ? <><GratuityLiabilityRegister rows={data.gratuityRegister || []} /><Form16Administration data={data} years={years.map((year) => [year.value, year.label])} onRefresh={onRefresh} /><PayrollSummaryReport filters={filters} years={years.map((year) => [year.value, year.label])} busy={busy} perform={perform} /></> : null}
   </div>;
+}
+
+type GratuityFilters = { search: string; status: string; eligibility: string };
+const emptyGratuityFilters = (): GratuityFilters => ({ search: "", status: "all", eligibility: "all" });
+const gratuityTenure = (row: GratuityRegisterRow) => `${row.completedYears}y ${row.remainingMonths}m`;
+const gratuityEligibility = (row: GratuityRegisterRow) => !row.coveredEmployment ? "Not applicable" : !row.available ? "Unavailable" : row.eligible ? "Eligible" : "Not yet eligible";
+
+function GratuityLiabilityRegister({ rows }: { rows: GratuityRegisterRow[] }) {
+  const [draft, setDraft] = useState<GratuityFilters>(emptyGratuityFilters);
+  const [applied, setApplied] = useState<GratuityFilters>(emptyGratuityFilters);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const filtered = useMemo(() => rows.filter((row) => {
+    const search = applied.search.trim().toLowerCase();
+    if (search && !`${row.employeeCode} ${row.employeeName}`.toLowerCase().includes(search)) return false;
+    if (applied.status !== "all" && row.employeeStatus !== applied.status) return false;
+    if (applied.eligibility === "eligible" && !row.eligible) return false;
+    if (applied.eligibility === "not_eligible" && (row.eligible || !row.available || !row.coveredEmployment)) return false;
+    if (applied.eligibility === "unavailable" && row.available && row.coveredEmployment) return false;
+    return true;
+  }), [applied, rows]);
+  const asOfDate = rows[0]?.asOfDate || localDateValue();
+  const eligibleCount = filtered.filter((row) => row.eligible).length;
+  const accruedTotal = filtered.reduce((sum, row) => sum + row.estimatedGratuity, 0);
+  const payableTotal = filtered.reduce((sum, row) => sum + row.currentlyPayableEstimate, 0);
+
+  async function download(format: "xlsx" | "pdf") {
+    if (!filtered.length || busy) return;
+    setBusy(format); setError("");
+    try { await downloadGratuityRegister({ ...applied, asOfDate }, format); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to download gratuity register"); }
+    finally { setBusy(""); }
+  }
+
+  return <Card>
+    <div className="border-b border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 px-6 py-5">
+      <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Long-service liability</p>
+      <h2 className="mt-1 text-xl font-bold">Gratuity Liability Register</h2>
+      <p className="mt-1 text-sm text-slate-500">Finance-only tenure and estimated gratuity view as of {new Date(`${asOfDate}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" })}.</p>
+    </div>
+    <div className="grid gap-4 p-6 md:grid-cols-3">
+      <label className="text-sm font-bold text-slate-700">Employee<input type="search" value={draft.search} placeholder="Search code or name" onChange={(event) => setDraft((current) => ({ ...current, search: event.target.value }))} className={fieldClass} /></label>
+      <Select label="Employee Status" value={draft.status} onChange={(status) => setDraft((current) => ({ ...current, status }))} options={[["all", "All Statuses"], ["active", "Active"], ["inactive", "Inactive"], ["archived", "Archived"]]} />
+      <Select label="Eligibility" value={draft.eligibility} onChange={(eligibility) => setDraft((current) => ({ ...current, eligibility }))} options={[["all", "All Employees"], ["eligible", "Eligible"], ["not_eligible", "Not Yet Eligible"], ["unavailable", "Unavailable / Not Applicable"]]} />
+    </div>
+    <div className="flex flex-wrap gap-3 border-t border-slate-100 px-6 py-5">
+      <KairoButton type="button" disabled={Boolean(busy)} onClick={() => { setApplied(draft); setError(""); }}>Search</KairoButton>
+      <KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={() => { const reset = emptyGratuityFilters(); setDraft(reset); setApplied(reset); setError(""); }}>Reset</KairoButton>
+      <KairoButton type="button" disabled={!filtered.length || Boolean(busy)} onClick={() => void download("xlsx")}>{busy === "xlsx" ? "Downloading..." : "Download Excel"}</KairoButton>
+      <KairoButton type="button" disabled={!filtered.length || Boolean(busy)} onClick={() => void download("pdf")}>{busy === "pdf" ? "Downloading..." : "Download PDF"}</KairoButton>
+      <span className="self-center text-sm text-slate-500">{filtered.length} employee records</span>
+    </div>
+    {error ? <p role="alert" className="mx-6 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
+    <div className="grid gap-3 border-t border-slate-100 bg-slate-50/60 p-6 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Employees" value={String(filtered.length)} colour="text-[#153E90]"/><Metric label="Eligible" value={String(eligibleCount)} colour="text-emerald-700"/><Metric label="Estimated Accrued" value={money(accruedTotal)} colour="text-violet-700"/><Metric label="Currently Payable Estimate" value={money(payableTotal)} colour="text-cyan-700"/></div>
+    {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1100px] text-sm"><thead className="bg-[#0F172A] text-left text-xs uppercase tracking-wide text-slate-200"><tr><th className="px-4 py-4">Employee</th><th className="px-4 py-4">Status</th><th className="px-4 py-4">Date of Joining</th><th className="px-4 py-4">Tenure</th><th className="px-4 py-4 text-right">Basic Salary</th><th className="px-4 py-4">Eligibility</th><th className="px-4 py-4 text-right">Estimated Gratuity</th></tr></thead><tbody className="divide-y divide-slate-100">{filtered.map((row) => <tr key={row.employeeId} className="hover:bg-blue-50/40"><td className="px-4 py-4"><p className="font-bold text-slate-900">{row.employeeName}</p><p className="mt-1 text-xs font-semibold text-[#153E90]">{row.employeeCode}</p></td><td className="px-4 py-4 capitalize">{row.employeeStatus}</td><td className="px-4 py-4">{row.dateOfJoining ? new Date(`${row.dateOfJoining}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : "—"}</td><td className="px-4 py-4 font-semibold">{row.available ? gratuityTenure(row) : "—"}</td><td className="px-4 py-4 text-right font-semibold tabular-nums">{row.available ? money(row.basicSalary) : "—"}</td><td className={`px-4 py-4 font-bold ${row.eligible ? "text-emerald-700" : "text-amber-700"}`}>{gratuityEligibility(row)}</td><td className="px-4 py-4 text-right font-bold tabular-nums text-[#153E90]">{row.available && row.coveredEmployment ? money(row.estimatedGratuity) : "—"}</td></tr>)}</tbody></table></div> : <p className="px-6 py-12 text-center text-sm text-slate-400">No employees match the selected gratuity filters.</p>}
+    <p className="border-t border-slate-100 px-6 py-4 text-xs leading-5 text-slate-500">Informational estimate only. Actual gratuity depends on applicable law, continuous service, employment classification, and the settlement date. No payroll or accounting entries are created by this report.</p>
+  </Card>;
 }
 
 function Form16Administration({ data, years, onRefresh }: { data: PayrollData; years: string[][]; onRefresh: () => Promise<void> }) {
