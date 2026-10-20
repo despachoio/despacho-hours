@@ -27,6 +27,15 @@ describe("finance gratuity liability register", () => {
     expect(workspace).toContain("emptyGratuityFilters");
   });
 
+  it("does not expose register rows until Search is applied", () => {
+    const workspace = source("src/components/payroll/PayrollAdministration.tsx");
+    expect(workspace).toContain("const [searched, setSearched] = useState(false)");
+    expect(workspace).toContain("searched ? rows.filter");
+    expect(workspace).toContain("setSearched(true)");
+    expect(workspace).toContain("setSearched(false)");
+    expect(workspace).toContain("Select the required filters and click Search to view employee gratuity estimates.");
+  });
+
   it("exports the currently applied filters to PDF and Excel", () => {
     const workspace = source("src/components/payroll/PayrollAdministration.tsx");
     const route = source("src/app/api/payroll/reports/gratuity/route.ts");

@@ -60,6 +60,18 @@ describe("informational gratuity estimate", () => {
     expect(server).toContain('.from("employees").select("date_of_joining,role").eq("id", actor.employeeId)');
     expect(server).toContain('.from("salary_structures").select("basic_pay,gross_salary,effective_from,version").eq("employee_id", actor.employeeId).lte("effective_from", asOfDate)');
     expect(workspace).toContain("Estimated Gratuity");
+    expect(workspace).toContain("Estimate: (basic salary × 15 ÷ 26) × counted service years");
     expect(workspace).toContain("informational estimate—not a guaranteed settlement");
+  });
+
+  it("documents gratuity calculation and eligibility in Payroll Policies", () => {
+    const policy = readFileSync("src/components/payroll/PayrollPolicy.tsx", "utf8");
+
+    expect(policy).toContain('title: "Gratuity Policy"');
+    expect(policy).toContain("Regular-service eligibility");
+    expect(policy).toContain("five years of continuous service");
+    expect(policy).toContain("(Basic salary × 15 ÷ 26) × counted service years");
+    expect(policy).toContain("exceeding six months");
+    expect(policy).toContain("₹20,00,000");
   });
 });

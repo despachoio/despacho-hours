@@ -492,7 +492,7 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
           ) : null}
 
           <div className="mt-6 border-t border-indigo-100 pt-5 text-xs leading-5 text-slate-500">
-            <p className="font-semibold text-slate-700">Estimate: basic salary × 15 ÷ 26 × counted service years{estimate.capped ? ", limited to the statutory ceiling" : ""}.</p>
+            <p className="font-semibold text-slate-700">Estimate: (basic salary × 15 ÷ 26) × counted service years{estimate.capped ? ", limited to the statutory ceiling" : ""}.</p>
             <p className="mt-1">For completed service beyond a full year, only a part exceeding six months is counted as another year. This is an informational estimate—not a guaranteed settlement. Actual gratuity depends on applicable wage components, continuous service, employment classification, the reason and date of separation, and the law and ceiling in force at settlement. Special rules may apply to fixed-term employment, death, or disablement.</p>
           </div>
         </>
