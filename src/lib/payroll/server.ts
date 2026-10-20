@@ -71,12 +71,13 @@ async function audit(admin: SupabaseClient, actor: Awaited<ReturnType<typeof pay
 export async function loadPayroll(request: Request, month?: string | null) {
   const actor = await payrollActor(request);
   const asOfDate = businessDateKey();
-  const [ownEntries, ownEmployee, ownSalaryStructure] = await Promise.all([
+  const [ownEntries, ownEmployee, ownSalaryStructure, ownForm16Documents] = await Promise.all([
     actor.admin.from("payroll_entries").select("*").eq("employee_id", actor.employeeId).eq("status", "published").not("published_at", "is", null).order("payroll_month", { ascending: false }),
     actor.admin.from("employees").select("date_of_joining,role").eq("id", actor.employeeId).maybeSingle(),
     actor.admin.from("salary_structures").select("basic_pay,gross_salary,effective_from,version").eq("employee_id", actor.employeeId).lte("effective_from", asOfDate).order("effective_from", { ascending: false }).order("version", { ascending: false }).limit(1).maybeSingle(),
+    actor.admin.from("payroll_form16_documents").select("id,employee_id,financial_year,storage_path,file_name,file_size_bytes,issued_on,uploaded_at").eq("employee_id", actor.employeeId).order("financial_year", { ascending: false }),
   ]);
-  const selfServiceFailure = ownEntries.error || ownEmployee.error || ownSalaryStructure.error;
+  const selfServiceFailure = ownEntries.error || ownEmployee.error || ownSalaryStructure.error || ownForm16Documents.error;
   if (selfServiceFailure) throw new Error(selfServiceFailure.message);
   const ownEntryDtos = (ownEntries.data || []).map(toPayrollEntryDto);
   const latestOwnEntry = ownEntryDtos[0];
@@ -84,6 +85,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     role: actor.role,
     employeeId: actor.employeeId,
     ownEntries: ownEntryDtos,
+    ownForm16Documents: ownForm16Documents.data || [],
     gratuityProfile: {
       dateOfJoining: ownEmployee.data?.date_of_joining || null,
       employmentRole: ownEmployee.data?.role || null,
@@ -97,7 +99,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
   const salaryStructures = isFinanceAdminRole(actor.role)
     ? actor.admin.from("salary_structures").select("*,employees(id,employee_code,name,title,department,status)").order("effective_from", { ascending: false }).order("version", { ascending: false })
     : Promise.resolve({ data: [], error: null });
-  const [runs, structures, payrollSettings, employees, auditRows, companyBank, recurringAdjustments] = await Promise.all([
+  const [runs, structures, payrollSettings, employees, auditRows, companyBank, recurringAdjustments, form16Documents, form16Employees] = await Promise.all([
     actor.admin.from("payroll_runs").select("*").order("payroll_month", { ascending: false }).limit(120),
     salaryStructures,
     actor.admin.from("payroll_settings").select("*").eq("singleton_key", true).single(),
@@ -105,8 +107,10 @@ export async function loadPayroll(request: Request, month?: string | null) {
     actor.admin.from("payroll_audit_log").select("*").order("created_at", { ascending: false }).limit(100),
     actor.admin.from("company_settings").select(payrollBankFields).eq("singleton_key", true).maybeSingle(),
     actor.admin.from("recurring_payroll_adjustments").select("*,employees(id,employee_code,name,title,status)").order("from_month", { ascending: false }).order("created_at", { ascending: false }),
+    actor.admin.from("payroll_form16_documents").select("id,employee_id,financial_year,storage_path,file_name,file_size_bytes,issued_on,uploaded_at,employees(id,employee_code,name)").order("financial_year", { ascending: false }),
+    actor.admin.from("employees").select("id,employee_code,name,status").order("employee_code"),
   ]);
-  const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error || recurringAdjustments.error;
+  const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error || recurringAdjustments.error || form16Documents.error || form16Employees.error;
   if (failure) throw new Error(failure.message);
   const runIds = (runs.data || []).map((run) => run.id);
   const runEntries = runIds.length
@@ -154,6 +158,8 @@ export async function loadPayroll(request: Request, month?: string | null) {
     employees: employees.data || [],
     audit: auditRows.data || [],
     recurringAdjustments: recurringAdjustments.data || [],
+    form16Documents: form16Documents.data || [],
+    form16Employees: form16Employees.data || [],
     selectedRun,
     bankDetails,
     companyBankDetails: (companyBank.data || {

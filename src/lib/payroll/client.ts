@@ -45,6 +45,22 @@ export async function downloadPayrollSummary(financialYear: string, fromMonth: s
   await downloadResponse(`/api/payroll/reports/summary?${query}`, `Payroll_Summary_${financialYear}.${format}`);
 }
 
+export async function downloadForm16(id: string, financialYear: string) {
+  await downloadResponse(`/api/payroll/form-16/${encodeURIComponent(id)}`, `Form16_FY ${financialYear}.pdf`);
+}
+
+export async function uploadForm16(input: { employeeId: string; financialYear: string; issuedOn: string; file: File }) {
+  const form = new FormData();
+  form.set("employeeId", input.employeeId);
+  form.set("financialYear", input.financialYear);
+  form.set("issuedOn", input.issuedOn);
+  form.set("file", input.file);
+  const response = await fetch("/api/payroll/form-16", { method: "POST", headers: { authorization: `Bearer ${await token()}` }, body: form });
+  const body = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Unable to upload Form 16");
+  return body;
+}
+
 export async function downloadBankTransfer(runId: string) {
   await downloadResponse(`/api/payroll/bank-transfer/${encodeURIComponent(runId)}`, "OBSalaryFile.txt");
 }

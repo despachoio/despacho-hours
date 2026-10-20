@@ -128,6 +128,18 @@ export type PayslipDistribution = {
   last_download_at: string | null; downloaded_at: string | null;
 };
 
+export type Form16Document = {
+  id: string;
+  employee_id: string;
+  financial_year: string;
+  storage_path: string;
+  file_name: string;
+  file_size_bytes: number;
+  issued_on: string;
+  uploaded_at: string;
+  employees?: { id: string; employee_code: string; name: string } | null;
+};
+
 export type EmployeeBankDetails = {
   employee_id: string;
   bank_name: string | null;

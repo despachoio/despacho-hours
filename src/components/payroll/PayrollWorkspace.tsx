@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
-import { downloadPayrollYtd, downloadPayslip, payrollRequest } from "@/lib/payroll/client";
+import { downloadForm16, downloadPayrollYtd, downloadPayslip, payrollRequest } from "@/lib/payroll/client";
 import { currentFinancialYear, financialYearFromValue, financialYearOptions, isInFinancialYear } from "@/lib/payroll/financialYear";
 import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
 import { MANUAL_PAYROLL_FIELDS, type ManualPayrollField } from "@/lib/payroll/labels";
@@ -10,7 +10,7 @@ import { normalizePayrollNumber } from "@/lib/payroll/numbers";
 import { payrollPfAmounts, salaryRegisterGrossPay } from "@/lib/payroll/exports";
 import { calculateGratuityEstimate, GRATUITY_CEILING, REGULAR_GRATUITY_ELIGIBILITY_MONTHS, type GratuityProfile } from "@/lib/payroll/gratuity";
 import { isFinanceAdminRole } from "@/lib/roles";
-import type { CompanyPayrollBankDetails, EmployeeBankDetails, PayrollEntry, PayrollRun, PayrollSettings, RecurringPayrollAdjustment, SalaryStructure } from "@/lib/payroll/types";
+import type { CompanyPayrollBankDetails, EmployeeBankDetails, Form16Document, PayrollEntry, PayrollRun, PayrollSettings, RecurringPayrollAdjustment, SalaryStructure } from "@/lib/payroll/types";
 import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollAdministration";
 import SalaryStructures from "@/components/payroll/SalaryStructures";
 import RecurringAdjustments from "@/components/payroll/RecurringAdjustments";
@@ -18,7 +18,7 @@ import PayrollPolicy from "@/components/payroll/PayrollPolicy";
 import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
-type PayrollData = { role: string; ownEntries: PayrollEntry[]; gratuityProfile: GratuityProfile; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
+type PayrollData = { role: string; ownEntries: PayrollEntry[]; ownForm16Documents: Form16Document[]; gratuityProfile: GratuityProfile; form16Documents?: Form16Document[]; form16Employees?: Array<Employee & { status: string }>; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
 const employeeTabs: Array<[Exclude<Tab, "administration" | "policy">, string, TimeOffIconName]> = [["overview", "My Payroll", "wallet"], ["history", "Payroll History", "clock"]];
@@ -119,6 +119,7 @@ export default function PayrollWorkspace() {
               entry={latest}
               entries={data.ownEntries}
               gratuityProfile={data.gratuityProfile}
+              form16Documents={data.ownForm16Documents}
             />
           ) : null}
 
@@ -191,7 +192,7 @@ export default function PayrollWorkspace() {
               ) : null}
 
               {administrationTab === "reports" ? (
-                <PayrollReports data={data} />
+                <PayrollReports data={data} onRefresh={load} />
               ) : null}
 
               {administrationTab === "settings" && data.settings ? (
@@ -227,10 +228,12 @@ function EmployeeOverview({
   entry,
   entries,
   gratuityProfile,
+  form16Documents,
 }: {
   entry?: PayrollEntry;
   entries: PayrollEntry[];
   gratuityProfile: GratuityProfile;
+  form16Documents: Form16Document[];
 }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -349,19 +352,69 @@ function EmployeeOverview({
         ) : null}
       </Card>
 
-      <Card className="border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/70 p-7 shadow-lg shadow-violet-100/40">
-        <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-violet-600 to-fuchsia-300" />
-        <h2 className="text-xl font-bold">Form 16</h2>
-
-        <p className="mt-2 text-slate-500">
-          Annual Form 16 download will be available here.
-        </p>
-
-        <span className="mt-4 inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">
-          Coming Soon
-        </span>
-      </Card>
+      <Form16Card documents={form16Documents} entries={entries} />
     </div>
+  );
+}
+
+function Form16Card({ documents, entries }: { documents: Form16Document[]; entries: PayrollEntry[] }) {
+  const availableYears = useMemo(() => {
+    const years = financialYearOptions(entries.map((entry) => entry.payroll_month));
+    const values = new Set(years.map((year) => year.value));
+    for (const document of documents) values.add(document.financial_year);
+    return [...values]
+      .map((value) => financialYearFromValue(value))
+      .filter((year): year is NonNullable<typeof year> => Boolean(year))
+      .sort((left, right) => right.startYear - left.startYear);
+  }, [documents, entries]);
+  const [selectedYear, setSelectedYear] = useState(documents[0]?.financial_year || currentFinancialYear().value);
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState("");
+  const document = documents.find((item) => item.financial_year === selectedYear);
+  const year = financialYearFromValue(selectedYear);
+
+  async function download() {
+    if (!document || downloading) return;
+    setError("");
+    setDownloading(true);
+    try { await downloadForm16(document.id, document.financial_year); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to download Form 16"); }
+    finally { setDownloading(false); }
+  }
+
+  return (
+    <Card className="border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/70 p-7 shadow-lg shadow-violet-100/40">
+      <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-violet-700 via-indigo-500 to-fuchsia-300" />
+      <div className="grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[.2em] text-violet-700">Income tax document</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-950">Form 16</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Download the original annual TDS certificate issued by Despacho through the Income Tax Department&apos;s TRACES system.
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <GratuityDetail label="Financial year" value={year?.label || selectedYear} />
+            <GratuityDetail label="Document status" value={document ? "Issued" : "Awaiting issuance"} />
+            <GratuityDetail label="Issue date" value={document ? gratuityDate(document.issued_on) : "—"} />
+          </div>
+        </div>
+        <div className="w-full rounded-2xl border border-violet-100 bg-white/90 p-5 shadow-sm lg:w-72">
+          <label className="text-xs font-bold uppercase tracking-[.14em] text-slate-500">
+            Financial Year
+            <select value={selectedYear} onChange={(event) => { setSelectedYear(event.target.value); setError(""); }} className={fieldClass}>
+              {availableYears.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+          </label>
+          <KairoButton type="button" disabled={!document || downloading} className="mt-4 w-full !bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void download()}>
+            {downloading ? "Downloading..." : document ? "Download Form 16" : "Not Available Yet"}
+          </KairoButton>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            {document ? "The PDF is delivered unchanged from the finance-issued document." : "Finance will publish Form 16 here after the certificate is issued for this financial year."}
+          </p>
+        </div>
+      </div>
+      {error ? <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
+    </Card>
   );
 }
 
@@ -389,7 +442,7 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Long-service benefit</p>
           <h2 className="mt-2 text-2xl font-bold text-slate-950">Estimated Gratuity</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          <p className="mt-2 text-xs leading-6 text-slate-500 lg:whitespace-nowrap">
             An indicative gratuity estimate based on your service tenure and current salary structure as of {gratuityDate(profile.asOfDate)}.
           </p>
         </div>
@@ -419,10 +472,10 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
       ) : (
         <>
           <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <GratuityDetail label="Completed tenure" value={tenureLabel(estimate.completedYears, estimate.remainingMonths)} />
-            <GratuityDetail label="Counted service" value={`${estimate.countedServiceYears} ${estimate.countedServiceYears === 1 ? "year" : "years"}`} />
-            <GratuityDetail label="Estimated wage basis" value={money(estimate.wageBasis)} />
-            <GratuityDetail label="Statutory ceiling" value={money(GRATUITY_CEILING)} />
+            <GratuityDetail label="Completed tenure" value={tenureLabel(estimate.completedYears, estimate.remainingMonths)} labelClassName="text-[#153E90]" />
+            <GratuityDetail label="Counted service" value={`${estimate.countedServiceYears} ${estimate.countedServiceYears === 1 ? "year" : "years"}`} labelClassName="text-[#153E90]" />
+            <GratuityDetail label="Basic Salary" value={money(estimate.wageBasis)} labelClassName="text-[#153E90]" />
+            <GratuityDetail label="Statutory ceiling" value={money(GRATUITY_CEILING)} labelClassName="text-[#153E90]" />
           </div>
 
           {!estimate.eligible ? (
@@ -438,7 +491,7 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
           ) : null}
 
           <div className="mt-6 border-t border-indigo-100 pt-5 text-xs leading-5 text-slate-500">
-            <p className="font-semibold text-slate-700">Estimate: wage basis × 15 ÷ 26 × counted service years{estimate.capped ? ", limited to the statutory ceiling" : ""}.</p>
+            <p className="font-semibold text-slate-700">Estimate: basic salary × 15 ÷ 26 × counted service years{estimate.capped ? ", limited to the statutory ceiling" : ""}.</p>
             <p className="mt-1">For completed service beyond a full year, only a part exceeding six months is counted as another year. This is an informational estimate—not a guaranteed settlement. Actual gratuity depends on applicable wage components, continuous service, employment classification, the reason and date of separation, and the law and ceiling in force at settlement. Special rules may apply to fixed-term employment, death, or disablement.</p>
           </div>
         </>
@@ -447,10 +500,10 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
   );
 }
 
-function GratuityDetail({ label, value }: { label: string; value: string }) {
+function GratuityDetail({ label, value, labelClassName = "text-slate-400" }: { label: string; value: string; labelClassName?: string }) {
   return (
     <div className="rounded-2xl border border-white bg-white/85 px-4 py-4 shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-400">{label}</p>
+      <p className={`text-[10px] font-bold uppercase tracking-[.14em] ${labelClassName}`}>{label}</p>
       <p className="mt-2 font-bold tabular-nums text-slate-900">{value}</p>
     </div>
   );
