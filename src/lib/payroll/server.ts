@@ -109,7 +109,7 @@ export async function loadPayroll(request: Request, month?: string | null) {
     actor.admin.from("company_settings").select(payrollBankFields).eq("singleton_key", true).maybeSingle(),
     actor.admin.from("recurring_payroll_adjustments").select("*,employees(id,employee_code,name,title,status)").order("from_month", { ascending: false }).order("created_at", { ascending: false }),
     actor.admin.from("payroll_form16_documents").select("id,employee_id,financial_year,storage_path,file_name,file_size_bytes,issued_on,uploaded_at,employees(id,employee_code,name)").order("financial_year", { ascending: false }),
-    actor.admin.from("employees").select("id,employee_code,name,status").order("employee_code"),
+    actor.admin.from("employees").select("id,employee_code,name,status,date_of_joining").order("employee_code"),
     loadGratuityRegister(actor.admin, asOfDate),
   ]);
   const failure = runs.error || structures.error || payrollSettings.error || employees.error || auditRows.error || companyBank.error || recurringAdjustments.error || form16Documents.error || form16Employees.error;

@@ -38,4 +38,17 @@ describe("secure Form 16 self-service", () => {
     expect(workspace).toContain("disabled={!document || downloading}");
     expect(workspace).toContain('downloading ? "Downloading..."');
   });
+
+  it("offers prior financial years and resets every publishing control", () => {
+    const administration = source("src/components/payroll/PayrollAdministration.tsx");
+    const server = source("src/lib/payroll/server.ts");
+    expect(server).toContain('select("id,employee_code,name,status,date_of_joining")');
+    expect(administration).toContain("employeeStartYears");
+    expect(administration).toContain("documentStartYears");
+    expect(administration).toContain('setEmployeeId("")');
+    expect(administration).toContain("setFinancialYear(currentFinancialYear().value)");
+    expect(administration).toContain("setIssuedOn(localDateValue())");
+    expect(administration).toContain('fileInput.current.value = ""');
+    expect(administration).toContain(">Reset</KairoButton>");
+  });
 });

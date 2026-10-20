@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import KairoButton from "@/components/ui/KairoButton";
 import { downloadBankTransfer, downloadGratuityRegister, downloadPayrollSummary, downloadPayrollYtd, downloadPayslip, processPayslipDistribution, uploadForm16 } from "@/lib/payroll/client";
 import { currentFinancialYear, financialYearFromValue, financialYearOptions } from "@/lib/payroll/financialYear";
@@ -34,7 +34,7 @@ type PayrollData = {
   bankDetails?: EmployeeBankDetails[];
   companyBankDetails?: CompanyPayrollBankDetails;
   form16Documents?: Form16Document[];
-  form16Employees?: Array<Employee & { status: string }>;
+  form16Employees?: Array<Employee & { status: string; date_of_joining: string | null }>;
   gratuityRegister?: GratuityRegisterRow[];
 };
 type Action = (payload: Record<string, unknown>, refresh?: boolean) => Promise<boolean>;
@@ -230,7 +230,7 @@ export function PayrollReports({ data, onRefresh }: { data: PayrollData; onRefre
 
   return <div className="space-y-5">
     <Card><div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5"><h2 className="text-xl font-bold">Employee Payroll</h2><p className="mt-1 text-sm text-slate-500">Download submitted payslips or a YTD statement for a selected financial-year range.</p></div><div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4"><Select label="Financial Year" value={filters.financialYear} onChange={updateYear} options={years.map((year) => [year.value, year.label])}/><Select label="From Month" value={filters.fromMonth} onChange={(value) => setFilters((current) => ({ ...current, fromMonth: value }))} options={financialYear.months.map((month) => [month, payrollMonthLabel(month)])}/><Select label="To Month" value={filters.toMonth} onChange={(value) => setFilters((current) => ({ ...current, toMonth: value }))} options={financialYear.months.map((month) => [month, payrollMonthLabel(month)])}/><Select label="Employee" value={filters.employeeId} onChange={(value) => setFilters((current) => ({ ...current, employeeId: value }))} options={[["all", "All Employees"], ...(data.employees || []).map((employee) => [employee.id, `${employee.employee_code} · ${employee.name}`])]}/></div><div className="flex flex-wrap gap-3 border-t border-slate-100 px-6 py-5"><KairoButton type="button" disabled={!entries.length || Boolean(busy) || filters.fromMonth > filters.toMonth} onClick={() => void perform("payslips", payslips)}>{busy === "payslips" ? "Downloading..." : "Download Payslip"}</KairoButton><KairoButton type="button" disabled={!entries.length || Boolean(busy) || filters.fromMonth > filters.toMonth} onClick={() => void perform("ytd", ytd)}>{busy === "ytd" ? "Downloading..." : "Download YTD"}</KairoButton>{filters.employeeId !== "all" ? <><KairoButton type="button" disabled={!entries.length || Boolean(busy)} onClick={() => void perform("resend", () => distribute("resend"))}>{busy === "resend" ? "Sending..." : "Resend Email"}</KairoButton><KairoButton type="button" disabled={!entries.length || Boolean(busy)} onClick={() => void perform("regenerate", () => distribute("regenerate"))}>{busy === "regenerate" ? "Regenerating..." : "Regenerate Payslip"}</KairoButton></> : null}<KairoButton type="button" variant="secondary" disabled={Boolean(busy)} onClick={reset}>Reset</KairoButton><span className="self-center text-sm text-slate-500">{entries.length} submitted payroll records</span></div>{error ? <p role="alert" className="mx-6 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}</Card>
-    {data.role === "finance admin" ? <><GratuityLiabilityRegister rows={data.gratuityRegister || []} /><Form16Administration data={data} years={years.map((year) => [year.value, year.label])} onRefresh={onRefresh} /><PayrollSummaryReport filters={filters} years={years.map((year) => [year.value, year.label])} busy={busy} perform={perform} /></> : null}
+    {data.role === "finance admin" ? <><GratuityLiabilityRegister rows={data.gratuityRegister || []} /><Form16Administration data={data} onRefresh={onRefresh} /><PayrollSummaryReport filters={filters} years={years.map((year) => [year.value, year.label])} busy={busy} perform={perform} /></> : null}
   </div>;
 }
 
@@ -291,7 +291,7 @@ function GratuityLiabilityRegister({ rows }: { rows: GratuityRegisterRow[] }) {
   </Card>;
 }
 
-function Form16Administration({ data, years, onRefresh }: { data: PayrollData; years: string[][]; onRefresh: () => Promise<void> }) {
+function Form16Administration({ data, onRefresh }: { data: PayrollData; onRefresh: () => Promise<void> }) {
   const [employeeId, setEmployeeId] = useState("");
   const [financialYear, setFinancialYear] = useState(currentFinancialYear().value);
   const [issuedOn, setIssuedOn] = useState(localDateValue());
@@ -299,7 +299,34 @@ function Form16Administration({ data, years, onRefresh }: { data: PayrollData; y
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+  const years = useMemo(() => {
+    const current = currentFinancialYear();
+    const employeeStartYears = (data.form16Employees || []).flatMap((employee) => {
+      if (!employee.date_of_joining) return [];
+      const date = new Date(`${employee.date_of_joining}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) return [];
+      return [date.getUTCMonth() >= 3 ? date.getUTCFullYear() : date.getUTCFullYear() - 1];
+    });
+    const documentStartYears = (data.form16Documents || []).map((document) => Number(document.financial_year.slice(0, 4))).filter(Number.isFinite);
+    const oldest = Math.min(current.startYear, ...employeeStartYears, ...documentStartYears);
+    return Array.from({ length: current.startYear - oldest + 1 }, (_, index) => {
+      const startYear = current.startYear - index;
+      const value = `${startYear}-${String(startYear + 1).slice(-2)}`;
+      return [value, financialYearFromValue(value)?.label || value];
+    });
+  }, [data.form16Documents, data.form16Employees]);
   const existing = (data.form16Documents || []).find((item) => item.employee_id === employeeId && item.financial_year === financialYear);
+
+  function reset() {
+    setEmployeeId("");
+    setFinancialYear(currentFinancialYear().value);
+    setIssuedOn(localDateValue());
+    setFile(null);
+    setMessage("");
+    setError("");
+    if (fileInput.current) fileInput.current.value = "";
+  }
 
   async function upload() {
     if (!employeeId || !financialYear || !issuedOn || !file || busy) return;
@@ -308,6 +335,7 @@ function Form16Administration({ data, years, onRefresh }: { data: PayrollData; y
       await uploadForm16({ employeeId, financialYear, issuedOn, file });
       setMessage(existing ? "Form 16 replaced successfully." : "Form 16 published successfully.");
       setFile(null);
+      if (fileInput.current) fileInput.current.value = "";
       await onRefresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to upload Form 16"); }
     finally { setBusy(false); }
@@ -323,10 +351,11 @@ function Form16Administration({ data, years, onRefresh }: { data: PayrollData; y
       <Select label="Employee" value={employeeId} onChange={(value) => { setEmployeeId(value); setMessage(""); setError(""); }} options={[["", "Select Employee"], ...(data.form16Employees || []).map((employee) => [employee.id, `${employee.employee_code} · ${employee.name}${employee.status === "active" ? "" : ` · ${employee.status}`}`])]} />
       <Select label="Financial Year" value={financialYear} onChange={(value) => { setFinancialYear(value); setMessage(""); setError(""); }} options={years} />
       <label className="text-sm font-bold text-slate-700">Issue Date<input type="date" value={issuedOn} onChange={(event) => setIssuedOn(event.target.value)} className={fieldClass} /></label>
-      <label className="text-sm font-bold text-slate-700">TRACES PDF<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} className={`${fieldClass} file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-bold file:text-[#153E90]`} /></label>
+      <label className="text-sm font-bold text-slate-700">TRACES PDF<input ref={fileInput} type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} className={`${fieldClass} file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-bold file:text-[#153E90]`} /></label>
     </div>
     <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 px-6 py-5">
       <KairoButton type="button" disabled={!employeeId || !file || !issuedOn || busy} onClick={() => void upload()}>{busy ? "Publishing..." : existing ? "Replace Form 16" : "Publish Form 16"}</KairoButton>
+      <KairoButton type="button" variant="secondary" disabled={busy} onClick={reset}>Reset</KairoButton>
       <span className="text-sm text-slate-500">{existing ? `Existing document issued ${new Date(`${existing.issued_on}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}` : employeeId ? "No document published for this selection" : "Select an employee to continue"}</span>
     </div>
     {message ? <p className="mx-6 mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
