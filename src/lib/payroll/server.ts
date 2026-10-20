@@ -70,9 +70,28 @@ async function audit(admin: SupabaseClient, actor: Awaited<ReturnType<typeof pay
 
 export async function loadPayroll(request: Request, month?: string | null) {
   const actor = await payrollActor(request);
-  const ownEntries = await actor.admin.from("payroll_entries").select("*").eq("employee_id", actor.employeeId).eq("status", "published").not("published_at", "is", null).order("payroll_month", { ascending: false });
-  if (ownEntries.error) throw new Error(ownEntries.error.message);
-  const base = { role: actor.role, employeeId: actor.employeeId, ownEntries: (ownEntries.data || []).map(toPayrollEntryDto) };
+  const asOfDate = businessDateKey();
+  const [ownEntries, ownEmployee, ownSalaryStructure] = await Promise.all([
+    actor.admin.from("payroll_entries").select("*").eq("employee_id", actor.employeeId).eq("status", "published").not("published_at", "is", null).order("payroll_month", { ascending: false }),
+    actor.admin.from("employees").select("date_of_joining,role").eq("id", actor.employeeId).maybeSingle(),
+    actor.admin.from("salary_structures").select("basic_pay,gross_salary,effective_from,version").eq("employee_id", actor.employeeId).lte("effective_from", asOfDate).order("effective_from", { ascending: false }).order("version", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  const selfServiceFailure = ownEntries.error || ownEmployee.error || ownSalaryStructure.error;
+  if (selfServiceFailure) throw new Error(selfServiceFailure.message);
+  const ownEntryDtos = (ownEntries.data || []).map(toPayrollEntryDto);
+  const latestOwnEntry = ownEntryDtos[0];
+  const base = {
+    role: actor.role,
+    employeeId: actor.employeeId,
+    ownEntries: ownEntryDtos,
+    gratuityProfile: {
+      dateOfJoining: ownEmployee.data?.date_of_joining || null,
+      employmentRole: ownEmployee.data?.role || null,
+      basicPay: Number(ownSalaryStructure.data?.basic_pay ?? latestOwnEntry?.basic_pay ?? 0),
+      grossSalary: Number(ownSalaryStructure.data?.gross_salary ?? latestOwnEntry?.gross_salary ?? 0),
+      asOfDate,
+    },
+  };
   if (!isFinanceAdminRole(actor.role)) return base;
   const payrollMonth = month ? `${month.slice(0, 7)}-01` : null;
   const salaryStructures = isFinanceAdminRole(actor.role)

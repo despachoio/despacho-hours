@@ -8,6 +8,7 @@ import { payrollMonthLabel, payslipFilename } from "@/lib/payroll/filenames";
 import { MANUAL_PAYROLL_FIELDS, type ManualPayrollField } from "@/lib/payroll/labels";
 import { normalizePayrollNumber } from "@/lib/payroll/numbers";
 import { payrollPfAmounts, salaryRegisterGrossPay } from "@/lib/payroll/exports";
+import { calculateGratuityEstimate, GRATUITY_CEILING, REGULAR_GRATUITY_ELIGIBILITY_MONTHS, type GratuityProfile } from "@/lib/payroll/gratuity";
 import { isFinanceAdminRole } from "@/lib/roles";
 import type { CompanyPayrollBankDetails, EmployeeBankDetails, PayrollEntry, PayrollRun, PayrollSettings, RecurringPayrollAdjustment, SalaryStructure } from "@/lib/payroll/types";
 import { PayrollProcessing, PayrollReports } from "@/components/payroll/PayrollAdministration";
@@ -17,7 +18,7 @@ import PayrollPolicy from "@/components/payroll/PayrollPolicy";
 import TimeOffIcon, { type TimeOffIconName } from "@/components/time-off/TimeOffIcon";
 
 type Employee = { id: string; employee_code: string; name: string; title: string | null; department: string | null };
-type PayrollData = { role: string; ownEntries: PayrollEntry[]; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
+type PayrollData = { role: string; ownEntries: PayrollEntry[]; gratuityProfile: GratuityProfile; runs?: PayrollRun[]; structures?: SalaryStructure[]; recurringAdjustments?: RecurringPayrollAdjustment[]; settings?: PayrollSettings; employees?: Employee[]; selectedRun?: PayrollRun | null; bankDetails?: EmployeeBankDetails[]; companyBankDetails?: CompanyPayrollBankDetails; audit?: Array<Record<string, unknown>> };
 type Tab = "overview" | "history" | "policy" | "administration";
 type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | "reports" | "settings";
 const employeeTabs: Array<[Exclude<Tab, "administration" | "policy">, string, TimeOffIconName]> = [["overview", "My Payroll", "wallet"], ["history", "Payroll History", "clock"]];
@@ -117,6 +118,7 @@ export default function PayrollWorkspace() {
             <EmployeeOverview
               entry={latest}
               entries={data.ownEntries}
+              gratuityProfile={data.gratuityProfile}
             />
           ) : null}
 
@@ -224,9 +226,11 @@ export default function PayrollWorkspace() {
 function EmployeeOverview({
   entry,
   entries,
+  gratuityProfile,
 }: {
   entry?: PayrollEntry;
   entries: PayrollEntry[];
+  gratuityProfile: GratuityProfile;
 }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -297,6 +301,8 @@ function EmployeeOverview({
         />
       </div>
 
+      <GratuityCard profile={gratuityProfile} />
+
       <Card className="border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/75 p-7 shadow-lg shadow-blue-100/45">
         <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] to-cyan-400" />
         {entry ? (
@@ -358,6 +364,98 @@ function EmployeeOverview({
     </div>
   );
 }
+
+function gratuityDate(value: string | null) {
+  if (!value) return "—";
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function tenureLabel(years: number, months: number) {
+  const parts = [];
+  if (years) parts.push(`${years} ${years === 1 ? "year" : "years"}`);
+  if (months || !parts.length) parts.push(`${months} ${months === 1 ? "month" : "months"}`);
+  return parts.join(" ");
+}
+
+function GratuityCard({ profile }: { profile: GratuityProfile }) {
+  const estimate = calculateGratuityEstimate(profile);
+  const eligibilityProgress = Math.min(100, Math.round((estimate.completedMonths / REGULAR_GRATUITY_ELIGIBILITY_MONTHS) * 100));
+
+  return (
+    <Card className="border-indigo-100 bg-gradient-to-br from-white via-indigo-50/30 to-cyan-50/70 p-7 shadow-lg shadow-indigo-100/40">
+      <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] via-blue-600 to-cyan-400" />
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Long-service benefit</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-950">Estimated Gratuity</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            An indicative gratuity estimate based on your service tenure and current salary structure as of {gratuityDate(profile.asOfDate)}.
+          </p>
+        </div>
+        {estimate.available && estimate.coveredEmployment ? (
+          <div className="text-left sm:text-right">
+            <p className={`text-xs font-bold uppercase tracking-[.16em] ${estimate.eligible ? "text-emerald-700" : "text-amber-700"}`}>
+              {estimate.eligible ? "Regular-service eligibility met" : "Regular-service eligibility pending"}
+            </p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-[#153E90]">
+              {money(estimate.eligible ? estimate.payableEstimate : estimate.accruedEstimate)}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {estimate.eligible ? "Estimated payable if employment ended today" : "Indicative accrued amount; not currently payable"}
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      {!estimate.coveredEmployment ? (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900">
+          A regular-employee gratuity estimate is not shown for contractor records. Contract terms and applicable employment classification determine any separation benefit.
+        </div>
+      ) : !estimate.available ? (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 text-sm leading-6 text-slate-600">
+          The estimate will appear when both your date of joining and an effective salary structure are available.
+        </div>
+      ) : (
+        <>
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <GratuityDetail label="Completed tenure" value={tenureLabel(estimate.completedYears, estimate.remainingMonths)} />
+            <GratuityDetail label="Counted service" value={`${estimate.countedServiceYears} ${estimate.countedServiceYears === 1 ? "year" : "years"}`} />
+            <GratuityDetail label="Estimated wage basis" value={money(estimate.wageBasis)} />
+            <GratuityDetail label="Statutory ceiling" value={money(GRATUITY_CEILING)} />
+          </div>
+
+          {!estimate.eligible ? (
+            <div className="mt-6 rounded-2xl border border-amber-100 bg-white/80 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="font-bold text-slate-800">Progress toward regular five-year eligibility</span>
+                <span className="font-semibold text-amber-700">{tenureLabel(Math.floor(estimate.monthsUntilEligibility / 12), estimate.monthsUntilEligibility % 12)} remaining · {gratuityDate(estimate.eligibilityDate)}</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-400" style={{ width: `${eligibilityProgress}%` }} />
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-6 border-t border-indigo-100 pt-5 text-xs leading-5 text-slate-500">
+            <p className="font-semibold text-slate-700">Estimate: wage basis × 15 ÷ 26 × counted service years{estimate.capped ? ", limited to the statutory ceiling" : ""}.</p>
+            <p className="mt-1">For completed service beyond a full year, only a part exceeding six months is counted as another year. This is an informational estimate—not a guaranteed settlement. Actual gratuity depends on applicable wage components, continuous service, employment classification, the reason and date of separation, and the law and ceiling in force at settlement. Special rules may apply to fixed-term employment, death, or disablement.</p>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function GratuityDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white bg-white/85 px-4 py-4 shadow-sm">
+      <p className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-400">{label}</p>
+      <p className="mt-2 font-bold tabular-nums text-slate-900">{value}</p>
+    </div>
+  );
+}
+
 function Metric({ label,value,colour,tone }: { label:string;value:string;colour:string;tone:"blue"|"emerald"|"rose" }) {
   const styles = {
     blue: { surface: "from-white via-white to-blue-50/80", accent: "from-[#153E90] to-cyan-400" },
