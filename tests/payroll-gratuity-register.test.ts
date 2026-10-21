@@ -19,6 +19,14 @@ describe("finance gratuity liability register", () => {
     expect(workspace).toContain("GratuityLiabilityRegister");
   });
 
+  it("orders finance reports as employee payroll, summary, Form 16, then gratuity", () => {
+    const workspace = source("src/components/payroll/PayrollAdministration.tsx");
+    const reports = workspace.slice(workspace.indexOf('export function PayrollReports'));
+    expect(reports.indexOf("Employee Payroll")).toBeLessThan(reports.indexOf("<PayrollSummaryReport"));
+    expect(reports.indexOf("<PayrollSummaryReport")).toBeLessThan(reports.indexOf("<Form16Administration"));
+    expect(reports.indexOf("<Form16Administration")).toBeLessThan(reports.indexOf("<GratuityLiabilityRegister"));
+  });
+
   it("supports employee, status and eligibility filters with reset", () => {
     const workspace = source("src/components/payroll/PayrollAdministration.tsx");
     expect(workspace).toContain("Employee Status");

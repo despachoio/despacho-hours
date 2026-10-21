@@ -305,8 +305,6 @@ function EmployeeOverview({
         />
       </div>
 
-      <GratuityCard profile={gratuityProfile} />
-
       <Card className="border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/75 p-7 shadow-lg shadow-blue-100/45">
         <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] to-cyan-400" />
         {entry ? (
@@ -352,6 +350,8 @@ function EmployeeOverview({
           </p>
         ) : null}
       </Card>
+
+      <GratuityCard profile={gratuityProfile} />
 
       <Form16Card documents={form16Documents} entries={entries} />
     </div>

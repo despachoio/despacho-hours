@@ -62,6 +62,7 @@ describe("informational gratuity estimate", () => {
     expect(workspace).toContain("Estimated Gratuity");
     expect(workspace).toContain("Estimate: (basic salary × 15 ÷ 26) × counted service years");
     expect(workspace).toContain("informational estimate—not a guaranteed settlement");
+    expect(workspace.indexOf("Latest published salary slip")).toBeLessThan(workspace.indexOf("<GratuityCard profile={gratuityProfile} />"));
   });
 
   it("documents gratuity calculation and eligibility in Payroll Policies", () => {
