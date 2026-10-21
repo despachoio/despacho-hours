@@ -6,6 +6,8 @@ export function isKairoThemeId(value: unknown): value is KairoThemeId {
 }
 
 export function normalizeKairoTheme(value: unknown): KairoThemeId {
+  if (value === "slate-grey") return "pink-sand";
+  if (value === "charcoal-grey") return "magic-mint";
   return isKairoThemeId(value) ? value : DEFAULT_KAIRO_THEME;
 }
 

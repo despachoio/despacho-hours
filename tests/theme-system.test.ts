@@ -10,17 +10,21 @@ describe("personalized Kairo themes", () => {
     expect(DEFAULT_KAIRO_THEME).toBe("despacho-blue");
     expect(KAIRO_THEMES.map((theme) => theme.id)).toEqual([
       "despacho-blue", "emerald", "royal-purple", "ocean-teal",
-      "rose-gold", "graphite", "slate-grey", "charcoal-grey",
+      "rose-gold", "graphite", "pink-sand", "magic-mint",
     ]);
     expect(KAIRO_THEME_MAP["despacho-blue"].palette.primary).toBe("#153E90");
     expect(KAIRO_THEME_MAP.emerald.palette.primary).toBe("#087F68");
     expect(KAIRO_THEME_MAP["royal-purple"].palette.primary).toBe("#6941A5");
+    expect(KAIRO_THEME_MAP["pink-sand"].palette.heroEnd).toBe("#FFA8B6");
+    expect(KAIRO_THEME_MAP["magic-mint"].palette.pastel).toBe("#C2EDCE");
   });
 
   it("falls back safely for missing or invalid stored preferences", () => {
     expect(normalizeKairoTheme(null)).toBe(DEFAULT_KAIRO_THEME);
     expect(normalizeKairoTheme("unknown-theme")).toBe(DEFAULT_KAIRO_THEME);
     expect(normalizeKairoTheme("rose-gold")).toBe("rose-gold");
+    expect(normalizeKairoTheme("slate-grey")).toBe("pink-sand");
+    expect(normalizeKairoTheme("charcoal-grey")).toBe("magic-mint");
   });
 
   it("offers Change Theme from the profile menu and mounts the provider", () => {
@@ -50,6 +54,19 @@ describe("personalized Kairo themes", () => {
     expect(migration).toContain("where user_id = auth.uid()");
     expect(migration).toContain("grant execute on function public.set_my_preferred_theme(text) to authenticated");
     expect(migration).toContain("profiles_preferred_theme_check");
+  });
+
+  it("replaces obsolete grey preferences without changing unrelated profile data", () => {
+    const migration = source("supabase/migrations/202610210002_replace_grey_themes.sql");
+    const styles = source("src/app/globals.css");
+    expect(migration).toContain("when 'slate-grey' then 'pink-sand'");
+    expect(migration).toContain("when 'charcoal-grey' then 'magic-mint'");
+    expect(migration).toContain("where preferred_theme in ('slate-grey', 'charcoal-grey')");
+    expect(migration).toContain("'pink-sand', 'magic-mint'");
+    expect(styles).toContain('data-kairo-theme="pink-sand"');
+    expect(styles).toContain('data-kairo-theme="magic-mint"');
+    expect(styles).not.toContain('data-kairo-theme="slate-grey"');
+    expect(styles).not.toContain('data-kairo-theme="charcoal-grey"');
   });
 
   it("keeps official payroll PDFs on fixed Despacho branding", () => {

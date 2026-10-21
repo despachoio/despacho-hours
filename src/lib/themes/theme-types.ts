@@ -5,8 +5,8 @@ export const KAIRO_THEME_IDS = [
   "ocean-teal",
   "rose-gold",
   "graphite",
-  "slate-grey",
-  "charcoal-grey",
+  "pink-sand",
+  "magic-mint",
 ] as const;
 
 export type KairoThemeId = (typeof KAIRO_THEME_IDS)[number];
