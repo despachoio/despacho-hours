@@ -6,10 +6,10 @@ export function isKairoThemeId(value: unknown): value is KairoThemeId {
 }
 
 export function normalizeKairoTheme(value: unknown): KairoThemeId {
-  if (value === "emerald") return "columbia-blue";
-  if (value === "rose-gold") return "jet-black";
-  if (value === "slate-grey") return "pink-sand";
-  if (value === "charcoal-grey" || value === "magic-mint") return "citrus";
+  if (value === "columbia-blue" || value === "emerald") return "powder-blue";
+  if (value === "pink-sand" || value === "slate-grey") return "peach-whisper";
+  if (value === "jet-black" || value === "rose-gold") return "cashmere-beige";
+  if (value === "citrus" || value === "charcoal-grey" || value === "magic-mint") return "soft-pistachio";
   return isKairoThemeId(value) ? value : DEFAULT_KAIRO_THEME;
 }
 

@@ -22,6 +22,12 @@ body {
   --kairo-primary-foreground: #ffffff;
   --kairo-hero-start: #101b36;
   --kairo-hero-end: #19469c;
+  --kairo-hero-text: #ffffff;
+  --kairo-hero-muted: #dbeafe;
+  --kairo-hero-icon: #cffafe;
+  --kairo-hero-border: rgb(255 255 255 / 14%);
+  --kairo-hero-control-bg: rgb(255 255 255 / 10%);
+  --kairo-hero-control-text: #ffffff;
   --kairo-heading: #153e90;
   --kairo-accent: #153e90;
   --kairo-accent-soft: #eaf2ff;
@@ -88,13 +94,13 @@ body {
   background: var(--kairo-page-background);
 }
 
-.kairo-theme-root[data-kairo-theme="columbia-blue"] { --kairo-primary:#326b70; --kairo-primary-hover:#28575b; --kairo-hero-start:#234c52; --kairo-hero-end:#79b5b5; --kairo-heading:#234c52; --kairo-accent:#cfe7e5; --kairo-accent-soft:#cfe7e5; --kairo-card-accent:#cfe7e5; --kairo-tab-active:#326b70; --kairo-subtab-start:#234c52; --kairo-subtab-end:#326b70; --kairo-dialog-accent:#326b70; --kairo-focus-ring:rgb(50 107 112 / 24%); --kairo-border-accent:#b3d7d4; --kairo-page-background:#f6fbfa; }
-.kairo-theme-root[data-kairo-theme="royal-purple"] { --kairo-primary:#6941a5; --kairo-primary-hover:#57358a; --kairo-hero-start:#2b194f; --kairo-hero-end:#7550b8; --kairo-heading:#503080; --kairo-accent:#6941a5; --kairo-accent-soft:#f2ecff; --kairo-card-accent:#f2ecff; --kairo-tab-active:#6941a5; --kairo-subtab-start:#2b194f; --kairo-subtab-end:#7550b8; --kairo-dialog-accent:#6941a5; --kairo-focus-ring:rgb(105 65 165 / 22%); --kairo-border-accent:#d8c9f2; --kairo-page-background:#fbf9ff; }
-.kairo-theme-root[data-kairo-theme="ocean-teal"] { --kairo-primary:#087e9c; --kairo-primary-hover:#066a84; --kairo-hero-start:#103d53; --kairo-hero-end:#087e9c; --kairo-heading:#15556b; --kairo-accent:#087e9c; --kairo-accent-soft:#e5f7fc; --kairo-card-accent:#e5f7fc; --kairo-tab-active:#087e9c; --kairo-subtab-start:#103d53; --kairo-subtab-end:#087e9c; --kairo-dialog-accent:#087e9c; --kairo-focus-ring:rgb(8 126 156 / 22%); --kairo-border-accent:#b9e4ee; --kairo-page-background:#f8fcfd; }
-.kairo-theme-root[data-kairo-theme="jet-black"] { --kairo-primary:#454a4e; --kairo-primary-hover:#2d3032; --kairo-hero-start:#1b1d1f; --kairo-hero-end:#2d3032; --kairo-heading:#2d3032; --kairo-accent:#2d3032; --kairo-accent-soft:#e8eaeb; --kairo-card-accent:#e8eaeb; --kairo-tab-active:#2d3032; --kairo-subtab-start:#2d3032; --kairo-subtab-end:#454a4e; --kairo-dialog-accent:#454a4e; --kairo-focus-ring:rgb(69 74 78 / 24%); --kairo-border-accent:#cfd3d5; --kairo-page-background:#f7f8f8; }
-.kairo-theme-root[data-kairo-theme="graphite"] { --kairo-primary:#475569; --kairo-primary-hover:#364152; --kairo-hero-start:#202938; --kairo-hero-end:#515e70; --kairo-heading:#334155; --kairo-accent:#475569; --kairo-accent-soft:#eff2f6; --kairo-card-accent:#eff2f6; --kairo-tab-active:#475569; --kairo-subtab-start:#202938; --kairo-subtab-end:#515e70; --kairo-dialog-accent:#475569; --kairo-focus-ring:rgb(71 85 105 / 22%); --kairo-border-accent:#cbd2dc; --kairo-page-background:#f8fafc; }
-.kairo-theme-root[data-kairo-theme="pink-sand"] { --kairo-primary:#a34667; --kairo-primary-hover:#893754; --kairo-hero-start:#793d54; --kairo-hero-end:#ffa8b6; --kairo-heading:#793d54; --kairo-accent:#a34667; --kairo-accent-soft:#fff0f3; --kairo-card-accent:#fff0f3; --kairo-tab-active:#a34667; --kairo-subtab-start:#793d54; --kairo-subtab-end:#ffa8b6; --kairo-dialog-accent:#a34667; --kairo-focus-ring:rgb(163 70 103 / 22%); --kairo-border-accent:#f2c4cf; --kairo-page-background:#fffafb; }
-.kairo-theme-root[data-kairo-theme="citrus"] { --kairo-primary:#a67c00; --kairo-primary-hover:#8a6800; --kairo-hero-start:#594500; --kairo-hero-end:#d6a51a; --kairo-heading:#594500; --kairo-accent:#f7c331; --kairo-accent-soft:#fff3c4; --kairo-card-accent:#fff3c4; --kairo-tab-active:#8a6800; --kairo-subtab-start:#594500; --kairo-subtab-end:#d6a51a; --kairo-dialog-accent:#a67c00; --kairo-focus-ring:rgb(166 124 0 / 24%); --kairo-border-accent:#f7d86d; --kairo-page-background:#fffcf2; }
+.kairo-theme-root[data-kairo-theme="royal-purple"] { --kairo-primary:#6941a5; --kairo-primary-hover:#57358a; --kairo-hero-start:#2b194f; --kairo-hero-end:#7550b8; --kairo-hero-muted:#ede9fe; --kairo-heading:#503080; --kairo-accent:#6941a5; --kairo-accent-soft:#f2ecff; --kairo-card-accent:#f2ecff; --kairo-tab-active:#6941a5; --kairo-subtab-start:#2b194f; --kairo-subtab-end:#7550b8; --kairo-dialog-accent:#6941a5; --kairo-focus-ring:rgb(105 65 165 / 22%); --kairo-border-accent:#d8c9f2; --kairo-page-background:#fbf9ff; }
+.kairo-theme-root[data-kairo-theme="ocean-teal"] { --kairo-primary:#087e9c; --kairo-primary-hover:#066a84; --kairo-hero-start:#103d53; --kairo-hero-end:#087e9c; --kairo-hero-muted:#cffafe; --kairo-heading:#15556b; --kairo-accent:#087e9c; --kairo-accent-soft:#e5f7fc; --kairo-card-accent:#e5f7fc; --kairo-tab-active:#087e9c; --kairo-subtab-start:#103d53; --kairo-subtab-end:#087e9c; --kairo-dialog-accent:#087e9c; --kairo-focus-ring:rgb(8 126 156 / 22%); --kairo-border-accent:#b9e4ee; --kairo-page-background:#f8fcfd; }
+.kairo-theme-root[data-kairo-theme="graphite"] { --kairo-primary:#475569; --kairo-primary-hover:#364152; --kairo-hero-start:#202938; --kairo-hero-end:#515e70; --kairo-hero-muted:#e2e8f0; --kairo-heading:#334155; --kairo-accent:#475569; --kairo-accent-soft:#eff2f6; --kairo-card-accent:#eff2f6; --kairo-tab-active:#475569; --kairo-subtab-start:#202938; --kairo-subtab-end:#515e70; --kairo-dialog-accent:#475569; --kairo-focus-ring:rgb(71 85 105 / 22%); --kairo-border-accent:#cbd2dc; --kairo-page-background:#f8fafc; }
+.kairo-theme-root[data-kairo-theme="powder-blue"] { --kairo-primary:#3e718c; --kairo-primary-hover:#315c75; --kairo-hero-start:#b8d8e8; --kairo-hero-end:#eaf5fb; --kairo-hero-text:#315c75; --kairo-hero-muted:#42677b; --kairo-heading:#315c75; --kairo-accent:#b8d8e8; --kairo-accent-soft:#ddeef5; --kairo-card-accent:#ddeef5; --kairo-tab-active:#3e718c; --kairo-subtab-start:#b8d8e8; --kairo-subtab-end:#ddeef5; --kairo-dialog-accent:#3e718c; --kairo-focus-ring:rgb(62 113 140 / 24%); --kairo-border-accent:#b8d8e8; --kairo-page-background:#f3f9fc; }
+.kairo-theme-root[data-kairo-theme="peach-whisper"] { --kairo-primary:#936956; --kairo-primary-hover:#77513e; --kairo-hero-start:#f2d6c9; --kairo-hero-end:#fff2e9; --kairo-hero-text:#77513e; --kairo-hero-muted:#805b49; --kairo-heading:#77513e; --kairo-accent:#f2d6c9; --kairo-accent-soft:#f8e8df; --kairo-card-accent:#f8e8df; --kairo-tab-active:#805b49; --kairo-subtab-start:#f2d6c9; --kairo-subtab-end:#f8e8df; --kairo-dialog-accent:#936956; --kairo-focus-ring:rgb(147 105 86 / 24%); --kairo-border-accent:#edcbbb; --kairo-page-background:#fffaf7; }
+.kairo-theme-root[data-kairo-theme="cashmere-beige"] { --kairo-primary:#806b50; --kairo-primary-hover:#66543e; --kairo-hero-start:#e8dcc8; --kairo-hero-end:#f8f1e7; --kairo-hero-text:#5b4935; --kairo-hero-muted:#6b5842; --kairo-heading:#5b4935; --kairo-accent:#e8dcc8; --kairo-accent-soft:#f4ede2; --kairo-card-accent:#f4ede2; --kairo-tab-active:#806b50; --kairo-subtab-start:#e8dcc8; --kairo-subtab-end:#f4ede2; --kairo-dialog-accent:#806b50; --kairo-focus-ring:rgb(128 107 80 / 24%); --kairo-border-accent:#ded0b9; --kairo-page-background:#fcfaf6; }
+.kairo-theme-root[data-kairo-theme="soft-pistachio"] { --kairo-primary:#596d4c; --kairo-primary-hover:#45563b; --kairo-hero-start:#d7dfc5; --kairo-hero-end:#f2f6e9; --kairo-hero-text:#45563b; --kairo-hero-muted:#526347; --kairo-heading:#45563b; --kairo-accent:#d7dfc5; --kairo-accent-soft:#eaf0df; --kairo-card-accent:#eaf0df; --kairo-tab-active:#596d4c; --kairo-subtab-start:#d7dfc5; --kairo-subtab-end:#eaf0df; --kairo-dialog-accent:#596d4c; --kairo-focus-ring:rgb(89 109 76 / 24%); --kairo-border-accent:#cad5b4; --kairo-page-background:#f8faf3; }
 
 .kairo-theme-root {
   --sidebar-active-bg: color-mix(in srgb, var(--kairo-primary) 12%, #f1f3f7);
@@ -108,7 +114,20 @@ body {
 .kairo-primary-tab-inactive { color:#64748b; }
 .kairo-primary-tab-inactive:hover { background:var(--kairo-accent-soft); color:var(--kairo-primary); }
 .kairo-subtab-bar { border-color:color-mix(in srgb, var(--kairo-primary) 55%, transparent); background:linear-gradient(90deg,var(--kairo-subtab-start),var(--kairo-subtab-end)); }
-.kairo-hero { background:linear-gradient(120deg,var(--kairo-hero-start),var(--kairo-hero-end)); }
+.kairo-hero { background:linear-gradient(120deg,var(--kairo-hero-start),var(--kairo-hero-end)); color:var(--kairo-hero-text) !important; }
+
+.kairo-theme-root[data-kairo-hero-appearance="light"] {
+  --kairo-hero-icon: var(--kairo-hero-text);
+  --kairo-hero-border: color-mix(in srgb, var(--kairo-primary) 24%, transparent);
+  --kairo-hero-control-bg: rgb(255 255 255 / 62%);
+  --kairo-hero-control-text: var(--kairo-hero-text);
+}
+.kairo-theme-root[data-kairo-hero-appearance="light"] .kairo-hero :is(.text-blue-100,.text-blue-200,.text-cyan-100,.text-cyan-200,.text-slate-200,.text-slate-300,.text-white\/70,.text-white\/80) { color:var(--kairo-hero-muted) !important; }
+.kairo-theme-root[data-kairo-hero-appearance="light"] .kairo-hero :is(.text-white,.text-white\/90) { color:var(--kairo-hero-text) !important; }
+.kairo-theme-root[data-kairo-hero-appearance="light"] .kairo-hero :is(.bg-white\/5,.bg-white\/10,.bg-white\/15) { background-color:var(--kairo-hero-control-bg) !important; }
+.kairo-theme-root[data-kairo-hero-appearance="light"] .kairo-hero :is(.border-white\/10,.border-white\/15,.border-white\/20,.border-white\/25) { border-color:var(--kairo-hero-border) !important; }
+.kairo-theme-root[data-kairo-hero-appearance="light"] .kairo-subtab-bar :is(.text-white\/70,.text-white\/80,.hover\:text-white:hover) { color:var(--kairo-hero-text) !important; }
+.kairo-theme-root[data-kairo-hero-appearance="light"] .kairo-subtab-bar .hover\:bg-white\/10:hover { background-color:rgb(255 255 255 / 45%) !important; }
 
 @theme inline {
   --color-background: var(--background);

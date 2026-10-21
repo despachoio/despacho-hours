@@ -45,7 +45,7 @@ function PolicyList({ children }: { children: ReactNode }) {
 export default function TimeOffPolicy() {
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#081226] via-[var(--kairo-primary)] to-cyan-700 px-6 py-8 text-white shadow-[0_28px_70px_-38px_rgba(15,23,42,.9)] sm:px-9 sm:py-10">
+      <section className="kairo-hero relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#081226] via-[var(--kairo-primary)] to-cyan-700 px-6 py-8 text-white shadow-[0_28px_70px_-38px_rgba(15,23,42,.9)] sm:px-9 sm:py-10">
         <span className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
         <span className="pointer-events-none absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
         <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">

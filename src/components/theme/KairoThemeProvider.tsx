@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_KAIRO_THEME } from "@/lib/themes/theme-config";
+import { DEFAULT_KAIRO_THEME, KAIRO_THEME_MAP } from "@/lib/themes/theme-config";
 import type { KairoThemeId } from "@/lib/themes/theme-types";
 import { kairoThemeCacheKey, normalizeKairoTheme } from "@/lib/themes/theme-utils";
 
@@ -69,7 +69,7 @@ export function KairoThemeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({ theme, savedTheme, loading, previewTheme, restoreSavedTheme, saveTheme }), [loading, previewTheme, restoreSavedTheme, saveTheme, savedTheme, theme]);
 
-  return <KairoThemeContext.Provider value={value}><div data-kairo-theme={theme} className="kairo-theme-root min-h-screen">{children}</div></KairoThemeContext.Provider>;
+  return <KairoThemeContext.Provider value={value}><div data-kairo-theme={theme} data-kairo-hero-appearance={KAIRO_THEME_MAP[theme].heroAppearance} className="kairo-theme-root min-h-screen">{children}</div></KairoThemeContext.Provider>;
 }
 
 export function useKairoTheme() {

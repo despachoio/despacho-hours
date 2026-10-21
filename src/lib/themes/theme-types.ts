@@ -1,12 +1,12 @@
 export const KAIRO_THEME_IDS = [
   "despacho-blue",
-  "columbia-blue",
   "royal-purple",
   "ocean-teal",
-  "jet-black",
   "graphite",
-  "pink-sand",
-  "citrus",
+  "powder-blue",
+  "peach-whisper",
+  "cashmere-beige",
+  "soft-pistachio",
 ] as const;
 
 export type KairoThemeId = (typeof KAIRO_THEME_IDS)[number];
@@ -23,11 +23,14 @@ export type KairoThemePalette = {
   pastel: string;
   pageBackground: string;
   signatureHighlight?: string;
+  heroText: string;
+  heroMuted: string;
 };
 
 export type KairoThemeDefinition = {
   id: KairoThemeId;
   name: string;
   description: string;
+  heroAppearance: "dark" | "light";
   palette: KairoThemePalette;
 };
