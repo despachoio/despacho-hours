@@ -186,7 +186,7 @@ describe("Time Off UI contract", () => {
     const dashboard = source("src/components/time-off/TimeOffDashboard.tsx");
     const calendar = source("src/components/time-off/LeaveCalendar.tsx");
     expect(dashboard).toContain("from-white via-slate-50/90 to-blue-50/90");
-    expect(dashboard).toContain("from-[#153E90] via-blue-500 to-cyan-400");
+    expect(dashboard).toContain("from-[var(--kairo-primary)] via-blue-500 to-cyan-400");
     expect(dashboard).toContain("from-emerald-50 via-white to-teal-50/70");
     expect(dashboard).toContain("from-sky-50 via-white to-blue-50/70");
     expect(dashboard).toContain('tone: "text-amber-700"');
@@ -227,12 +227,12 @@ describe("Time Off UI contract", () => {
   it("presents every actionable leave request as a premium selectable card", () => {
     const approval = source("src/components/time-off/ApprovalCentre.tsx");
     expect(approval).toContain("aria-pressed={isSelected}");
-    expect(approval).toContain("group relative w-full overflow-hidden rounded-2xl border");
+    expect(approval).toContain("group relative w-full overflow-hidden rounded-3xl border");
     expect(approval).toContain("Selected · Review the approval details");
     expect(approval).toContain("Administrative override required");
     expect(approval).toContain("formatLeaveDate(request.start_date)");
     expect(approval).toContain("leaveDayLabel(request.working_days)");
-    expect(approval).toContain("from-blue-50 via-white to-violet-50");
+    expect(approval).toContain("from-[var(--kairo-primary)]/5 via-white to-slate-50");
     expect(approval).toContain("from-slate-50 via-blue-50/70 to-violet-50/65");
     expect(approval).not.toContain("from-slate-950 via-indigo-950 to-blue-950");
     expect(approval).not.toContain("via-amber-50/55 to-orange-50/60");

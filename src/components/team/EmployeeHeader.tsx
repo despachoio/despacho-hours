@@ -12,7 +12,7 @@ export default function EmployeeHeader({
   const isActive = String(employee.status || "").toLowerCase() === "active";
   return (
     <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-9 text-white shadow-xl shadow-slate-300/50">
-      <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#153E90]/70 blur-3xl" />
+      <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-5">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-white/10 text-2xl font-bold ring-1 ring-white/15">

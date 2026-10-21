@@ -272,11 +272,11 @@ function RecurringInvoicesWorkspace({
 
   return (
     <div
-      className={embedded ? "" : "min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8"}
+      className={embedded ? "" : "min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8"}
     >
       <div className={embedded ? "" : "mx-auto max-w-[1500px]"}>
         {!embedded ? (
-          <div className="relative flex min-h-[250px] flex-col justify-between gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 sm:flex-row sm:items-end lg:px-12">
+          <div className="kairo-hero relative flex min-h-[250px] flex-col justify-between gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 sm:flex-row sm:items-end lg:px-12">
             <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative">
               <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
@@ -289,20 +289,20 @@ function RecurringInvoicesWorkspace({
             </div>
             <Link
               href="/invoices/recurring/new"
-              className="relative rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg"
+              className="relative rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[var(--kairo-primary)] shadow-lg"
             >
               + New Schedule
             </Link>
           </div>
         ) : null}
-        <nav aria-label="Recurring invoice sections" className="mt-7 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]">
+        <nav aria-label="Recurring invoice sections" className="kairo-subtab-bar mt-7 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]">
           {tabs.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
               aria-current={tab === item.id ? "page" : undefined}
-              className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === item.id ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}
+              className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === item.id ? "bg-white text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20" : "text-white/80 hover:bg-white/10 hover:text-white"}`}
             >
               <TimeOffIcon name={item.icon} className="h-4 w-4 shrink-0" />
               <span>{item.label}</span>
@@ -426,7 +426,7 @@ function RecurringInvoicesWorkspace({
                         ? `/invoices/recurring/${schedule.id}/occurrences/${row.scheduled_date}/edit`
                         : undefined
                     }
-                    className="cursor-pointer rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90] focus-visible:ring-offset-2"
+                    className="cursor-pointer rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)] focus-visible:ring-offset-2"
                   >
                     <div className="grid items-center gap-5 xl:grid-cols-[180px_1.3fr_180px_minmax(360px,auto)]">
                       <div>
@@ -441,7 +441,7 @@ function RecurringInvoicesWorkspace({
                         {schedule.clients?.name ? (
                           <Link
                             href={`/clients/${schedule.client_id}`}
-                            className="text-lg font-bold hover:text-[#153E90] hover:underline"
+                            className="text-lg font-bold hover:text-[var(--kairo-primary)] hover:underline"
                           >
                             {schedule.clients.name}
                           </Link>
@@ -455,7 +455,7 @@ function RecurringInvoicesWorkspace({
                         </p>
                       </div>
                       <div>
-                        <p className="mt-2 font-bold text-[#153E90]">
+                        <p className="mt-2 font-bold text-[var(--kairo-primary)]">
                           {money(
                             schedule.currency,
                             row.invoices?.total_amount ?? amount,
@@ -541,13 +541,13 @@ function RecurringInvoicesWorkspace({
                   data-shortcut-row
                   data-shortcut-href={`/invoices/recurring/${schedule.id}`}
                   data-shortcut-edit-href={`/invoices/recurring/${schedule.id}/edit`}
-                  className="flex cursor-pointer flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90] focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex cursor-pointer flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)] focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/invoices/recurring/${schedule.id}`}
-                        className="text-left text-lg font-bold hover:text-[#153E90]"
+                        className="text-left text-lg font-bold hover:text-[var(--kairo-primary)]"
                       >
                         {schedule.name}
                       </Link>
@@ -559,7 +559,7 @@ function RecurringInvoicesWorkspace({
                       {schedule.clients?.name ? (
                         <Link
                           href={`/clients/${schedule.client_id}`}
-                          className="hover:text-[#153E90] hover:underline"
+                          className="hover:text-[var(--kairo-primary)] hover:underline"
                         >
                           {schedule.clients.name}
                         </Link>
@@ -585,7 +585,7 @@ function RecurringInvoicesWorkspace({
                         }
                       }}
                       disabled={busy === schedule.id}
-                      className="rounded-xl bg-[#153E90] px-4 py-2 text-sm font-bold text-white"
+                      className="rounded-xl bg-[var(--kairo-primary)] px-4 py-2 text-sm font-bold text-white"
                     >
                       {schedule.status === "active" ? "Pause" : "Resume"}
                     </button>
@@ -618,7 +618,7 @@ function RecurringInvoicesWorkspace({
                   setTo("");
                   setSearch("");
                 }}
-                className="mt-3 text-sm font-bold text-[#153E90]"
+                className="mt-3 text-sm font-bold text-[var(--kairo-primary)]"
               >
                 Clear filters
               </button>
@@ -719,7 +719,7 @@ function RecurringInvoicesWorkspace({
                 onClick={() =>
                   void updateStatus(resumeTarget, "active", resumeDate)
                 }
-                className="rounded-xl bg-[#153E90] px-4 py-2 font-bold text-white disabled:opacity-50"
+                className="rounded-xl bg-[var(--kairo-primary)] px-4 py-2 font-bold text-white disabled:opacity-50"
               >
                 Resume Schedule
               </button>

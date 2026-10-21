@@ -134,7 +134,7 @@ function Status({ value }: { value: string }) {
       ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
       : value === "cancelled"
         ? "bg-red-50 text-red-700 ring-red-200"
-        : "bg-blue-50 text-[#153E90] ring-blue-200";
+        : "bg-blue-50 text-[var(--kairo-primary)] ring-blue-200";
   return (
     <span
       className={`inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ring-1 ${styles}`}
@@ -512,14 +512,14 @@ export default function WorkOrdersWorkspace() {
     <div className="space-y-6">
       <nav
         aria-label="Work Order sections"
-        className="flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
+        className="kairo-subtab-bar flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
       >
         {tabs.map((item) => (
           <button
             key={item.value}
             onClick={() => setTab(item.value)}
             aria-current={tab === item.value ? "page" : undefined}
-            className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === item.value ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}
+            className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === item.value ? "bg-white text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20" : "text-white/80 hover:bg-white/10 hover:text-white"}`}
           >
             <TimeOffIcon name={item.icon} className="h-4 w-4" />
             {item.label}
@@ -529,7 +529,7 @@ export default function WorkOrdersWorkspace() {
       {message && (
         <div
           role="status"
-          className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-[#153E90]"
+          className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-[var(--kairo-primary)]"
         >
           {message}
         </div>
@@ -596,7 +596,7 @@ export default function WorkOrdersWorkspace() {
               <button
                 type="button"
                 onClick={reserve}
-                className={`${inputClass} text-left font-bold text-[#153E90]`}
+                className={`${inputClass} text-left font-bold text-[var(--kairo-primary)]`}
               >
                 {identity?.work_order_number ||
                   (busy === "reserve" ? "Reserving…" : "Reserve next number")}
@@ -838,7 +838,7 @@ export default function WorkOrdersWorkspace() {
                 <button
                   type="button"
                   onClick={addPhase}
-                  className="rounded-full bg-blue-50 px-4 py-2 text-xs font-bold text-[#153E90]"
+                  className="rounded-full bg-blue-50 px-4 py-2 text-xs font-bold text-[var(--kairo-primary)]"
                 >
                   + Add phase
                 </button>
@@ -1090,21 +1090,21 @@ export default function WorkOrdersWorkspace() {
               type="button"
               disabled={!!busy}
               onClick={resetForm}
-              className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[#153E90] disabled:opacity-50"
+              className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-[var(--kairo-primary)] disabled:opacity-50"
             >
               Reset
             </button>
             <button
               disabled={!!busy}
               onClick={() => save(false)}
-              className="rounded-xl border border-blue-200 bg-white px-5 py-3 font-bold text-[#153E90] disabled:opacity-50"
+              className="rounded-xl border border-blue-200 bg-white px-5 py-3 font-bold text-[var(--kairo-primary)] disabled:opacity-50"
             >
               {busy === "save" ? "Saving…" : "Save Draft"}
             </button>
             <button
               disabled={!!busy}
               onClick={() => save(true)}
-              className="rounded-xl bg-gradient-to-r from-[#153E90] to-blue-700 px-5 py-3 font-bold text-white shadow-lg disabled:opacity-50"
+              className="rounded-xl bg-gradient-to-r from-[var(--kairo-primary)] to-blue-700 px-5 py-3 font-bold text-white shadow-lg disabled:opacity-50"
             >
               {busy === "generate" ? "Generating…" : "Generate Work Order"}
             </button>
@@ -1184,7 +1184,7 @@ export default function WorkOrdersWorkspace() {
             <div className="mt-4 flex justify-end gap-3">
               <button
                 onClick={() => search(1)}
-                className="rounded-xl bg-[#153E90] px-5 py-2.5 font-bold text-white"
+                className="rounded-xl bg-[var(--kairo-primary)] px-5 py-2.5 font-bold text-white"
               >
                 {busy === "search" ? "Searching…" : "Search"}
               </button>
@@ -1215,7 +1215,7 @@ export default function WorkOrdersWorkspace() {
                 </p>
               </div>
               {searched && (
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kairo-primary)]">
                   {count} records
                 </span>
               )}
@@ -1254,7 +1254,7 @@ export default function WorkOrdersWorkspace() {
                   <tbody>
                     {rows.map((row) => (
                       <tr key={row.id} className="border-b hover:bg-blue-50/40">
-                        <td className="px-4 py-4 font-bold text-[#153E90]">
+                        <td className="px-4 py-4 font-bold text-[var(--kairo-primary)]">
                           {row.work_order_number}
                         </td>
                         <td className="px-4">{row.company_name}</td>
@@ -1279,7 +1279,7 @@ export default function WorkOrdersWorkspace() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => openDetail(row.id)}
-                              className="rounded-full border border-blue-200 px-3 py-2 font-bold text-[#153E90]"
+                              className="rounded-full border border-blue-200 px-3 py-2 font-bold text-[var(--kairo-primary)]"
                             >
                               {busy === `detail-${row.id}`
                                 ? "Opening…"
@@ -1290,7 +1290,7 @@ export default function WorkOrdersWorkspace() {
                                 !row.current_version || busy === `pdf-${row.id}`
                               }
                               onClick={() => download(row)}
-                              className="rounded-full bg-[#153E90] px-3 py-2 font-bold text-white disabled:bg-slate-300"
+                              className="rounded-full bg-[var(--kairo-primary)] px-3 py-2 font-bold text-white disabled:bg-slate-300"
                             >
                               {busy === `pdf-${row.id}`
                                 ? "Downloading…"
@@ -1333,7 +1333,7 @@ export default function WorkOrdersWorkspace() {
             aria-busy={pendingAction !== null}
             className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
           >
-            <header className="sticky top-0 z-10 flex items-start justify-between border-b bg-gradient-to-r from-[#0F172A] to-[#153E90] px-7 py-6 text-white">
+            <header className="sticky top-0 z-10 flex items-start justify-between border-b bg-gradient-to-r from-[#0F172A] to-[var(--kairo-primary)] px-7 py-6 text-white">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-200">
                   Work Order Detail
@@ -1396,7 +1396,7 @@ export default function WorkOrdersWorkspace() {
                       ),
                     })
                   }
-                  className="min-w-36 rounded-full bg-[#153E90] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="min-w-36 rounded-full bg-[var(--kairo-primary)] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   {pendingAction === "download" ? "Downloading…" : "Download PDF"}
                 </button>
@@ -1406,7 +1406,7 @@ export default function WorkOrdersWorkspace() {
                   <button
                     disabled={pendingAction !== null}
                     onClick={() => loadForEdit(detail)}
-                    className="min-w-24 rounded-full border border-blue-200 px-4 py-2 text-sm font-bold text-[#153E90] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="min-w-24 rounded-full border border-blue-200 px-4 py-2 text-sm font-bold text-[var(--kairo-primary)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {pendingAction === "edit" ? "Opening…" : "Edit"}
                   </button>
@@ -1566,7 +1566,7 @@ export default function WorkOrdersWorkspace() {
                             },
                           )
                         }
-                        className="rounded-xl bg-[#153E90] px-4 font-bold text-white disabled:bg-slate-300"
+                        className="rounded-xl bg-[var(--kairo-primary)] px-4 font-bold text-white disabled:bg-slate-300"
                       >
                         {pendingAction === "project" ? "Creating…" : "Create Project"}
                       </button>
@@ -1629,11 +1629,11 @@ export default function WorkOrdersWorkspace() {
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 p-6 backdrop-blur-[2px]">
                   <div
                     role="status"
-                    className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white px-6 py-4 font-bold text-[#153E90] shadow-xl"
+                    className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white px-6 py-4 font-bold text-[var(--kairo-primary)] shadow-xl"
                   >
                     <span
                       aria-hidden="true"
-                      className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-[#153E90]"
+                      className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-[var(--kairo-primary)]"
                     />
                     {pendingAction === "sent"
                       ? "Marking Work Order as sent…"

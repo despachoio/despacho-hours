@@ -76,7 +76,7 @@ function getContactName(contact: Contact) {
 function contactBadge(contactType: ContactType) {
   switch (contactType) {
     case "billing":
-      return "bg-blue-100 text-[#153E90] ring-blue-200";
+      return "bg-blue-100 text-[var(--kairo-primary)] ring-blue-200";
     case "primary":
       return "bg-emerald-100 text-emerald-700 ring-emerald-200";
     case "manager":
@@ -301,18 +301,18 @@ export default function ClientDetailPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-6 py-7 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <Link
           href="/clients"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[var(--kairo-primary)]"
         >
           ← Back to Clients
         </Link>
 
         <div className="space-y-6">
-          <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
-            <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+          <div className="kairo-hero relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+            <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/60 blur-3xl" />
             <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
             <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row">
               <div>
@@ -430,7 +430,7 @@ export default function ClientDetailPage() {
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:p-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--kairo-primary)]">
                   People
                 </p>
                 <h2 className="mt-1 text-2xl font-bold text-slate-950">
@@ -444,7 +444,7 @@ export default function ClientDetailPage() {
                 <button
                   type="button"
                   onClick={openAddContact}
-                  className="rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#123578]"
+                  className="rounded-xl bg-[var(--kairo-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[var(--kairo-primary-hover)]"
                 >
                   Add Contact
                 </button>
@@ -491,7 +491,7 @@ export default function ClientDetailPage() {
                   <div className="mt-4 space-y-2 text-sm">
                     <a
                       href={`mailto:${contact.email}`}
-                      className="block break-all font-semibold text-slate-800 hover:text-[#153E90]"
+                      className="block break-all font-semibold text-slate-800 hover:text-[var(--kairo-primary)]"
                     >
                       {contact.email}
                     </a>
@@ -542,7 +542,7 @@ export default function ClientDetailPage() {
 
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--kairo-primary)]">
                 Delivery Portfolio
               </p>
               <h2 className="mt-1 text-2xl font-bold text-slate-950">
@@ -563,7 +563,7 @@ export default function ClientDetailPage() {
                       <div>
                         <Link
                           href={`/projects/${project.id}`}
-                          className="block text-lg font-bold text-slate-950 hover:text-[#153E90]"
+                          className="block text-lg font-bold text-slate-950 hover:text-[var(--kairo-primary)]"
                         >
                           {project.project_code
                             ? `[${project.project_code}] `
@@ -584,7 +584,7 @@ export default function ClientDetailPage() {
                       </div>
                       <Link
                         href={`/projects/${project.id}`}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-[#153E90] hover:text-[#153E90]"
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-[var(--kairo-primary)] hover:text-[var(--kairo-primary)]"
                       >
                         View
                       </Link>
@@ -611,7 +611,7 @@ export default function ClientDetailPage() {
                       <span className="text-xs font-semibold text-slate-400">
                         Remaining
                       </span>
-                      <b className="mt-1 block text-lg text-[#153E90]">
+                      <b className="mt-1 block text-lg text-[var(--kairo-primary)]">
                         {formatDecimalHours(project.remaining_hours)}
                       </b>
                     </div>
@@ -668,7 +668,7 @@ function ContactModal({
     >
       <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
         <div className="relative overflow-hidden bg-[#0F172A] px-7 py-6 pr-16 text-white">
-          <div className="absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[#153E90]/60 blur-2xl" />
+          <div className="absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[var(--kairo-primary)]/60 blur-2xl" />
           <button
             type="button"
             data-shortcut-overlay-close
@@ -742,7 +742,7 @@ function ContactModal({
                   isPrimary: type === "primary" ? true : current.isPrimary,
                 }));
               }}
-              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
             >
               <option value="primary">Primary</option>
               <option value="billing">Billing</option>
@@ -780,7 +780,7 @@ function ContactModal({
             aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
             onClick={onSave}
             disabled={saving}
-            className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#123578] disabled:opacity-60"
+            className="rounded-xl bg-[var(--kairo-primary)] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[var(--kairo-primary-hover)] disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save Contact"}
           </button>
@@ -811,7 +811,7 @@ function ContactInput({
         required={required}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
       />
     </label>
   );

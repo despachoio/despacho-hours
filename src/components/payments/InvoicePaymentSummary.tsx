@@ -22,14 +22,14 @@ export default function InvoicePaymentSummary({ invoice }: { invoice: PublicInvo
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/60 lg:p-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--kairo-primary)]">
             Invoice #{invoice.invoiceNumber}
           </p>
           <h1 className="mt-2 text-2xl font-bold text-slate-950">
             {invoice.clientName}
           </h1>
         </div>
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#153E90] ring-1 ring-inset ring-blue-200">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--kairo-primary)] ring-1 ring-inset ring-blue-200">
           {invoice.status}
         </span>
       </div>
@@ -52,7 +52,7 @@ export default function InvoicePaymentSummary({ invoice }: { invoice: PublicInvo
       </div>
       <div className="mt-7 flex items-end justify-between border-t-2 border-slate-900 pt-5">
         <span className="text-sm font-bold uppercase tracking-wide text-slate-500">Total</span>
-        <span className="text-3xl font-bold text-[#153E90]">{money(invoice.currency, invoice.totalAmount)}</span>
+        <span className="text-3xl font-bold text-[var(--kairo-primary)]">{money(invoice.currency, invoice.totalAmount)}</span>
       </div>
     </section>
   );

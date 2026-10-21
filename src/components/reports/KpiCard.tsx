@@ -14,10 +14,10 @@ export default function KpiCard({
   accent = "blue",
 }: Props) {
   const colors = {
-    blue: "bg-blue-50 text-[#153E90]",
+    blue: "bg-blue-50 text-[var(--kairo-primary)]",
     green: "bg-emerald-50 text-emerald-700",
     amber: "bg-amber-50 text-amber-700",
-    violet: "bg-blue-50 text-[#153E90]",
+    violet: "bg-blue-50 text-[var(--kairo-primary)]",
   }[accent];
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">

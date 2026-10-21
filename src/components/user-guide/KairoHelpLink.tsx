@@ -18,7 +18,7 @@ export default function KairoHelpLink({
   return (
     <Link
       href={`/user-guide${suffix}`}
-      className={`font-bold text-[#153E90] transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${className}`}
+      className={`font-bold text-[var(--kairo-primary)] transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${className}`}
     >
       {children || "View guide →"}
     </Link>

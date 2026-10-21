@@ -8,7 +8,7 @@ export default function PeriodSummaryCards({
   return (
     <section>
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">
           Selected period
         </p>
         <h2 className="mt-1 text-2xl font-bold text-slate-950">

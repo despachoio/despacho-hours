@@ -13,7 +13,7 @@ export type AnalyticsFilterValue = {
 export type AnalyticsFilterOption = { id: string; label: string };
 
 const controlClass =
-  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10";
+  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition-colors focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10";
 
 export default function EmployeePeriodFilter({
   value,
@@ -129,7 +129,7 @@ export default function EmployeePeriodFilter({
         <button
           type="button"
           onClick={onSearch}
-          className="h-11 rounded-xl bg-gradient-to-r from-[#153E90] to-blue-700 px-5 text-sm font-bold text-white shadow-lg shadow-blue-900/15"
+          className="h-11 rounded-xl bg-gradient-to-r from-[var(--kairo-primary)] to-blue-700 px-5 text-sm font-bold text-white shadow-lg shadow-blue-900/15"
         >
           Search
         </button>
@@ -144,7 +144,7 @@ export default function EmployeePeriodFilter({
           type="button"
           disabled={Boolean(exporting)}
           onClick={onDownloadCsv}
-          className="h-11 min-w-32 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-bold text-[#153E90] disabled:cursor-wait disabled:opacity-50"
+          className="h-11 min-w-32 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-bold text-[var(--kairo-primary)] disabled:cursor-wait disabled:opacity-50"
         >
           {exporting === "csv" ? "Downloading…" : "Download CSV"}
         </button>
@@ -152,7 +152,7 @@ export default function EmployeePeriodFilter({
           type="button"
           disabled={Boolean(exporting)}
           onClick={onDownloadPdf}
-          className="h-11 min-w-32 rounded-xl bg-[#153E90] px-4 text-sm font-bold text-white disabled:cursor-wait disabled:bg-slate-300"
+          className="h-11 min-w-32 rounded-xl bg-[var(--kairo-primary)] px-4 text-sm font-bold text-white disabled:cursor-wait disabled:bg-slate-300"
         >
           {exporting === "pdf" ? "Downloading…" : "Download PDF"}
         </button>

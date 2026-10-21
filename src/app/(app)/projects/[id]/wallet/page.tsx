@@ -582,7 +582,7 @@ export default function ProjectWalletPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
         <div className="mx-auto max-w-[1500px]">
           <div className="rounded-3xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
             <p className="font-semibold text-slate-500">
@@ -596,7 +596,7 @@ export default function ProjectWalletPage() {
 
   if (!project || !wallet) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
         <div className="mx-auto max-w-[1500px]">
           <div className="rounded-3xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
             <p className="font-semibold text-red-600">
@@ -611,7 +611,7 @@ export default function ProjectWalletPage() {
 
             <Link
               href="/accounts?tab=projects"
-              className="mt-6 inline-flex rounded-xl border border-slate-200 px-5 py-3 font-bold text-[#153E90]"
+              className="mt-6 inline-flex rounded-xl border border-slate-200 px-5 py-3 font-bold text-[var(--kairo-primary)]"
             >
               Back to Projects
             </Link>
@@ -622,16 +622,16 @@ export default function ProjectWalletPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
         <Link
           href="/accounts?tab=projects"
-          className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
+          className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:-translate-x-0.5 hover:text-[var(--kairo-primary)]"
         >
           ← Back to Projects
         </Link>
 
-        <section className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-12">
+        <section className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-12">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl" />
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative">
@@ -673,7 +673,7 @@ export default function ProjectWalletPage() {
                   onClick={() =>
                     router.push(`/projects/${project.id}?action=hours`)
                   }
-                  className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#153E90] shadow-lg shadow-slate-950/20 transition hover:bg-blue-50"
+                  className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20 transition hover:bg-blue-50"
                 >
                   Wallet Adjustment
                 </button>
@@ -690,17 +690,17 @@ export default function ProjectWalletPage() {
         </section>
 
         <section className="relative mt-6 overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-white via-blue-50/35 to-cyan-50/60 p-7 shadow-[0_22px_55px_-34px_rgba(21,62,144,0.45)] lg:p-9">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#153E90] via-blue-500 to-cyan-400" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--kairo-primary)] via-blue-500 to-cyan-400" />
           <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#153E90]">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--kairo-primary)]">
                 Service Wallet
               </p>
               <p className="mt-6 text-sm font-bold text-slate-500">
                 Available Hours
               </p>
               <div className="mt-2 flex flex-wrap items-end gap-3">
-                <p className="text-5xl font-black tracking-tight text-[#153E90] sm:text-6xl">
+                <p className="text-5xl font-black tracking-tight text-[var(--kairo-primary)] sm:text-6xl">
                   {formatHours(wallet.remaining_hours)}
                 </p>
                 <p className="pb-2 text-lg font-bold text-slate-500">hrs</p>
@@ -725,13 +725,13 @@ export default function ProjectWalletPage() {
           <div className="mt-9">
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="font-bold text-slate-600">Wallet balance</span>
-              <span className="font-black text-[#153E90]">
+              <span className="font-black text-[var(--kairo-primary)]">
                 {percentageRemaining.toFixed(1)}% remaining
               </span>
             </div>
             <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#EEF2F7] ring-1 ring-slate-200/70">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#153E90] to-cyan-400 transition-all duration-700 ease-out"
+                className="h-full rounded-full bg-gradient-to-r from-[var(--kairo-primary)] to-cyan-400 transition-all duration-700 ease-out"
                 style={{ width: `${percentageRemaining}%` }}
               />
             </div>
@@ -765,13 +765,13 @@ export default function ProjectWalletPage() {
 
         <section className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <article className="relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-cyan-50/60 p-6 shadow-sm">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#153E90] to-cyan-400" />
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--kairo-primary)] to-cyan-400" />
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Average Daily Usage</p>
-                <p className="mt-4 text-3xl font-black text-[#153E90]">{formatHours(averageDailyUsage)}</p>
+                <p className="mt-4 text-3xl font-black text-[var(--kairo-primary)]">{formatHours(averageDailyUsage)}</p>
               </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-[#153E90]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-[var(--kairo-primary)]">
                 <TimeOffIcon name="chart" className="h-5 w-5" />
               </div>
             </div>
@@ -825,7 +825,7 @@ export default function ProjectWalletPage() {
 
         <section className="mt-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 px-6 py-6 sm:px-8">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#153E90]">Wallet Activity</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Wallet Activity</p>
             <h2 className="mt-2 text-2xl font-black text-slate-950">Search project wallet history</h2>
             <p className="mt-1 text-sm text-slate-500">Choose filters and click Search to view purchased, consumed and adjusted hours.</p>
           </div>
@@ -900,7 +900,7 @@ export default function ProjectWalletPage() {
               type="button"
               disabled={activityLoading}
               onClick={() => void searchActivity()}
-              className="rounded-xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800"
+              className="rounded-xl bg-[var(--kairo-primary)] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800"
             >
               {activityLoading ? "Searching..." : "Search"}
             </button>
@@ -920,7 +920,7 @@ export default function ProjectWalletPage() {
               type="button"
               disabled={!appliedActivityFilters || !activityTransactions.length || exporting}
               onClick={() => void downloadActivityExcel()}
-              className="rounded-xl border border-blue-200 bg-blue-50 px-6 py-3 text-sm font-bold text-[#153E90] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+              className="rounded-xl border border-blue-200 bg-blue-50 px-6 py-3 text-sm font-bold text-[var(--kairo-primary)] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
               {exporting ? "Downloading..." : "Download Excel"}
             </button>

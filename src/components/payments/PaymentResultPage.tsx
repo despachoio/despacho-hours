@@ -121,14 +121,14 @@ export default function PaymentResultPage({ token }: { token: string }) {
     paymentStatus === "unavailable";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-5 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] px-5 py-10">
       <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-200/50 sm:p-10">
         <Image src="/despacho-logo-full.png" alt="Despacho" width={180} height={58} className="mx-auto h-auto w-44" priority />
         {error ? <p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
         {checking && !invoice ? <p className="mt-8 text-slate-500">Checking payment status…</p> : null}
         {!checking || invoice ? (
           <>
-            <div className={`mx-auto mt-8 flex h-14 w-14 items-center justify-center rounded-full text-2xl ${successful ? "bg-emerald-100 text-emerald-700" : unsuccessful ? "bg-red-100 text-red-700" : "bg-blue-100 text-[#153E90]"}`}>
+            <div className={`mx-auto mt-8 flex h-14 w-14 items-center justify-center rounded-full text-2xl ${successful ? "bg-emerald-100 text-emerald-700" : unsuccessful ? "bg-red-100 text-red-700" : "bg-blue-100 text-[var(--kairo-primary)]"}`}>
               {successful ? "✓" : unsuccessful ? "!" : "…"}
             </div>
             <h1 className="mt-5 text-3xl font-bold text-slate-950">{title}</h1>
@@ -152,12 +152,12 @@ export default function PaymentResultPage({ token }: { token: string }) {
                   type="button"
                   disabled={checking}
                   onClick={() => void checkStatus(false)}
-                  className="rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:opacity-60"
+                  className="rounded-xl bg-[var(--kairo-primary)] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/20 disabled:opacity-60"
                 >
                   {checking ? "Checking…" : "Refresh Status"}
                 </button>
               ) : null}
-              <a href={`/pay/invoice/${token}`} className="inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/15">
+              <a href={`/pay/invoice/${token}`} className="inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/15">
                 Return to Invoice
               </a>
             </div>

@@ -81,7 +81,7 @@ describe("Workforce terminology", () => {
     expect(summaries).toContain("bg-gradient-to-br");
     expect(summaries).toContain("hover:-translate-y-1");
     expect(employeeCard).toContain("bg-gradient-to-r from-white via-white to-blue-50/70");
-    expect(employeeCard).toContain("from-[#153E90] to-cyan-400");
+    expect(employeeCard).toContain("from-[var(--kairo-primary)] to-cyan-400");
   });
 });
 
@@ -91,7 +91,7 @@ describe("My Payroll presentation", () => {
     expect(payroll).toContain('tone="emerald"');
     expect(payroll).toContain('tone="rose"');
     expect(payroll).toContain('tone="blue"');
-    expect(payroll).toContain("from-violet-600 to-fuchsia-300");
+    expect(payroll).toContain("from-violet-600 to-fuchsia-400");
     expect(payroll).toContain("Latest published salary slip");
   });
 });

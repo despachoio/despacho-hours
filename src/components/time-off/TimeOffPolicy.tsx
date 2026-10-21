@@ -29,7 +29,7 @@ function PolicySection({
           <span className="block font-bold text-slate-950">{title}</span>
           <span className="mt-1 block text-sm leading-5 text-slate-500">{summary}</span>
         </span>
-        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xl text-slate-500 transition group-open:rotate-45 group-open:bg-blue-50 group-open:text-[#153E90]">+</span>
+        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xl text-slate-500 transition group-open:rotate-45 group-open:bg-blue-50 group-open:text-[var(--kairo-primary)]">+</span>
       </summary>
       <div className="border-t border-slate-100 bg-gradient-to-br from-white to-slate-50/70 px-5 py-5 text-sm leading-6 text-slate-600 sm:px-6">
         {children}
@@ -45,7 +45,7 @@ function PolicyList({ children }: { children: ReactNode }) {
 export default function TimeOffPolicy() {
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#081226] via-[#153E90] to-cyan-700 px-6 py-8 text-white shadow-[0_28px_70px_-38px_rgba(15,23,42,.9)] sm:px-9 sm:py-10">
+      <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#081226] via-[var(--kairo-primary)] to-cyan-700 px-6 py-8 text-white shadow-[0_28px_70px_-38px_rgba(15,23,42,.9)] sm:px-9 sm:py-10">
         <span className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
         <span className="pointer-events-none absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
         <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
@@ -82,7 +82,7 @@ export default function TimeOffPolicy() {
 
       <KairoCard className="overflow-hidden p-0">
         <div className="border-b border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-6 py-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Published policy</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Published policy</p>
           <h3 className="mt-2 text-2xl font-bold text-slate-950">How leave works at Despacho</h3>
           <p className="mt-2 text-sm text-slate-500">Select a section to read the policy. Kairo applies these rules automatically when a request is evaluated.</p>
         </div>

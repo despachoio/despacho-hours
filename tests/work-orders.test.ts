@@ -135,12 +135,9 @@ describe("Work Order document and workspace", () => {
       resolve(root, "src/components/work-orders/WorkOrdersWorkspace.tsx"),
       "utf8",
     );
+    expect(workspace).toContain("kairo-subtab-bar");
     expect(workspace).toContain(
-      "from-indigo-950 via-blue-900 to-cyan-800",
-    );
-    expect(workspace).toContain("border-blue-800/60");
-    expect(workspace).toContain(
-      'bg-white text-[#153E90] shadow-lg shadow-slate-950/20',
+      'bg-white text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20',
     );
     expect(workspace).toContain('aria-label="Work Order sections"');
   });

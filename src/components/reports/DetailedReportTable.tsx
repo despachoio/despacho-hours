@@ -204,7 +204,7 @@ function ReportRows({
         <td className="px-4 py-4 text-sm text-slate-600">{row.clientName}</td>
         <td className="px-4 py-4">
           <p className="font-semibold">{row.projectName}</p>
-          <p className="text-xs font-bold text-[#153E90]">{row.projectCode}</p>
+          <p className="text-xs font-bold text-[var(--kairo-primary)]">{row.projectCode}</p>
         </td>
         <td className="px-4 py-4 text-right font-bold">
           {formatDecimalHours(row.totalHours)}

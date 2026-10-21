@@ -38,7 +38,7 @@ export default function TeamSummaryCards({
         ],
       ];
   const visualTones = [
-    { accent: "from-[#153E90] to-cyan-400", surface: "from-white via-white to-blue-50/80" },
+    { accent: "from-[var(--kairo-primary)] to-cyan-400", surface: "from-white via-white to-blue-50/80" },
     { accent: "from-emerald-600 to-teal-300", surface: "from-white via-white to-emerald-50/80" },
     { accent: "from-violet-600 to-fuchsia-300", surface: "from-white via-white to-violet-50/75" },
     { accent: "from-cyan-600 to-sky-300", surface: "from-white via-white to-cyan-50/75" },
@@ -60,7 +60,7 @@ export default function TeamSummaryCards({
           <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             {label}
           </p>
-          <p className="mt-4 whitespace-nowrap text-2xl font-bold tracking-tight text-[#153E90]">
+          <p className="mt-4 whitespace-nowrap text-2xl font-bold tracking-tight text-[var(--kairo-primary)]">
             {value}
           </p>
         </article>;

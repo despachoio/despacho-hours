@@ -18,7 +18,7 @@ export function DashboardPanelHeader({
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_5px_rgba(16,185,129,0.12)]" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">
               {eyebrow}
             </p>
           </div>

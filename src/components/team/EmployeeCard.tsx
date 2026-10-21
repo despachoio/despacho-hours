@@ -50,7 +50,7 @@ export default function EmployeeCard({
         canViewDetails ? "hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/70" : ""
       }`}
     >
-      <span aria-hidden="true" className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-gradient-to-b from-[#153E90] to-cyan-400" />
+      <span aria-hidden="true" className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-gradient-to-b from-[var(--kairo-primary)] to-cyan-400" />
       {canViewDetails ? (
         <Link
           href={`/team/${employee.id}`}
@@ -60,14 +60,14 @@ export default function EmployeeCard({
       ) : null}
       <div className="pointer-events-none relative grid items-center gap-5 sm:grid-cols-2 xl:grid-cols-[1.7fr_.7fr_.7fr_.75fr_1.1fr_1.5fr]">
         <div className="flex min-w-0 items-center gap-3.5">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#153E90] to-blue-600 text-xs font-bold text-white shadow-md shadow-blue-200">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--kairo-primary)] to-blue-600 text-xs font-bold text-white shadow-md shadow-blue-200">
             {initials(employee.name)}
             {isOnline ? (
               <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500" />
             ) : null}
           </div>
           <div className="min-w-0">
-            <span className="block truncate text-left font-bold text-slate-950 group-hover:text-[#153E90]">
+            <span className="block truncate text-left font-bold text-slate-950 group-hover:text-[var(--kairo-primary)]">
               {employee.title ? `${employee.title} ` : ""}
               {employee.name}
             </span>
@@ -109,7 +109,7 @@ export default function EmployeeCard({
               style={{ width: `${totalWorkedPercentage * 100}%` }}
             >
               <div
-                className="h-full shrink-0 bg-[#153E90]"
+                className="h-full shrink-0 bg-[var(--kairo-primary)]"
                 style={{ width: `${billableRatio * 100}%` }}
               />
               <div
@@ -119,7 +119,7 @@ export default function EmployeeCard({
             </div>
           </div>
           <div className="mt-1.5 flex flex-wrap gap-x-3 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-            <span><span className="mr-1 text-[#153E90]">●</span>Billable</span>
+            <span><span className="mr-1 text-[var(--kairo-primary)]">●</span>Billable</span>
             <span><span className="mr-1 text-[#A78BFA]">●</span>Non-billable</span>
           </div>
         </div>

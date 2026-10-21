@@ -714,7 +714,7 @@ export function ShortcutProvider({
                 aria-expanded="true"
                 aria-controls="kairo-command-list"
                 aria-activedescendant={filteredCommands[resolvedActiveIndex]?.id}
-                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-base outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-base outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
               />
             </div>
             <div id="kairo-command-list" role="listbox" className="max-h-[55vh] overflow-y-auto p-2">
@@ -728,7 +728,7 @@ export function ShortcutProvider({
                     {command.shortcut ? <ShortcutKey>{formatShortcut(command.shortcut)}</ShortcutKey> : null}
                   </>
                 );
-                const className = `flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left ${index === resolvedActiveIndex ? "bg-blue-50 text-[#153E90]" : "text-slate-700 hover:bg-slate-50"}`;
+                const className = `flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left ${index === resolvedActiveIndex ? "bg-blue-50 text-[var(--kairo-primary)]" : "text-slate-700 hover:bg-slate-50"}`;
                 return command.href ? (
                   <Link
                     id={command.id}
@@ -760,7 +760,7 @@ export function ShortcutProvider({
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
               <span>↑↓ Select · Enter Run · Esc Close</span>
-              <button type="button" onClick={openHelp} className="font-bold text-[#153E90] hover:underline">Keyboard shortcuts</button>
+              <button type="button" onClick={openHelp} className="font-bold text-[var(--kairo-primary)] hover:underline">Keyboard shortcuts</button>
             </div>
           </div>
         </div>
@@ -777,7 +777,7 @@ export function ShortcutProvider({
             className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
-              <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">Kairo productivity</p><h2 id="shortcut-help-title" className="mt-1 text-2xl font-bold text-slate-950">Keyboard shortcuts</h2></div>
+              <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--kairo-primary)]">Kairo productivity</p><h2 id="shortcut-help-title" className="mt-1 text-2xl font-bold text-slate-950">Keyboard shortcuts</h2></div>
               <button autoFocus type="button" onClick={closeOverlay} className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" aria-label="Close keyboard shortcuts">×</button>
             </div>
             <div className="mt-6 max-h-[65vh] space-y-5 overflow-y-auto pr-1">

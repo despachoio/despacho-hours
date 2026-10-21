@@ -64,12 +64,12 @@ function CalendarDateTile({
       aria-label={through ? `Through ${accessibleDate}` : accessibleDate}
       className="min-w-[9.25rem] overflow-hidden rounded-xl border border-blue-100 bg-white shadow-sm"
     >
-      <div className="bg-[#153E90] px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.2em] text-white">
+      <div className="bg-[var(--kairo-primary)] px-3 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.2em] text-white">
         {through ? "Through" : date.weekday}
       </div>
 
       <div className="flex items-center justify-center gap-1.5 px-3 py-2">
-        <span className="text-[11px] font-extrabold uppercase tracking-wide tabular-nums text-[#153E90]">
+        <span className="text-[11px] font-extrabold uppercase tracking-wide tabular-nums text-[var(--kairo-primary)]">
           {date.day}
         </span>
 
@@ -126,7 +126,7 @@ export function WorkforceActivity() {
         <p className="font-bold text-slate-900">Today at Despacho</p>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4">
           <p className="text-sm text-slate-500">Workforce activity is temporarily unavailable. The rest of your dashboard is unaffected.</p>
-          <button onClick={() => void load()} className="rounded-full bg-[#153E90] px-4 py-2 text-sm font-bold text-white">Retry</button>
+          <button onClick={() => void load()} className="rounded-full bg-[var(--kairo-primary)] px-4 py-2 text-sm font-bold text-white">Retry</button>
         </div>
       </section>
     );
@@ -204,7 +204,7 @@ function TimelineRow({ event }: { event: WorkforceEvent }) {
         <p className="font-bold text-slate-900">{event.title}</p>
         <p className="mt-0.5 text-xs font-semibold text-slate-500">{event.detail}</p>
       </div>
-      {event.targetRoute ? <span className="hidden text-sm font-bold text-[#153E90] sm:block">View →</span> : null}
+      {event.targetRoute ? <span className="hidden text-sm font-bold text-[var(--kairo-primary)] sm:block">View →</span> : null}
     </div>
   );
   return event.targetRoute ? <Link href={event.targetRoute}>{row}</Link> : row;

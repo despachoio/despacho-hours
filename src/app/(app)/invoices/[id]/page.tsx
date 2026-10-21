@@ -424,7 +424,7 @@ export default function InvoiceDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] flex items-center justify-center">
         Loading invoice...
       </main>
     );
@@ -432,14 +432,14 @@ export default function InvoiceDetailPage() {
 
   if (!invoice) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] flex items-center justify-center">
         Invoice not found.
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-8 py-7">
       <div className="mx-auto max-w-7xl">
         <InvoiceHeader invoice={invoice} />
 

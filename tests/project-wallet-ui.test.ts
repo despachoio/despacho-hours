@@ -43,7 +43,8 @@ describe("project service wallet experience", () => {
   });
 
   it("uses a dark project hero followed by the light wallet hierarchy", () => {
-    expect(walletPage).toContain("from-[#0F172A] via-[#172554] to-[#153E90]");
+    expect(walletPage).toContain("kairo-hero");
+    expect(walletPage).toContain("to-[var(--kairo-primary)]");
     expect(walletPage).toContain("Service Wallet");
     expect(walletPage).toContain("Available Hours");
     expect(walletPage).toContain("Purchased");

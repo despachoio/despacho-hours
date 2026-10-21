@@ -155,7 +155,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         description: "Use your Despacho credentials and begin from the workspace suited to your role.",
         bullets: [
           "Use the sidebar to open modules available to you.",
-          "Open your profile card for My Profile, this User Guide, keyboard shortcuts, and Sign out.",
+          "Open your profile card for My Profile, this User Guide, Change Theme, keyboard shortcuts, and Sign out.",
           "Review My Profile and submit a correction request when an editable personal detail is wrong.",
           "Kairo continues to enforce server, API, and database permissions even when a direct URL is entered.",
         ],

@@ -21,8 +21,8 @@ export default function ModuleHeader({
     <section
       className={`overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-35px_rgba(15,23,42,.45)] ${className}`}
     >
-      <header className="bg-gradient-to-r from-slate-50 via-white to-blue-50 px-7 py-7">
-        <p className="text-xs font-bold uppercase tracking-[.2em] text-[#153E90]">
+      <header className="bg-gradient-to-r from-[var(--kairo-accent-soft)] via-white to-[var(--kairo-card-accent)] px-7 py-7">
+        <p className="text-xs font-bold uppercase tracking-[.2em] text-[var(--kairo-primary)]">
           {eyebrow}
         </p>
         <div className="mt-2 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">

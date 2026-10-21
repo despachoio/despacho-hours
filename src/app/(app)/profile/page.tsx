@@ -181,7 +181,7 @@ export default function MyProfilePage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] text-sm font-semibold text-slate-500">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] text-sm font-semibold text-slate-500">
         Loading your profile...
       </main>
     );
@@ -189,7 +189,7 @@ export default function MyProfilePage() {
 
   if (!data || !form) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-6">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] p-6">
         <div className="rounded-3xl border border-red-100 bg-white p-8 text-center text-red-700 shadow-xl">
           {error || "Your employee profile could not be loaded."}
         </div>
@@ -203,10 +203,10 @@ export default function MyProfilePage() {
     : "—";
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1320px]">
         <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-11">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">
@@ -315,7 +315,7 @@ export default function MyProfilePage() {
                 aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
                 disabled={saving}
                 onClick={() => void submitRequest()}
-                className="rounded-2xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl bg-[var(--kairo-primary)] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Submitting..." : "Submit for Approval"}
               </button>

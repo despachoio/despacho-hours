@@ -94,7 +94,7 @@ export default function PaymentCard({ invoice, payments, isAdmin }: Props) {
       {autopayError ? <p className="mt-3 text-xs font-semibold text-red-600">{autopayError}</p> : null}
       {isAdmin && payable && paymentLink ? (
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => void copyLink()} className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-[#153E90] hover:bg-blue-50">{copied ? "Copied" : "Copy Link"}</button>
+          <button type="button" onClick={() => void copyLink()} className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-[var(--kairo-primary)] hover:bg-blue-50">{copied ? "Copied" : "Copy Link"}</button>
           <a href={paymentLink} target="_blank" rel="noreferrer" className="rounded-xl bg-slate-950 px-3 py-2.5 text-center text-xs font-bold text-white">Open Payment Page</a>
         </div>
       ) : null}

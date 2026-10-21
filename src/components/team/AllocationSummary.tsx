@@ -83,7 +83,7 @@ function ProjectSection({
     <section>
       <div className="flex items-center justify-between gap-3">
         <h3
-          className={`text-xs font-bold uppercase tracking-[0.12em] ${tone === "billable" ? "text-[#153E90]" : "text-violet-600"}`}
+          className={`text-xs font-bold uppercase tracking-[0.12em] ${tone === "billable" ? "text-[var(--kairo-primary)]" : "text-violet-600"}`}
         >
           {title}
         </h3>
@@ -94,7 +94,7 @@ function ProjectSection({
       </div>
       <AllocationRows
         rows={rows}
-        barClassName={tone === "billable" ? "bg-[#153E90]" : "bg-violet-400"}
+        barClassName={tone === "billable" ? "bg-[var(--kairo-primary)]" : "bg-violet-400"}
         emptyMessage={`No ${tone === "billable" ? "billable" : "non-billable"} projects.`}
       />
     </section>
@@ -103,7 +103,7 @@ function ProjectSection({
 
 function AllocationRows({
   rows,
-  barClassName = "bg-[#153E90]",
+  barClassName = "bg-[var(--kairo-primary)]",
   emptyMessage = "No allocation data.",
 }: {
   rows: { name: string; detail?: string; hours: number }[];
@@ -121,14 +121,14 @@ function AllocationRows({
               <div className="flex items-end justify-between gap-3">
                 <div>
                   {row.detail ? (
-                    <p className="text-xs font-bold text-[#153E90]">
+                    <p className="text-xs font-bold text-[var(--kairo-primary)]">
                       {row.detail}
                     </p>
                   ) : null}
                   <p className="font-bold text-slate-900">{row.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-[#153E90]">
+                  <p className="font-bold text-[var(--kairo-primary)]">
                     {formatDecimalHours(row.hours)} hrs
                   </p>
                   <p className="text-xs text-slate-400">

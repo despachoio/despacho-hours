@@ -61,9 +61,9 @@ function AccountsPageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+        <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
           <div className="relative flex min-h-[170px] flex-col justify-end">
             <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
@@ -86,7 +86,7 @@ function AccountsPageContent() {
               key={tab.value}
               type="button"
               onClick={() => selectTab(tab.value)}
-              className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${selectedTab === tab.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
+              className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${selectedTab === tab.value ? "kairo-primary-tab-active" : "kairo-primary-tab-inactive"}`}
             >
               <TimeOffIcon
                 name={tab.icon as TimeOffIconName}
@@ -116,7 +116,7 @@ export default function AccountsPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+        <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
           <div className="mx-auto h-[34rem] max-w-[1500px] animate-pulse rounded-[2rem] bg-white" />
         </main>
       }

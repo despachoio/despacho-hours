@@ -25,7 +25,7 @@ type AdministrationTab = "dashboard" | "structures" | "recurring" | "process" | 
 const employeeTabs: Array<[Exclude<Tab, "administration" | "policy">, string, TimeOffIconName]> = [["overview", "My Payroll", "wallet"], ["history", "Payroll History", "clock"]];
 const administrationTabs: Array<[AdministrationTab, string, TimeOffIconName]> = [["dashboard", "Payroll Dashboard", "chart"], ["structures", "Salary Structures", "wallet"], ["recurring", "Recurring Adjustments", "repeat"], ["process", "Payroll Processing", "clock"], ["reports", "Reports", "document"], ["settings", "Settings", "settings"]];
 const money = (value: number) => `₹${Math.round(Number(value || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-const fieldClass = "mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100";
+const fieldClass = "mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[var(--kairo-primary)] focus:ring-2 focus:ring-blue-100";
 const monthValue = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; };
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <section className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,.35)] ${className}`}>{children}</section>;
 
@@ -44,7 +44,7 @@ export default function PayrollWorkspace() {
   const latest = data?.ownEntries?.[0];
   return (
   <div>
-    <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+    <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
       <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
 
       <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
@@ -78,8 +78,8 @@ export default function PayrollWorkspace() {
           onClick={() => setTab(value)}
           className={`group flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${
             tab === value
-              ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20"
-              : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"
+              ? "kairo-primary-tab-active"
+              : "kairo-primary-tab-inactive"
           }`}
         >
           <TimeOffIcon name={icon} className="h-4 w-4" />
@@ -134,7 +134,7 @@ export default function PayrollWorkspace() {
             <div className="space-y-5">
               <nav
                 aria-label="Payroll administration sections"
-                className="flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
+                className="kairo-subtab-bar flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
               >
                 {administrationTabs
                   .filter(
@@ -148,8 +148,8 @@ export default function PayrollWorkspace() {
                       onClick={() => setAdministrationTab(value)}
                       className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
                         administrationTab === value
-                          ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20"
-                          : "text-blue-100 hover:bg-white/10 hover:text-white"
+                          ? "bg-white text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20"
+                          : "text-white/80 hover:bg-white/10 hover:text-white"
                       }`}
                     >
                       <TimeOffIcon name={icon} className="h-4 w-4 shrink-0" />
@@ -300,13 +300,13 @@ function EmployeeOverview({
         <Metric
           label={`${financialYear.label} Net Pay`}
           value={money(ytd.net)}
-          colour="text-[#153E90]"
+          colour="text-[var(--kairo-primary)]"
           tone="blue"
         />
       </div>
 
       <Card className="border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/75 p-7 shadow-lg shadow-blue-100/45">
-        <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] to-cyan-400" />
+        <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[var(--kairo-primary)] to-cyan-400" />
         {entry ? (
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
@@ -320,7 +320,7 @@ function EmployeeOverview({
 
               <p className="mt-2 text-sm text-slate-500">
                 Net salary{" "}
-                <strong className="text-[#153E90]">
+                <strong className="text-[var(--kairo-primary)]">
                   {money(entry.net_salary)}
                 </strong>
               </p>
@@ -329,7 +329,7 @@ function EmployeeOverview({
             <KairoButton
   type="button"
   disabled={downloading}
-  className="!bg-[#153E90] !text-white hover:!bg-[#0F3276] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100"
+  className="!bg-[var(--kairo-primary)] !text-white hover:!bg-[var(--kairo-primary-hover)] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100"
   onClick={() => void downloadLatestPayslip()}
 >
   {downloading ? "Downloading..." : "Download Payslip"}
@@ -406,7 +406,7 @@ function Form16Card({ documents, entries }: { documents: Form16Document[]; entri
               {availableYears.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </label>
-          <KairoButton type="button" disabled={!document || downloading} className="mt-4 w-full !bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void download()}>
+          <KairoButton type="button" disabled={!document || downloading} className="mt-4 w-full !bg-[var(--kairo-primary)] !text-white hover:!bg-[var(--kairo-primary-hover)] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void download()}>
             {downloading ? "Downloading..." : document ? "Download Form 16" : "Not Available Yet"}
           </KairoButton>
           <p className="mt-3 text-xs leading-5 text-slate-500">
@@ -438,10 +438,10 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
 
   return (
     <Card className="border-indigo-100 bg-gradient-to-br from-white via-indigo-50/30 to-cyan-50/70 p-7 shadow-lg shadow-indigo-100/40">
-      <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] via-blue-600 to-cyan-400" />
+      <span aria-hidden="true" className="absolute inset-x-7 top-0 h-1 rounded-b-full bg-gradient-to-r from-[var(--kairo-primary)] via-blue-600 to-cyan-400" />
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Long-service benefit</p>
+          <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[var(--kairo-primary)]">Long-service benefit</p>
           <h2 className="mt-2 text-2xl font-bold text-slate-950">Estimated Gratuity</h2>
           <p className="mt-2 text-xs leading-6 text-slate-500 lg:whitespace-nowrap">
             An indicative gratuity estimate based on your service tenure and current salary structure as of {gratuityDate(profile.asOfDate)}.
@@ -452,7 +452,7 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
             <p className={`text-xs font-bold uppercase tracking-[.16em] ${estimate.eligible ? "text-emerald-700" : "text-amber-700"}`}>
               {estimate.eligible ? "Regular-service eligibility met" : "Regular-service eligibility pending"}
             </p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-[#153E90]">
+            <p className="mt-2 text-3xl font-bold tabular-nums text-[var(--kairo-primary)]">
               {money(estimate.eligible ? estimate.payableEstimate : estimate.accruedEstimate)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
@@ -473,10 +473,10 @@ function GratuityCard({ profile }: { profile: GratuityProfile }) {
       ) : (
         <>
           <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <GratuityDetail label="Completed tenure" value={tenureLabel(estimate.completedYears, estimate.remainingMonths)} labelClassName="text-[#153E90]" />
-            <GratuityDetail label="Counted service" value={`${estimate.countedServiceYears} ${estimate.countedServiceYears === 1 ? "year" : "years"}`} labelClassName="text-[#153E90]" />
-            <GratuityDetail label="Basic Salary" value={money(estimate.wageBasis)} labelClassName="text-[#153E90]" />
-            <GratuityDetail label="Statutory ceiling" value={money(GRATUITY_CEILING)} labelClassName="text-[#153E90]" />
+            <GratuityDetail label="Completed tenure" value={tenureLabel(estimate.completedYears, estimate.remainingMonths)} labelClassName="text-[var(--kairo-primary)]" />
+            <GratuityDetail label="Counted service" value={`${estimate.countedServiceYears} ${estimate.countedServiceYears === 1 ? "year" : "years"}`} labelClassName="text-[var(--kairo-primary)]" />
+            <GratuityDetail label="Basic Salary" value={money(estimate.wageBasis)} labelClassName="text-[var(--kairo-primary)]" />
+            <GratuityDetail label="Statutory ceiling" value={money(GRATUITY_CEILING)} labelClassName="text-[var(--kairo-primary)]" />
           </div>
 
           {!estimate.eligible ? (
@@ -512,7 +512,7 @@ function GratuityDetail({ label, value, labelClassName = "text-slate-400" }: { l
 
 function Metric({ label,value,colour,tone }: { label:string;value:string;colour:string;tone:"blue"|"emerald"|"rose" }) {
   const styles = {
-    blue: { surface: "from-white via-white to-blue-50/80", accent: "from-[#153E90] to-cyan-400" },
+    blue: { surface: "from-white via-white to-blue-50/80", accent: "from-[var(--kairo-primary)] to-cyan-400" },
     emerald: { surface: "from-white via-white to-emerald-50/80", accent: "from-emerald-600 to-teal-300" },
     rose: { surface: "from-white via-white to-rose-50/75", accent: "from-rose-600 to-pink-300" },
   }[tone];
@@ -573,16 +573,16 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/90 via-white to-cyan-50/70 px-6 py-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#153E90]">Payroll archive</p>
+            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[var(--kairo-primary)]">Payroll archive</p>
             <h2 className="mt-1 text-xl font-bold text-slate-950">Find salary slips</h2>
             <p className="mt-1 text-sm text-slate-500">Choose a financial year, then search to view or export published payroll.</p>
           </div>
-          <span className="rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-bold text-[#153E90] shadow-sm">{searched ? `${results.length} slips` : "Awaiting search"}</span>
+          <span className="rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-bold text-[var(--kairo-primary)] shadow-sm">{searched ? `${results.length} slips` : "Awaiting search"}</span>
         </div>
         <div className="flex flex-wrap items-end gap-3 px-6 py-5">
           <label className="w-44 text-sm font-bold text-slate-700">
             Financial Year
-            <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">
+            <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-900 outline-none transition focus:border-[var(--kairo-primary)] focus:ring-2 focus:ring-blue-100">
               <option value="" disabled>Select Year</option>
               {years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}
             </select>
@@ -590,7 +590,7 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
           <KairoButton type="button" disabled={!selectedYear} onClick={search}>Search</KairoButton>
           <KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
           <div className="ml-auto">
-            <KairoButton type="button" disabled={!searched || !results.length || downloadingYtd} className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadYtd()}>{downloadingYtd ? "Downloading..." : "Download YTD"}</KairoButton>
+            <KairoButton type="button" disabled={!searched || !results.length || downloadingYtd} className="!bg-[var(--kairo-primary)] !text-white hover:!bg-[var(--kairo-primary-hover)] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadYtd()}>{downloadingYtd ? "Downloading..." : "Download YTD"}</KairoButton>
           </div>
         </div>
         {downloadError ? <p role="alert" className="mx-6 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{downloadError}</p> : null}
@@ -599,13 +599,13 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-cyan-50/50 px-6 py-5">
           <div><h2 className="text-xl font-bold">Published Salary Slips</h2><p className="mt-1 text-sm text-slate-500">Search by financial year to view published salary slips.</p></div>
-          {searched ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{financialYearFromValue(appliedYear)?.label || appliedYear} · {results.length} records</span> : null}
+          {searched ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kairo-primary)]">{financialYearFromValue(appliedYear)?.label || appliedYear} · {results.length} records</span> : null}
         </div>
         {!searched ? <Empty text="Select a financial year and click Search to view published salary slips." /> : results.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] table-fixed text-sm">
               <colgroup><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[18%]" /><col className="w-[22%]" /></colgroup>
-              <thead className="bg-[#153E90] text-xs uppercase tracking-wide text-white">
+              <thead className="bg-[var(--kairo-primary)] text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-6 py-4">Month &amp; Year</th>
                   <th className="px-4 py-4 text-center">Gross Pay</th>
@@ -622,8 +622,8 @@ function PayrollHistory({ entries }: { entries: PayrollEntry[] }) {
 </td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-slate-700">{money(salaryRegisterGrossPay(entry))}</td>
                     <td className="whitespace-nowrap px-4 py-5 text-center font-semibold text-rose-700">{money(entry.total_deductions)}</td>
-                    <td className="whitespace-nowrap px-4 py-5 text-center font-bold text-[#153E90]">{money(entry.net_salary)}</td>
-                    <td className="whitespace-nowrap px-6 py-5 text-center"><KairoButton type="button" disabled={Boolean(downloadingPayslipId)} className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadHistoryPayslip(entry)}>{downloadingPayslipId === entry.id ? "Downloading..." : "Download PDF"}</KairoButton></td>
+                    <td className="whitespace-nowrap px-4 py-5 text-center font-bold text-[var(--kairo-primary)]">{money(entry.net_salary)}</td>
+                    <td className="whitespace-nowrap px-6 py-5 text-center"><KairoButton type="button" disabled={Boolean(downloadingPayslipId)} className="!bg-[var(--kairo-primary)] !text-white hover:!bg-[var(--kairo-primary-hover)] disabled:!bg-slate-300 disabled:!text-slate-600 disabled:opacity-100" onClick={() => void downloadHistoryPayslip(entry)}>{downloadingPayslipId === entry.id ? "Downloading..." : "Download PDF"}</KairoButton></td>
                   </tr>
                 ))}
               </tbody>
@@ -657,7 +657,7 @@ type PayrollDashboardIconName = "calendar" | "status" | "processing-date" | "emp
 type PayrollDashboardTone = "blue" | "cyan" | "emerald" | "violet" | "rose" | "amber" | "slate";
 
 const dashboardToneClasses: Record<PayrollDashboardTone, { icon: string; value: string; accent: string }> = {
-  blue: { icon: "bg-blue-50 text-[#153E90] ring-blue-100", value: "text-[#153E90]", accent: "from-[#153E90] to-blue-500" },
+  blue: { icon: "bg-blue-50 text-[var(--kairo-primary)] ring-blue-100", value: "text-[var(--kairo-primary)]", accent: "from-[var(--kairo-primary)] to-blue-500" },
   cyan: { icon: "bg-cyan-50 text-cyan-700 ring-cyan-100", value: "text-cyan-800", accent: "from-cyan-600 to-sky-400" },
   emerald: { icon: "bg-emerald-50 text-emerald-700 ring-emerald-100", value: "text-emerald-800", accent: "from-emerald-600 to-teal-400" },
   violet: { icon: "bg-violet-50 text-violet-700 ring-violet-100", value: "text-violet-800", accent: "from-violet-600 to-fuchsia-400" },
@@ -692,7 +692,7 @@ function ExecutiveMetricCard({ label, value, helper, icon, tone = "blue", badge 
 
 function payrollStatusPresentation(status: PayrollRun["status"]) {
   if (status === "published") return { label: "Submitted", className: "border-emerald-200 bg-emerald-50 text-emerald-700", tone: "emerald" as const };
-  if (status === "approved" || status === "locked") return { label: "Approved", className: "border-blue-200 bg-blue-50 text-[#153E90]", tone: "blue" as const };
+  if (status === "approved" || status === "locked") return { label: "Approved", className: "border-blue-200 bg-blue-50 text-[var(--kairo-primary)]", tone: "blue" as const };
   if (status === "under_review") return { label: "Processing", className: "border-amber-200 bg-amber-50 text-amber-700", tone: "amber" as const };
   return { label: "Generated", className: "border-slate-200 bg-slate-100 text-slate-700", tone: "slate" as const };
 }
@@ -730,8 +730,8 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
   return <div className="space-y-8">
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 via-white to-cyan-50/60 px-6 py-6">
-        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Latest payroll snapshot</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Recently Processed Payroll</h2><p className="mt-1 text-sm text-slate-500">Summary of the latest payroll processed.</p></div>
-        <KairoButton type="button" className="!bg-[#153E90] !text-white hover:!bg-[#0B2C68]" onClick={onViewProcessing}>View Payroll Processing</KairoButton>
+        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--kairo-primary)]">Latest payroll snapshot</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Recently Processed Payroll</h2><p className="mt-1 text-sm text-slate-500">Summary of the latest payroll processed.</p></div>
+        <KairoButton type="button" className="!bg-[var(--kairo-primary)] !text-white hover:!bg-[var(--kairo-primary-hover)]" onClick={onViewProcessing}>View Payroll Processing</KairoButton>
       </div>
       {latestRun && latestBreakdown && latestStatus ? <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
         <ExecutiveMetricCard label="Payroll Month" value={payrollMonthLabel(latestRun.payroll_month)} helper="Latest payroll period" icon="calendar" tone="blue"/>
@@ -747,10 +747,10 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
 
     <Card>
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/60 px-6 py-6">
-        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Executive performance</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Financial Year Performance</h2><p className="mt-1 text-sm text-slate-500">Consolidated payroll performance for the selected financial year.</p></div>
-        <label className="w-48 text-sm font-bold text-slate-700">Financial Year<select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[#153E90] focus:ring-2 focus:ring-blue-100">{years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}</select></label>
+        <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--kairo-primary)]">Executive performance</p><h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Financial Year Performance</h2><p className="mt-1 text-sm text-slate-500">Consolidated payroll performance for the selected financial year.</p></div>
+        <label className="w-48 text-sm font-bold text-slate-700">Financial Year<select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[var(--kairo-primary)] focus:ring-2 focus:ring-blue-100">{years.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}</select></label>
       </div>
-      <div className="px-6 pt-6"><div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{selectedYear === currentYear.value ? "Current" : "Selected"} Financial Year · {financialYearFromValue(selectedYear)?.label || selectedYear}</div></div>
+      <div className="px-6 pt-6"><div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kairo-primary)]">{selectedYear === currentYear.value ? "Current" : "Selected"} Financial Year · {financialYearFromValue(selectedYear)?.label || selectedYear}</div></div>
       <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-3">
         <ExecutiveMetricCard label="Payroll Runs" value={String(totals.processed)} helper="Payroll months processed" icon="calendar" tone="blue"/>
         <ExecutiveMetricCard label="Latest Payroll Period" value={runs[0] ? payrollMonthLabel(runs[0].payroll_month) : "—"} helper="Most recent payroll in this financial year" icon="calendar" tone="emerald"/>
@@ -762,7 +762,7 @@ function FinanceDashboard({ data, onViewProcessing }: { data: PayrollData; onVie
     </Card>
 
     <Card>
-      <div className="border-b border-slate-100 px-6 py-5"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Statutory overview</p><h3 className="mt-2 text-xl font-bold text-slate-950">Financial Year Contributions &amp; Taxes</h3><p className="mt-1 text-sm text-slate-500">Supporting statutory totals for {financialYearFromValue(selectedYear)?.label || selectedYear}.</p></div>
+      <div className="border-b border-slate-100 px-6 py-5"><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--kairo-primary)]">Statutory overview</p><h3 className="mt-2 text-xl font-bold text-slate-950">Financial Year Contributions &amp; Taxes</h3><p className="mt-1 text-sm text-slate-500">Supporting statutory totals for {financialYearFromValue(selectedYear)?.label || selectedYear}.</p></div>
       <div className="grid grid-cols-1 gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-7">
         {[["Employee PF", totals.employeePf, "text-cyan-700"], ["Employer PF", totals.employerPf, "text-violet-700"], ["Employer EPS", totals.employerEps, "text-indigo-700"], ["Admin Charges", totals.administrationCharges, "text-sky-700"], ["EDLI Charges", totals.edliCharges, "text-blue-700"], ["Professional Tax", totals.professionalTax, "text-rose-700"], ["TDS", totals.tds, "text-amber-700"]].map(([label, value, colour]) => <div key={String(label)} className="bg-white px-6 py-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{label}</p><p className={`mt-2 text-xl font-bold ${colour}`}>{money(Number(value))}</p></div>)}
       </div>
@@ -774,16 +774,16 @@ type SettingsDraft = Record<"period_start_day" | "period_end_day" | "conveyance_
 const settingsDraft = (value: PayrollSettings): SettingsDraft => ({ period_start_day: String(value.period_start_day), period_end_day: String(value.period_end_day), conveyance_allowance: String(value.conveyance_allowance), professional_tax_threshold: String(value.professional_tax_threshold), professional_tax_amount: String(value.professional_tax_amount), distributionMethod: value.payslip_distribution_method || "notify_and_attach", payslipProtection: value.payslip_password_protection !== false, ytdProtection: value.ytd_password_protection !== false, performanceProtection: value.performance_password_protection !== false, passwordRule: value.payslip_password_rule || "employee_code_dob", emailSubject: value.payslip_email_subject || "Salary Slip - {{Month}} {{Year}}", emailTemplate: value.payslip_email_template || "" });
 type BankSettingsDraft = { customerId: string; bankAccountNumber: string; ifscCode: string; branchCode: string; currency: string };
 function SecurityToggle({label,checked,onChange}:{label:string;checked:boolean;onChange:(checked:boolean)=>void}) {
-  return <label className={`flex cursor-pointer items-center justify-between gap-4 rounded-2xl border p-4 text-sm font-bold transition ${checked?"border-[#153E90] bg-blue-50 text-[#153E90]":"border-slate-200 bg-slate-50 text-slate-600"}`}><span>{label}<span className="mt-1 block text-xs font-medium">{checked?"Enabled":"Disabled"}</span></span><input aria-label={label} type="checkbox" checked={checked} onChange={(event)=>onChange(event.target.checked)} className="h-5 w-5 accent-[#153E90]"/></label>;
+  return <label className={`flex cursor-pointer items-center justify-between gap-4 rounded-2xl border p-4 text-sm font-bold transition ${checked?"border-[var(--kairo-primary)] bg-blue-50 text-[var(--kairo-primary)]":"border-slate-200 bg-slate-50 text-slate-600"}`}><span>{label}<span className="mt-1 block text-xs font-medium">{checked?"Enabled":"Disabled"}</span></span><input aria-label={label} type="checkbox" checked={checked} onChange={(event)=>onChange(event.target.checked)} className="h-5 w-5 accent-[var(--kairo-primary)]"/></label>;
 }
 function Settings({value,bankDetails,financeAccess,onSave}:{value:PayrollSettings;bankDetails?:CompanyPayrollBankDetails;financeAccess:boolean;onSave:(p:Record<string,unknown>)=>Promise<boolean>}) {
   const [form,setForm]=useState<SettingsDraft>(()=>settingsDraft(value));
   const [bank,setBank]=useState<BankSettingsDraft>(()=>({ customerId: bankDetails?.payroll_bank_customer_id || "", bankAccountNumber: bankDetails?.payroll_bank_account_number || "", ifscCode: bankDetails?.payroll_bank_ifsc_code || "", branchCode: bankDetails?.payroll_bank_branch_code || "", currency: bankDetails?.payroll_bank_currency || "INR" }));
   const saveSettings = () => onSave({ action:"save_settings", periodStartDay:normalizePayrollNumber(form.period_start_day), periodEndDay:normalizePayrollNumber(form.period_end_day), conveyanceAllowance:normalizePayrollNumber(form.conveyance_allowance), professionalTaxThreshold:normalizePayrollNumber(form.professional_tax_threshold), professionalTaxAmount:normalizePayrollNumber(form.professional_tax_amount), payslipDistributionMethod:form.distributionMethod, payslipPasswordProtection:form.payslipProtection, ytdPasswordProtection:form.ytdProtection, performancePasswordProtection:form.performanceProtection, payslipPasswordRule:form.passwordRule, payslipEmailSubject:form.emailSubject, payslipEmailTemplate:form.emailTemplate });
   return <div className="space-y-5"><Card className="p-7"><h2 className="text-xl font-bold">Payroll Settings</h2><p className="mt-2 text-slate-500">Configure the payroll period and statutory defaults.</p><div className="mt-6 grid gap-4 md:grid-cols-3">{[["Period start day","period_start_day"],["Period end day","period_end_day"],["Conveyance allowance","conveyance_allowance"],["PT threshold","professional_tax_threshold"],["PT amount","professional_tax_amount"]].map(([label,key])=><label key={key} className="text-sm font-bold">{label}<input type="number" value={form[key as "period_start_day" | "period_end_day" | "conveyance_allowance" | "professional_tax_threshold" | "professional_tax_amount"]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label>)}</div></Card>
-  <Card className="p-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Secure employee delivery</p><h2 className="mt-2 text-xl font-bold">Payslip Distribution</h2><p className="mt-2 text-slate-500">Control secure email delivery immediately after payroll submission.</p><fieldset className="mt-6 grid gap-3 lg:grid-cols-3"><legend className="mb-3 text-sm font-bold">Distribution Method</legend>{[["notify_only","Notify employee by email only"],["protected_pdf_only","Send password-protected PDF only"],["notify_and_attach","Notify employee + Attach password-protected PDF"]].map(([key,label])=><label key={key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 text-sm font-bold ${form.distributionMethod === key ? "border-[#153E90] bg-blue-50 text-[#153E90]" : "border-slate-200"}`}><input type="radio" checked={form.distributionMethod === key} onChange={()=>setForm({...form,distributionMethod:key as PayrollSettings["payslip_distribution_method"]})}/>{label}</label>)}</fieldset><label className="mt-5 block text-sm font-bold">Email Subject<input value={form.emailSubject} onChange={e=>setForm({...form,emailSubject:e.target.value})} className={fieldClass}/></label><label className="mt-5 block text-sm font-bold">Email Template<textarea value={form.emailTemplate} onChange={e=>setForm({...form,emailTemplate:e.target.value})} className={`${fieldClass} min-h-56 leading-6`}/><span className="mt-2 block text-xs font-medium text-slate-500">Variables: {"{{EmployeeName}} {{PayrollMonth}} {{CompanyName}} {{PortalUrl}} {{PasswordRuleDescription}}"}</span></label></Card>
-  <Card className="p-7"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">PDF Security</p><h2 className="mt-2 text-xl font-bold">Sensitive Employee Documents</h2><p className="mt-2 max-w-3xl text-slate-500">Apply one server-side password rule to portal downloads, historical documents, email attachments, YTD statements, and Performance reports.</p></div><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Finance Admin only</span></div><div className="mt-6 grid gap-4 lg:grid-cols-3"><SecurityToggle label="Password Protect Payslips" checked={form.payslipProtection} onChange={(checked)=>setForm({...form,payslipProtection:checked})}/><SecurityToggle label="Password Protect YTD Statements" checked={form.ytdProtection} onChange={(checked)=>setForm({...form,ytdProtection:checked})}/><SecurityToggle label="Password Protect Performance Reports" checked={form.performanceProtection} onChange={(checked)=>setForm({...form,performanceProtection:checked})}/></div><label className="mt-5 block max-w-xl text-sm font-bold">Password Rule<select value={form.passwordRule} onChange={e=>setForm({...form,passwordRule:e.target.value as PayrollSettings["payslip_password_rule"]})} className={fieldClass}><option value="employee_code_dob">Employee Code + DOB (DDMMYYYY)</option></select></label><div className="mt-5 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-5"><p className="text-xs font-bold uppercase tracking-wider text-[#153E90]">Example</p><p className="mt-2 text-sm text-slate-700">Employee Code: <strong>90001</strong> · DOB: <strong>18 June 1988</strong> · Result: <strong className="text-[#153E90]">9000118061988</strong></p><p className="mt-2 text-xs text-slate-500">Passwords are derived only when a document is generated. They are never stored or returned by an API.</p></div><KairoButton type="button" className="mt-6" onClick={()=>void saveSettings()}>Save PDF Security</KairoButton></Card>
-  {financeAccess ? <Card className="p-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#153E90]">Bank transfer configuration</p><h2 className="mt-2 text-xl font-bold">Payroll Bank Account</h2><p className="mt-2 text-slate-500">Bank-upload master data used only for Finance payroll transfer exports.</p><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5"><label className="text-sm font-bold">Debit Account Number<input value={bank.bankAccountNumber} onChange={(event)=>setBank({...bank,bankAccountNumber:event.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label><label className="text-sm font-bold">Branch Code<input value={bank.branchCode} onChange={(event)=>setBank({...bank,branchCode:event.target.value})} inputMode="text" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label><label className="text-sm font-bold">Customer ID<input value={bank.customerId} onChange={(event)=>setBank({...bank,customerId:event.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label><label className="text-sm font-bold">Debit IFSC<input value={bank.ifscCode} onChange={(event)=>setBank({...bank,ifscCode:event.target.value.toUpperCase()})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 uppercase" /></label><label className="text-sm font-bold">Currency<input value={bank.currency} maxLength={3} onChange={(event)=>setBank({...bank,currency:event.target.value.toUpperCase()})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 uppercase" /></label></div><KairoButton type="button" className="mt-6" onClick={()=>onSave({action:"save_payroll_bank_settings",customerId:bank.customerId,bankAccountNumber:bank.bankAccountNumber,ifscCode:bank.ifscCode,branchCode:bank.branchCode,currency:bank.currency})}>Save Bank Account</KairoButton></Card> : null}</div>;
+  <Card className="p-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--kairo-primary)]">Secure employee delivery</p><h2 className="mt-2 text-xl font-bold">Payslip Distribution</h2><p className="mt-2 text-slate-500">Control secure email delivery immediately after payroll submission.</p><fieldset className="mt-6 grid gap-3 lg:grid-cols-3"><legend className="mb-3 text-sm font-bold">Distribution Method</legend>{[["notify_only","Notify employee by email only"],["protected_pdf_only","Send password-protected PDF only"],["notify_and_attach","Notify employee + Attach password-protected PDF"]].map(([key,label])=><label key={key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 text-sm font-bold ${form.distributionMethod === key ? "border-[var(--kairo-primary)] bg-blue-50 text-[var(--kairo-primary)]" : "border-slate-200"}`}><input type="radio" checked={form.distributionMethod === key} onChange={()=>setForm({...form,distributionMethod:key as PayrollSettings["payslip_distribution_method"]})}/>{label}</label>)}</fieldset><label className="mt-5 block text-sm font-bold">Email Subject<input value={form.emailSubject} onChange={e=>setForm({...form,emailSubject:e.target.value})} className={fieldClass}/></label><label className="mt-5 block text-sm font-bold">Email Template<textarea value={form.emailTemplate} onChange={e=>setForm({...form,emailTemplate:e.target.value})} className={`${fieldClass} min-h-56 leading-6`}/><span className="mt-2 block text-xs font-medium text-slate-500">Variables: {"{{EmployeeName}} {{PayrollMonth}} {{CompanyName}} {{PortalUrl}} {{PasswordRuleDescription}}"}</span></label></Card>
+  <Card className="p-7"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--kairo-primary)]">PDF Security</p><h2 className="mt-2 text-xl font-bold">Sensitive Employee Documents</h2><p className="mt-2 max-w-3xl text-slate-500">Apply one server-side password rule to portal downloads, historical documents, email attachments, YTD statements, and Performance reports.</p></div><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Finance Admin only</span></div><div className="mt-6 grid gap-4 lg:grid-cols-3"><SecurityToggle label="Password Protect Payslips" checked={form.payslipProtection} onChange={(checked)=>setForm({...form,payslipProtection:checked})}/><SecurityToggle label="Password Protect YTD Statements" checked={form.ytdProtection} onChange={(checked)=>setForm({...form,ytdProtection:checked})}/><SecurityToggle label="Password Protect Performance Reports" checked={form.performanceProtection} onChange={(checked)=>setForm({...form,performanceProtection:checked})}/></div><label className="mt-5 block max-w-xl text-sm font-bold">Password Rule<select value={form.passwordRule} onChange={e=>setForm({...form,passwordRule:e.target.value as PayrollSettings["payslip_password_rule"]})} className={fieldClass}><option value="employee_code_dob">Employee Code + DOB (DDMMYYYY)</option></select></label><div className="mt-5 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-5"><p className="text-xs font-bold uppercase tracking-wider text-[var(--kairo-primary)]">Example</p><p className="mt-2 text-sm text-slate-700">Employee Code: <strong>90001</strong> · DOB: <strong>18 June 1988</strong> · Result: <strong className="text-[var(--kairo-primary)]">9000118061988</strong></p><p className="mt-2 text-xs text-slate-500">Passwords are derived only when a document is generated. They are never stored or returned by an API.</p></div><KairoButton type="button" className="mt-6" onClick={()=>void saveSettings()}>Save PDF Security</KairoButton></Card>
+  {financeAccess ? <Card className="p-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--kairo-primary)]">Bank transfer configuration</p><h2 className="mt-2 text-xl font-bold">Payroll Bank Account</h2><p className="mt-2 text-slate-500">Bank-upload master data used only for Finance payroll transfer exports.</p><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5"><label className="text-sm font-bold">Debit Account Number<input value={bank.bankAccountNumber} onChange={(event)=>setBank({...bank,bankAccountNumber:event.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label><label className="text-sm font-bold">Branch Code<input value={bank.branchCode} onChange={(event)=>setBank({...bank,branchCode:event.target.value})} inputMode="text" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label><label className="text-sm font-bold">Customer ID<input value={bank.customerId} onChange={(event)=>setBank({...bank,customerId:event.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" /></label><label className="text-sm font-bold">Debit IFSC<input value={bank.ifscCode} onChange={(event)=>setBank({...bank,ifscCode:event.target.value.toUpperCase()})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 uppercase" /></label><label className="text-sm font-bold">Currency<input value={bank.currency} maxLength={3} onChange={(event)=>setBank({...bank,currency:event.target.value.toUpperCase()})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 uppercase" /></label></div><KairoButton type="button" className="mt-6" onClick={()=>onSave({action:"save_payroll_bank_settings",customerId:bank.customerId,bankAccountNumber:bank.bankAccountNumber,ifscCode:bank.ifscCode,branchCode:bank.branchCode,currency:bank.currency})}>Save Bank Account</KairoButton></Card> : null}</div>;
 }
 
 type EntryDraft = Record<ManualPayrollField, string> & { notes: string };
@@ -791,5 +791,5 @@ const entryDraft = (entry: PayrollEntry): EntryDraft => ({ bonus:String(entry.bo
 function EntryDialog({entry,onClose,onSave}:{entry:PayrollEntry;onClose:()=>void;onSave:(p:Record<string,unknown>)=>Promise<void>}) {
   const [form,setForm]=useState<EntryDraft>(()=>entryDraft(entry)); const [busy,setBusy]=useState(false);
   async function save() { if (busy) return; setBusy(true); try { await onSave({action:"update_entry",entryId:entry.id,bonus:normalizePayrollNumber(form.bonus),leaveEncashment:normalizePayrollNumber(form.leaveEncashment),lopDeduction:normalizePayrollNumber(form.lopDeduction),previousMonthAdjustment:normalizePayrollNumber(form.previousMonthAdjustment),tds:normalizePayrollNumber(form.tds),notes:form.notes}); } finally { setBusy(false); } }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-5"><div aria-busy={busy} className={`relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-7 shadow-2xl transition ${busy ? "pointer-events-none select-none grayscale opacity-60" : ""}`}><div className="flex justify-between"><div><h2 className="text-2xl font-bold">Payroll Breakdown</h2><p className="mt-1 text-slate-500">{entry.employee_name} · Recommended LOP {money(entry.lop_recommended)}</p></div><button disabled={busy} onClick={onClose} className="h-10 w-10 rounded-xl bg-slate-100 text-xl">×</button></div><div className="mt-6 grid gap-4 md:grid-cols-2">{MANUAL_PAYROLL_FIELDS.map(({key,label})=>{ const component = key === "bonus" || key === "tds" ? key : null; const sources = (entry.recurring_adjustment_snapshot || []).filter((item) => item.component === component); const overridden = (entry.manual_override_fields || []).includes(key === "previousMonthAdjustment" ? "previous_month_adjustment" : key === "leaveEncashment" ? "leave_encashment" : key === "lopDeduction" ? "lop_deduction" : key); return <label key={key} className="text-sm font-bold">{label}<input disabled={busy} type="number" value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />{sources.length ? <span className="mt-2 block rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-[#153E90]">Source: Recurring Adjustment{overridden ? " · Month-specific override" : ""}<br/>Period: {sources.map((item) => `${payrollMonthLabel(item.from_month)} – ${item.to_month ? payrollMonthLabel(item.to_month) : "Until disabled"}`).join(", ")}</span> : null}</label>; })}</div><textarea disabled={busy} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Adjustment notes" className="mt-4 min-h-24 w-full rounded-xl border border-slate-300 p-4"/><div className="mt-6 flex justify-end gap-3"><KairoButton type="button" variant="secondary" disabled={busy} onClick={onClose}>Cancel</KairoButton><KairoButton type="button" disabled={busy} onClick={()=>void save()}>{busy ? "Recalculating..." : "Recalculate & Save"}</KairoButton></div>{busy ? <div className="absolute inset-0 flex items-center justify-center bg-slate-200/45"><span className="rounded-full bg-slate-800 px-5 py-2 text-sm font-bold text-white shadow-lg">Recalculating payroll…</span></div> : null}</div></div>;
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-5"><div aria-busy={busy} className={`relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-7 shadow-2xl transition ${busy ? "pointer-events-none select-none grayscale opacity-60" : ""}`}><div className="flex justify-between"><div><h2 className="text-2xl font-bold">Payroll Breakdown</h2><p className="mt-1 text-slate-500">{entry.employee_name} · Recommended LOP {money(entry.lop_recommended)}</p></div><button disabled={busy} onClick={onClose} className="h-10 w-10 rounded-xl bg-slate-100 text-xl">×</button></div><div className="mt-6 grid gap-4 md:grid-cols-2">{MANUAL_PAYROLL_FIELDS.map(({key,label})=>{ const component = key === "bonus" || key === "tds" ? key : null; const sources = (entry.recurring_adjustment_snapshot || []).filter((item) => item.component === component); const overridden = (entry.manual_override_fields || []).includes(key === "previousMonthAdjustment" ? "previous_month_adjustment" : key === "leaveEncashment" ? "leave_encashment" : key === "lopDeduction" ? "lop_deduction" : key); return <label key={key} className="text-sm font-bold">{label}<input disabled={busy} type="number" value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />{sources.length ? <span className="mt-2 block rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-[var(--kairo-primary)]">Source: Recurring Adjustment{overridden ? " · Month-specific override" : ""}<br/>Period: {sources.map((item) => `${payrollMonthLabel(item.from_month)} – ${item.to_month ? payrollMonthLabel(item.to_month) : "Until disabled"}`).join(", ")}</span> : null}</label>; })}</div><textarea disabled={busy} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Adjustment notes" className="mt-4 min-h-24 w-full rounded-xl border border-slate-300 p-4"/><div className="mt-6 flex justify-end gap-3"><KairoButton type="button" variant="secondary" disabled={busy} onClick={onClose}>Cancel</KairoButton><KairoButton type="button" disabled={busy} onClick={()=>void save()}>{busy ? "Recalculating..." : "Recalculate & Save"}</KairoButton></div>{busy ? <div className="absolute inset-0 flex items-center justify-center bg-slate-200/45"><span className="rounded-full bg-slate-800 px-5 py-2 text-sm font-bold text-white shadow-lg">Recalculating payroll…</span></div> : null}</div></div>;
 }

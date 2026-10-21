@@ -21,20 +21,20 @@ export default function TopEntitiesList({
               <div key={item.name} className="rounded-2xl bg-slate-50 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#153E90] text-xs font-bold text-white">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--kairo-primary)] text-xs font-bold text-white">
                       {index + 1}
                     </span>
                     <p className="truncate text-sm font-bold text-slate-900">
                       {item.name}
                     </p>
                   </div>
-                  <p className="shrink-0 text-sm font-bold text-[#153E90]">
+                  <p className="shrink-0 text-sm font-bold text-[var(--kairo-primary)]">
                     {formatDecimalHours(item.hours)} hrs
                   </p>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
                   <div
-                    className="h-full rounded-full bg-[#153E90]"
+                    className="h-full rounded-full bg-[var(--kairo-primary)]"
                     style={{ width: `${Math.min(100, percentage)}%` }}
                   />
                 </div>

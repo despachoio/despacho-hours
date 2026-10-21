@@ -19,7 +19,7 @@ export default function KairoInput({
 
       <input
         {...props}
-        className={`min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none transition-colors duration-200 placeholder:text-slate-400 focus:border-[#153E90] focus:ring-2 focus:ring-[#153E90]/15 disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
+        className={`min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none transition-colors duration-200 placeholder:text-slate-400 focus:border-[var(--kairo-primary)] focus:ring-2 focus:ring-[var(--kairo-focus-ring)] disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
       />
     </div>
   );

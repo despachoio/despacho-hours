@@ -830,7 +830,7 @@ export default function RecurringScheduleForm({
                     className="mt-1"
                   />
                   <span>
-                    <strong className="block text-sm text-[#153E90]">
+                    <strong className="block text-sm text-[var(--kairo-primary)]">
                       Autopay
                     </strong>
                     <span className="text-xs text-slate-500">
@@ -851,7 +851,7 @@ export default function RecurringScheduleForm({
           <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Estimated total
           </p>
-          <p className="mt-1 text-2xl font-bold text-[#153E90]">
+          <p className="mt-1 text-2xl font-bold text-[var(--kairo-primary)]">
             {currency} {total.toFixed(2)}
           </p>
         </div>

@@ -95,7 +95,7 @@ export default function ReportExportButtons({
   const primaryClass =
     variant === "header"
       ? "bg-white text-[#0F172A]"
-      : "bg-[#0F172A] text-white hover:bg-[#153E90]";
+      : "bg-[#0F172A] text-white hover:bg-[var(--kairo-primary)]";
   function csv() {
     const records = exportRows(rows, employeeColumn);
     const headers = Object.keys(records[0]);
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#153E90",
+    color: "var(--kairo-primary)",
     marginBottom: 6,
   },
   subtitle: { color: "#64748B", marginBottom: 16 },

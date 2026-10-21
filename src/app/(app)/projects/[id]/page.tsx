@@ -645,7 +645,7 @@ if(!accessChecked || !project) return null;
 
 return (
 
-<main className="min-h-screen bg-[#f8fafc] px-8 py-7">
+<main className="min-h-screen bg-[var(--kairo-page-background)] px-8 py-7">
 
 
 <div className="mx-auto max-w-5xl">
@@ -655,7 +655,7 @@ return (
 
 href="/projects"
 
-className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[#153E90]"
+className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate-x-0.5 hover:text-[var(--kairo-primary)]"
 
 >
 
@@ -670,7 +670,7 @@ className="mb-6 text-sm font-semibold text-slate-500 transition hover:-translate
 <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
 
 <div className="relative -m-8 mb-0 overflow-hidden bg-[#0F172A] p-8 text-white">
-<div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#153E90]/60 blur-3xl" />
+<div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[var(--kairo-primary)]/60 blur-3xl" />
 <div className="relative">
 
 

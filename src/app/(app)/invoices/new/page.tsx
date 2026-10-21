@@ -264,7 +264,7 @@ export default function NewInvoicePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-8 py-7">
       <div className="mx-auto max-w-6xl">
         <Link
           href="/invoices"

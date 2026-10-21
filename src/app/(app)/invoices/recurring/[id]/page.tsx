@@ -79,7 +79,7 @@ export default function RecurringScheduleDetailPage() {
       </main>
     );
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <Link
           href="/invoices?tab=recurring"
@@ -102,7 +102,7 @@ export default function RecurringScheduleDetailPage() {
           </div>
           <Link
             href={`/invoices/recurring/${id}/edit`}
-            className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#153E90]"
+            className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[var(--kairo-primary)]"
           >
             Edit Schedule
           </Link>

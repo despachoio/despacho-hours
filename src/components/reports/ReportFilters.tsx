@@ -67,7 +67,7 @@ export default function ReportFilters({
           <select
             value={value.billingType}
             onChange={(event) => update("billingType", event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
           >
             <option value="all">All Project Types</option>
             <option value="billable">Billable Projects</option>
@@ -79,7 +79,7 @@ export default function ReportFilters({
           <select
             value={value.datePreset}
             onChange={(event) => update("datePreset", event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
           >
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -97,7 +97,7 @@ export default function ReportFilters({
           <select
             value={value.status}
             onChange={(event) => update("status", event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
           >
             <option value="all">All Statuses</option>
             <option value="running">Running</option>
@@ -109,7 +109,7 @@ export default function ReportFilters({
           value={value.search}
           onChange={(event) => update("search", event.target.value)}
           placeholder="Search reports"
-          className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+          className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
         />
       </div>
       {value.datePreset === "custom" ? (
@@ -119,14 +119,14 @@ export default function ReportFilters({
             type="date"
             value={value.customFrom}
             onChange={(event) => update("customFrom", event.target.value)}
-            className="h-11 rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+            className="h-11 rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
           />
           <input
             aria-label="Custom end date"
             type="date"
             value={value.customTo}
             onChange={(event) => update("customTo", event.target.value)}
-            className="h-11 rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+            className="h-11 rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
           />
         </div>
       ) : null}
@@ -139,14 +139,14 @@ export default function ReportFilters({
         <button
           type="submit"
           disabled={searching}
-          className="h-11 rounded-xl bg-[#153E90] px-5 text-sm font-bold text-white transition-colors hover:bg-[#123578] disabled:cursor-wait disabled:opacity-60"
+          className="h-11 rounded-xl bg-[var(--kairo-primary)] px-5 text-sm font-bold text-white transition-colors hover:bg-[var(--kairo-primary-hover)] disabled:cursor-wait disabled:opacity-60"
         >
           {searching ? "Searching…" : "Search"}
         </button>
         <button
           type="button"
           onClick={onClear}
-          className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-bold text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/10"
+          className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-bold text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/10"
         >
           Reset
         </button>
@@ -202,7 +202,7 @@ function Select({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[#153E90] focus:ring-4 focus:ring-[#153E90]/10"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-[var(--kairo-primary)]/10"
       >
         <option value="">{all}</option>
         {options.map((option) => (

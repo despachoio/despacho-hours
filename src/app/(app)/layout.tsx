@@ -12,6 +12,8 @@ import {
 import { isAdminLevelRole } from "@/lib/roles";
 import { requiresAdminMobileAccess } from "@/lib/client-device";
 import RoleGuideCallout from "@/components/user-guide/RoleGuideCallout";
+import { KairoThemeProvider, useKairoTheme } from "@/components/theme/KairoThemeProvider";
+import ThemeSelectionDialog from "@/components/theme/ThemeSelectionDialog";
 
 type IconName =
   | "dashboard"
@@ -24,7 +26,8 @@ type IconName =
   | "reports"
   | "invoices"
   | "settings"
-  | "guide";
+  | "guide"
+  | "palette";
 
 type MenuItem = {
   name: string;
@@ -174,6 +177,12 @@ const iconPaths: Record<IconName, ReactNode> = {
       <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z" />
     </>
   ),
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 1.1-3.2 1.8 1.8 0 0 1 1.1-3.2H18a3 3 0 0 0 3-3C21 6.9 17 3 12 3Z" />
+      <circle cx="7.5" cy="10" r="1" /><circle cx="10" cy="6.8" r="1" /><circle cx="14.3" cy="6.8" r="1" /><circle cx="17" cy="10" r="1" />
+    </>
+  ),
 };
 
 function NavigationIcon({ name }: { name: IconName }) {
@@ -203,7 +212,7 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-export default function DashboardLayout({
+function DashboardShell({
   children,
 }: {
   children: React.ReactNode;
@@ -215,6 +224,8 @@ export default function DashboardLayout({
   const [accessState, setAccessState] = useState<AccessState>("checking");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
+  const { loading: themeLoading } = useKairoTheme();
 
   useEffect(() => {
     async function checkUser() {
@@ -316,7 +327,7 @@ export default function DashboardLayout({
           <Link
             href="/dashboard"
             onClick={closeNavigation}
-            className="rounded-xl text-left transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+            className="rounded-xl text-left transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-focus-ring)]"
             aria-label="Go to dashboard"
           >
             <Image
@@ -346,7 +357,7 @@ export default function DashboardLayout({
           </button>
         </div>
         <div className="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--sidebar-text)]">
-          <span className="h-px w-5 bg-[#153E90]" />
+          <span className="h-px w-5 bg-[var(--kairo-primary)]" />
           The pulse of Despacho
         </div>
       </div>
@@ -365,7 +376,7 @@ export default function DashboardLayout({
                   onClick={closeNavigation}
                   aria-keyshortcuts={`Alt+${item.shortcutNumber}`}
                   aria-current={active ? "page" : undefined}
-                  className={`group relative flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 ${
+                  className={`group relative flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30 ${
                     active
                       ? "border-[var(--sidebar-border)] bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active-text)] shadow-[0_1px_2px_rgba(31,41,55,0.08)]"
                       : "border-transparent text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-active-icon)]"
@@ -394,9 +405,9 @@ export default function DashboardLayout({
             aria-haspopup="menu"
             aria-expanded={isProfileMenuOpen}
             onClick={() => setIsProfileMenuOpen((open) => !open)}
-            className="flex w-full items-center gap-3 rounded-2xl border border-[var(--sidebar-profile-border)] bg-[var(--sidebar-profile-bg)] px-3 py-2.5 text-left shadow-[0_4px_16px_rgba(31,41,55,0.06)] transition-colors duration-200 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/35"
+            className="flex w-full items-center gap-3 rounded-2xl border border-[var(--sidebar-profile-border)] bg-[var(--sidebar-profile-bg)] px-3 py-2.5 text-left shadow-[0_4px_16px_rgba(31,41,55,0.06)] transition-colors duration-200 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/35"
           >
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#153E90] text-xs font-bold text-white shadow-sm">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--kairo-primary)] text-xs font-bold text-white shadow-sm">
               {getInitials(userName) || "K"}
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
             </div>
@@ -404,7 +415,7 @@ export default function DashboardLayout({
               <p className="truncate text-sm font-bold text-slate-950">
                 {userName || "Kairo User"}
               </p>
-              <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#153E90]">
+              <span className="mt-1 inline-flex rounded-full bg-[var(--kairo-accent-soft)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--kairo-primary)]">
                 {userRole || "User"}
               </span>
             </div>
@@ -442,11 +453,20 @@ export default function DashboardLayout({
                 href={`/user-guide?role=${userRole.trim().toLowerCase().replace(/\s+/g, "_")}`}
                 role="menuitem"
                 onClick={closeNavigation}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#153E90] focus:bg-blue-50 focus:text-[#153E90] focus:outline-none"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[var(--kairo-primary)] focus:bg-blue-50 focus:text-[var(--kairo-primary)] focus:outline-none"
               >
                 <NavigationIcon name="guide" />
                 User Guide
               </Link>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setIsProfileMenuOpen(false); setIsThemeDialogOpen(true); }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-[var(--kairo-accent-soft)] hover:text-[var(--kairo-primary)] focus:bg-[var(--kairo-accent-soft)] focus:text-[var(--kairo-primary)] focus:outline-none"
+              >
+                <NavigationIcon name="palette" />
+                Change Theme
+              </button>
               {isAdminLevelRole(userRole) ? (
                 <Link
                   href="/settings"
@@ -487,9 +507,9 @@ export default function DashboardLayout({
     </aside>
   );
 
-  if (accessState === "checking") {
+  if (accessState === "checking" || themeLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-6">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] px-6">
         <div role="status" className="text-center" aria-live="polite">
           <Image
             src="/kairo-logo-full.png"
@@ -499,7 +519,7 @@ export default function DashboardLayout({
             priority
             className="mx-auto h-auto w-[142px]"
           />
-          <div className="mx-auto mt-6 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#153E90]" />
+          <div className="mx-auto mt-6 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[var(--kairo-primary)]" />
           <p className="mt-4 text-sm font-semibold text-slate-500">
             Verifying access…
           </p>
@@ -510,7 +530,7 @@ export default function DashboardLayout({
 
   if (accessState === "mobile-blocked") {
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f8fafc] px-5 py-10">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--kairo-page-background)] px-5 py-10">
         <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-100/70 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-slate-200/70 blur-3xl" />
         <section className="relative w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-2xl shadow-slate-300/40 sm:p-10">
@@ -522,7 +542,7 @@ export default function DashboardLayout({
             priority
             className="mx-auto h-auto w-[164px]"
           />
-          <div className="mx-auto mt-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#153E90] ring-1 ring-blue-100">
+          <div className="mx-auto mt-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[var(--kairo-primary)] ring-1 ring-blue-100">
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
@@ -535,7 +555,7 @@ export default function DashboardLayout({
               <path d="M8 20h8M12 16v4" />
             </svg>
           </div>
-          <p className="mt-7 text-xs font-bold uppercase tracking-[0.2em] text-[#153E90]">
+          <p className="mt-7 text-xs font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">
             Desktop access required
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
@@ -551,7 +571,7 @@ export default function DashboardLayout({
           <button
             type="button"
             onClick={() => void logout()}
-            className="mt-8 w-full rounded-2xl bg-[#153E90] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-[#123578] focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+            className="mt-8 w-full rounded-2xl bg-[var(--kairo-primary)] px-5 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-[var(--kairo-primary-hover)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-focus-ring)]"
           >
             Sign out
           </button>
@@ -569,7 +589,7 @@ export default function DashboardLayout({
         shortcutNumber,
       }))}
     >
-      <div className="min-h-screen bg-[#f8fafc]">
+      <div className="min-h-screen bg-[var(--kairo-page-background)]">
       <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
         {sidebar}
       </div>
@@ -618,7 +638,12 @@ export default function DashboardLayout({
       </header>
 
       <main className="min-h-screen lg:pl-[288px]">{children}</main>
+      <ThemeSelectionDialog open={isThemeDialogOpen} onClose={() => setIsThemeDialogOpen(false)} />
       </div>
     </ShortcutProvider>
   );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return <KairoThemeProvider><DashboardShell>{children}</DashboardShell></KairoThemeProvider>;
 }

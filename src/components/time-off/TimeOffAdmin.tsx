@@ -48,11 +48,11 @@ export default function TimeOffAdmin({ data, leaveTypes, holidays, onChanged }: 
   const [tab, setTab] = useState<AdminTab>("types");
   const tabs: Array<[AdminTab, string, TimeOffIconName]> = [["types", "Leave Types", "document"], ["policies", "Policies", "shield"], ["holidays", "Holiday Calendars", "calendar"], ["balances", "Balances & Adjustments", "wallet"], ["exceptions", "Extended Exceptions", "alert"], ["year_end", "Year-End & Encashment", "clock"], ["reports", "Reports", "chart"], ["audit", "Audit Log", "inbox"]];
   return <div className="space-y-5">
-<div className="flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-blue-800/60 bg-gradient-to-r from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]">{tabs.map(([value, label, icon]) => <button key={value} type="button" onClick={() => setTab(value)} className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === value ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}><TimeOffIcon name={icon} className="h-4 w-4 shrink-0" />{label}</button>)}</div>{tab === "types" ? <LeaveTypesAdmin leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "policies" ? <PolicyAdmin data={data} onChanged={onChanged} /> : null}{tab === "holidays" ? <HolidayAdmin data={data} holidays={holidays} onChanged={onChanged} /> : null}{tab === "balances" ? <AdjustmentAdmin data={data} leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "exceptions" ? <ExtendedExceptionsAdmin data={data} /> : null}{tab === "year_end" ? <YearEndAdmin data={data} onChanged={onChanged} /> : null}{tab === "reports" ? <TimeOffReports data={data} holidays={holidays} /> : null}{tab === "audit" ? <AuditLog data={data} /> : null}</div>;
+<div className="kairo-subtab-bar flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]">{tabs.map(([value, label, icon]) => <button key={value} type="button" onClick={() => setTab(value)} className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${tab === value ? "bg-white text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20" : "text-white/80 hover:bg-white/10 hover:text-white"}`}><TimeOffIcon name={icon} className="h-4 w-4 shrink-0" />{label}</button>)}</div>{tab === "types" ? <LeaveTypesAdmin leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "policies" ? <PolicyAdmin data={data} onChanged={onChanged} /> : null}{tab === "holidays" ? <HolidayAdmin data={data} holidays={holidays} onChanged={onChanged} /> : null}{tab === "balances" ? <AdjustmentAdmin data={data} leaveTypes={leaveTypes} onChanged={onChanged} /> : null}{tab === "exceptions" ? <ExtendedExceptionsAdmin data={data} /> : null}{tab === "year_end" ? <YearEndAdmin data={data} onChanged={onChanged} /> : null}{tab === "reports" ? <TimeOffReports data={data} holidays={holidays} /> : null}{tab === "audit" ? <AuditLog data={data} /> : null}</div>;
 }
 
 function LeaveTypesAdmin({ leaveTypes, onChanged }: { leaveTypes: LeaveType[]; onChanged: () => void }) {
-  const empty = { name: "", code: "", description: "", is_paid: true, is_active: true, colour: "#153E90", gender_eligibility: "All", minimum_service_months: 0, maximum_days_per_request: null as number | null, annual_limit: null as number | null, monthly_limit: null as number | null, half_day_allowed: true, exclude_holidays: true, exclude_weekends: true, documents_required: false, negative_balance_allowed: false, manager_approval_required: true, display_order: 60 };
+  const empty = { name: "", code: "", description: "", is_paid: true, is_active: true, colour: "var(--kairo-primary)", gender_eligibility: "All", minimum_service_months: 0, maximum_days_per_request: null as number | null, annual_limit: null as number | null, monthly_limit: null as number | null, half_day_allowed: true, exclude_holidays: true, exclude_weekends: true, documents_required: false, negative_balance_allowed: false, manager_approval_required: true, display_order: 60 };
   const [form, setForm] = useState<Partial<LeaveType> & typeof empty>(empty);
   const [saving, setSaving] = useState(false); const [message, setMessage] = useState("");
   async function save(event: React.FormEvent) { event.preventDefault(); setSaving(true); setMessage(""); try { await saveLeaveType(form); setForm(empty); setMessage("Leave type saved."); onChanged(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Unable to save leave type."); } finally { setSaving(false); } }
@@ -69,7 +69,7 @@ function LeaveTypesAdmin({ leaveTypes, onChanged }: { leaveTypes: LeaveType[]; o
 </p>
 <p className="mt-1 text-xs text-slate-500">{type.is_paid ? "Paid" : "Unpaid"} · Half-day enabled · {type.is_active ? "Active" : "Inactive"}</p>
 </div>
-<span className="text-sm font-bold text-[#153E90]">Edit</span>
+<span className="text-sm font-bold text-[var(--kairo-primary)]">Edit</span>
 </button>)}</div>
 </KairoCard>
 <KairoCard className="p-6">
@@ -123,7 +123,7 @@ function PolicyAdminLegacy({ data }: { data: TimeOffAdminData }) {
 <p className="mt-1 text-sm text-slate-500">Authoritative values used by the database policy engine.</p>
 <div className="mt-5 grid gap-3 md:grid-cols-2">{data.policyRules.map((rule) => <article key={rule.id} className="rounded-xl bg-slate-50 p-4">
 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{rule.rule_key.replaceAll("_", " ")}</p>
-<p className="mt-2 text-xl font-bold text-[#153E90]">{String(rule.rule_value)}</p>
+<p className="mt-2 text-xl font-bold text-[var(--kairo-primary)]">{String(rule.rule_value)}</p>
 <p className="mt-1 text-xs text-slate-500">{rule.description}</p>
 </article>)}</div>
 </KairoCard>
@@ -145,7 +145,7 @@ function HolidayAdminLegacy({ data, holidays, onChanged }: { data: TimeOffAdminD
 <KairoButton type="button" variant="secondary" onClick={exportCalendar}>Export CSV</KairoButton>
 </div>
 <div className="divide-y">{holidays.map((holiday) => <article key={holiday.id} className="flex items-center gap-4 px-6 py-4">
-<div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-blue-50 text-[#153E90]">
+<div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-blue-50 text-[var(--kairo-primary)]">
 <span className="text-[9px] font-bold uppercase">{new Date(`${holiday.holiday_date}T00:00:00Z`).toLocaleString("en", { month: "short", timeZone: "UTC" })}</span>
 <span className="text-lg font-bold">{holiday.holiday_date.slice(-2)}</span>
 </div>
@@ -174,7 +174,7 @@ function AdjustmentAdminLegacy({ data, leaveTypes, onChanged }: { data: TimeOffA
   const [employeeId, setEmployeeId] = useState(""); const [typeId, setTypeId] = useState(""); const [amount, setAmount] = useState(""); const [reason, setReason] = useState(""); const [reference, setReference] = useState(""); const [message, setMessage] = useState(""); const [saving, setSaving] = useState(false); const year = Number(businessDateKey().slice(0, 4));
   async function save(event: React.FormEvent) { event.preventDefault(); setSaving(true); setMessage(""); try { await adjustLeaveBalance({ employeeId, leaveTypeId: typeId, leaveYear: year, adjustmentDays: Number(amount), effectiveDate: businessDateKey(), reason, reference }); setAmount(""); setReason(""); setReference(""); setMessage("Balance adjustment recorded with an audit trail."); onChanged(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Unable to adjust balance."); } finally { setSaving(false); } }
   return <KairoCard className="mx-auto max-w-4xl p-6 sm:p-8">
-<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Audited operation</p>
+<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Audited operation</p>
 <h2 className="mt-2 text-2xl font-bold">Manual Balance Adjustment</h2>
 <p className="mt-2 text-sm text-slate-500">Every credit or debit records the acting user, previous balance, new balance, reason, and timestamp.</p>
 <form onSubmit={save} className="mt-7 grid gap-5 sm:grid-cols-2">
@@ -197,7 +197,7 @@ function YearEndAdminLegacy({ data, onChanged }: { data: TimeOffAdminData; onCha
   const currentYear = Number(businessDateKey().slice(0, 4)); const [year, setYear] = useState(currentYear - 1); const [employeeId, setEmployeeId] = useState(""); const [message, setMessage] = useState(""); const [processing, setProcessing] = useState(false); const selected = data.employees.find((employee) => employee.id === employeeId);
   async function close() { if (!employeeId || !window.confirm(`Close ${year} for ${selected?.name}? This creates an immutable year closure and encashment record.`)) return; setProcessing(true); setMessage(""); try { const result = await closeEmployeeLeaveYear(employeeId, year) as { encashable_leave_days?: number }; setMessage(`Year closed. Encashable leave: ${result.encashable_leave_days ?? 0} days.`); onChanged(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Unable to close year."); } finally { setProcessing(false); } }
   return <KairoCard className="mx-auto max-w-4xl p-6 sm:p-8">
-<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Review-first workflow</p>
+<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Review-first workflow</p>
 <h2 className="mt-2 text-2xl font-bold">Year-End Processing</h2>
 <p className="mt-2 text-sm text-slate-500">Encashable leave = max(remaining eligible paid leave − actual LOP leave days, 0). The 1.5 payroll multiplier is stored separately.</p>
 <div className="mt-7 grid gap-5 sm:grid-cols-2">
@@ -246,7 +246,7 @@ function AuditLog({ data }: { data: TimeOffAdminData }) {
 <tbody className="divide-y">{rows.map((item) => <tr key={item.id}>
 <td className="whitespace-nowrap px-5 py-4">{new Date(item.created_at).toLocaleString("en-IN")}</td>
 <td className="px-5 py-4 font-bold capitalize">{item.actor_role || "System"}</td>
-<td className="px-5 py-4 font-bold text-[#153E90] capitalize">{item.action.replaceAll("_", " ")}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)] capitalize">{item.action.replaceAll("_", " ")}</td>
 <td className="px-5 py-4 capitalize">{item.entity_type.replaceAll("_", " ")}</td>
 <td className="max-w-sm truncate px-5 py-4 text-slate-500">{item.reason || "—"}</td>
 </tr>)}</tbody>
@@ -308,7 +308,7 @@ function PolicyRuleEditor({ rule, onChanged }: { rule: TimeOffAdminData["policyR
     try { await savePolicyRule(rule.id, parsed, description || null); setMessage("Saved"); onChanged(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Unable to save"); }
   }
   return <div className="rounded-2xl border border-slate-200 p-4">
-<p className="text-xs font-bold uppercase tracking-wide text-[#153E90]">{rule.rule_key.replaceAll("_", " ")}</p>
+<p className="text-xs font-bold uppercase tracking-wide text-[var(--kairo-primary)]">{rule.rule_key.replaceAll("_", " ")}</p>
 <input aria-label={`${rule.rule_key} value`} value={value} onChange={(event) => setValue(event.target.value)} className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2" />
 <textarea aria-label={`${rule.rule_key} description`} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-2 min-h-16 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
 <div className="mt-2 flex items-center gap-3">
@@ -339,7 +339,7 @@ function ExtendedExceptionsAdmin({ data }: { data: TimeOffAdminData }) {
 </tr>
 </thead>
 <tbody className="divide-y">{rows.map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return <tr key={String(item.id)}>
-<td className="px-5 py-4 font-bold text-[#153E90]">{employee?.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{employee?.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{employee?.name || "Unknown"}</td>
 <td className="px-5 py-4">{String(item.leave_year)}</td>
 <td className="px-5 py-4 font-bold capitalize">{String(item.status).replaceAll("_", " ")}</td>
@@ -398,7 +398,7 @@ function TimeOffReports({ data, holidays }: { data: TimeOffAdminData; holidays: 
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Unable to export report."); }
   }
   return <KairoCard className="p-6 sm:p-8">
-<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Authorised exports</p>
+<p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Authorised exports</p>
 <h2 className="mt-2 text-2xl font-bold">Time Off Reports</h2>
 <div className="mt-6 grid gap-4 md:grid-cols-4">
 <KairoSelect id="report-kind" label="Report" value={kind} onChange={(event) => setKind(event.target.value)}>
@@ -458,7 +458,7 @@ function YearEndAdmin({ data, onChanged }: { data: TimeOffAdminData; onChanged: 
 </div>
 </div>{preview ? <dl className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{[["Entitlement", "entitlement_days"], ["Used paid", "used_paid_days"], ["Pending", "pending_paid_days"], ["Remaining", "remaining_paid_leave_days"], ["LOP days", "lop_used_days"], ["LOP salary equivalent", "lop_salary_deduction_days"], ["Encashable", "encashable_estimate_days"], ["Carry forward", "carry_forward_days"], ["Expired", "expired_days"], ["Status", "processing_status"]].map(([label, key]) => <div key={key} className="rounded-xl bg-slate-50 p-4">
 <dt className="text-[10px] font-bold uppercase text-slate-400">{label}</dt>
-<dd className="mt-2 text-lg font-bold text-[#153E90]">{String(preview[key] ?? 0)}</dd>
+<dd className="mt-2 text-lg font-bold text-[var(--kairo-primary)]">{String(preview[key] ?? 0)}</dd>
 </div>)}</dl> : null}</KairoCard>
 <YearEndAdminLegacy data={data} onChanged={onChanged} />
 <KairoCard className="overflow-hidden">
@@ -478,7 +478,7 @@ function YearEndAdmin({ data, onChanged }: { data: TimeOffAdminData; onChanged: 
 </tr>
 </thead>
 <tbody className="divide-y">{[...data.encashments].sort((left, right) => { const a = left.employees as { name?: string; employee_code?: string } | null; const b = right.employees as { name?: string; employee_code?: string } | null; return compareEmployeeCodes(a?.employee_code, b?.employee_code, a?.name, b?.name); }).map((item) => { const employee = item.employees as { name?: string; employee_code?: string } | null; return <tr key={String(item.id)}>
-<td className="px-5 py-4 font-bold text-[#153E90]">{employee?.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{employee?.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{employee?.name}</td>
 <td className="px-5 py-4">{String(item.leave_year)}</td>
 <td className="px-5 py-4">{String(item.encashable_leave_days)}</td>
@@ -542,7 +542,7 @@ function HolidayAdmin({ data, holidays, onChanged }: { data: TimeOffAdminData; h
 <KairoCard className="p-6">
 <h2 className="text-xl font-bold">Calendar Maintenance</h2>
 <div className="mt-5 flex flex-wrap items-end gap-4">
-<label className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-bold text-[#153E90]">Import CSV<input type="file" accept=".csv,text/csv" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); }} />
+<label className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-bold text-[var(--kairo-primary)]">Import CSV<input type="file" accept=".csv,text/csv" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); }} />
 </label>
 <KairoInput id="duplicate-year" type="number" min="2000" max="2200" label="Duplicate to year" value={targetYear} onChange={(event) => setTargetYear(Number(event.target.value))} />
 <KairoButton type="button" variant="secondary" onClick={duplicate} disabled={!calendar}>Duplicate Calendar</KairoButton>
@@ -617,7 +617,7 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 <KairoCard className="overflow-hidden">
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Employee Leave Balances</h2>
-<p className="mt-1 text-sm text-slate-500">Filter active employees, leave types, and leave year before viewing or exporting balances.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{searched ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
+<p className="mt-1 text-sm text-slate-500">Filter active employees, leave types, and leave year before viewing or exporting balances.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kairo-primary)]">{searched ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
 <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_.65fr_auto_auto]"><KairoSelect id="admin-balance-employee" label="Employee" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">All active employees</option>{activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.employee_code, employeeName(employee))}</option>)}</KairoSelect><KairoSelect id="admin-balance-type" label="Leave type" value={leaveTypeCode} onChange={(event) => setLeaveTypeCode(event.target.value)}><option value="">All leave types</option>{leaveTypes.map((type) => <option key={type.id} value={type.code}>{type.name}</option>)}</KairoSelect><KairoSelect id="admin-balance-year" label="Year" value={leaveYear} onChange={(event) => setLeaveYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={search}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton></div></div>
 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p className="text-sm font-semibold text-slate-600">Exports contain only the results applied with Search.</p><TimeOffBalanceExportButtons rows={filteredBalances} year={appliedLeaveYear} /></div>
 </div>
@@ -637,7 +637,7 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 </tr>
 </thead>
 <tbody className="divide-y">{filteredBalances.map((row) => <tr key={row.id}>
-<td className="px-5 py-4 font-bold text-[#153E90]">{row.employees?.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{row.employees?.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{row.employees?.name}</td>
 <td className="px-5 py-4">{row.leave_year}</td>
 <td className="px-5 py-4">{row.leave_types?.name}</td>
@@ -645,7 +645,7 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 <td className="px-5 py-4">{row.used_days}</td>
 <td className="px-5 py-4">{row.pending_days}</td>
 <td className="px-5 py-4">{row.adjustment_days}</td>
-<td className="px-5 py-4 font-bold text-[#153E90]">{row.available_days}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{row.available_days}</td>
 </tr>)}{!searched ? <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-slate-400">Choose filters and click Search to view employee leave balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
 </table>
 </div>
@@ -670,7 +670,7 @@ function AdjustmentAdmin({ data, leaveTypes, onChanged }: { data: TimeOffAdminDa
 </thead>
 <tbody className="divide-y">{[...data.adjustments].sort((left, right) => compareEmployeeCodes(left.employees?.employee_code, right.employees?.employee_code, left.employees?.name, right.employees?.name)).map((row) => <tr key={row.id}>
 <td className="whitespace-nowrap px-5 py-4">{new Date(row.created_at).toLocaleString("en-IN")}</td>
-<td className="px-5 py-4 font-bold text-[#153E90]">{row.employees?.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{row.employees?.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{row.employees?.name}</td>
 <td className="px-5 py-4">{row.leave_types?.name}</td>
 <td className="px-5 py-4 font-bold">{row.adjustment_days > 0 ? "+" : ""}{row.adjustment_days}</td>

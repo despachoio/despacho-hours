@@ -14,7 +14,7 @@ export default function KairoPageHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--kairo-heading)]">
           {title}
         </h1>
 

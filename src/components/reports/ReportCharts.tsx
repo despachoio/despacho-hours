@@ -52,7 +52,7 @@ export function HoursBarChart({
                 "Hours",
               ]}
             />
-            <Bar dataKey="hours" fill="#153E90" radius={[0, 8, 8, 0]} />
+            <Bar dataKey="hours" fill="var(--kairo-primary)" radius={[0, 8, 8, 0]} />
           </BarChart>
         </ResponsiveContainer>
       ) : (
@@ -70,8 +70,8 @@ export function DailyTrendChart({ data }: { data: DailyDatum[] }) {
           <AreaChart data={data} margin={{ left: 0, right: 16 }}>
             <defs>
               <linearGradient id="reportHours" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#153E90" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#153E90" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--kairo-primary)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="var(--kairo-primary)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -93,7 +93,7 @@ export function DailyTrendChart({ data }: { data: DailyDatum[] }) {
             <Area
               type="monotone"
               dataKey="hours"
-              stroke="#153E90"
+              stroke="var(--kairo-primary)"
               strokeWidth={2.5}
               fill="url(#reportHours)"
             />

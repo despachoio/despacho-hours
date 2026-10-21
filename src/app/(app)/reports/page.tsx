@@ -681,10 +681,10 @@ export default function ReportsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1550px]">
         <header className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-11">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">

@@ -273,10 +273,10 @@ export default function DashboardPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
+        <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
           <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-blue-400/10 blur-3xl" />
           <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div>
@@ -367,7 +367,7 @@ export default function DashboardPage() {
               trailing={
                 <Link
                   href="/invoices"
-                  className="group inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2.5 text-sm font-bold text-[#153E90] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+                  className="group inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2.5 text-sm font-bold text-[var(--kairo-primary)] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
                 >
                   View invoices
                   <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
@@ -479,11 +479,11 @@ function MetricCard({
   const presentation = {
     blue: {
       accent: "bg-blue-500",
-      badge: "border-blue-100 bg-blue-50 text-[#153E90]",
+      badge: "border-blue-100 bg-blue-50 text-[var(--kairo-primary)]",
       border: "border-blue-100 hover:border-blue-200",
       icon: "◆",
       surface: "from-white to-blue-50/70",
-      value: "text-[#153E90]",
+      value: "text-[var(--kairo-primary)]",
     },
     green: {
       accent: "bg-emerald-500",
@@ -559,11 +559,11 @@ function InvoiceCard({
   const presentation = {
     blue: {
       accent: "bg-blue-500",
-      badge: "border-blue-100 bg-blue-50 text-[#153E90]",
+      badge: "border-blue-100 bg-blue-50 text-[var(--kairo-primary)]",
       border: "border-blue-100 hover:border-blue-200",
       icon: "↗",
       surface: "from-white to-blue-50/70",
-      value: "text-[#153E90]",
+      value: "text-[var(--kairo-primary)]",
     },
     green: {
       accent: "bg-emerald-500",

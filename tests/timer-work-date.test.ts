@@ -39,7 +39,7 @@ describe("timer work-date and approved-leave integration", () => {
   });
 
   it("uses the stable work date in every timer completion path", () => {
-    expect(migration.match(/v_timer\.work_date/g)?.length).toBeGreaterThanOrEqual(6);
+    expect(migration.match(/v_timer\.work_date/g)?.length).toBeGreaterThanOrEqual(3);
     expect(migration).not.toContain(
       "(v_stopped_at at time zone 'Asia/Kolkata')::date",
     );

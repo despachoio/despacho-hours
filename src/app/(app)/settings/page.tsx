@@ -145,14 +145,14 @@ export default function CompanySettingsPage() {
 
   if (loading)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] text-sm font-semibold text-slate-500">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] text-sm font-semibold text-slate-500">
         Loading company settings...
       </main>
     );
 
   if (accessDenied)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-6">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-white p-9 text-center shadow-xl">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-xl text-red-600">
             ×
@@ -169,7 +169,7 @@ export default function CompanySettingsPage() {
 
   if (!settings)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-6 text-sm font-semibold text-red-600">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] p-6 text-sm font-semibold text-red-600">
         Company settings could not be loaded.
       </main>
     );
@@ -181,10 +181,10 @@ export default function CompanySettingsPage() {
       );
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
-          <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#153E90]/70 blur-3xl" />
+        <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+          <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
           <div className="relative flex min-h-[170px] flex-col justify-end">
             <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
               Workspace administration
@@ -201,7 +201,7 @@ export default function CompanySettingsPage() {
 
         <div className="mt-7 grid gap-6 lg:grid-cols-[260px_1fr]">
           <nav
-            className="h-fit rounded-3xl border border-blue-800/60 bg-gradient-to-b from-indigo-950 via-blue-900 to-cyan-800 p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
+            className="kairo-subtab-bar h-fit rounded-3xl border p-2.5 shadow-[0_22px_52px_-30px_rgba(15,23,42,.9)]"
             aria-label="Settings sections"
           >
             {availableTabs.map((tab) => (
@@ -212,7 +212,7 @@ export default function CompanySettingsPage() {
                   setActiveTab(tab.id);
                   setMessage(null);
                 }}
-                className={`mb-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 last:mb-0 ${activeTab === tab.id ? "bg-white text-[#153E90] shadow-lg shadow-slate-950/20" : "text-blue-100 hover:bg-white/10 hover:text-white"}`}
+                className={`mb-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 last:mb-0 ${activeTab === tab.id ? "bg-white text-[var(--kairo-primary)] shadow-lg shadow-slate-950/20" : "text-white/80 hover:bg-white/10 hover:text-white"}`}
               >
                 <TimeOffIcon name={tab.icon} className="h-4 w-4 shrink-0" />
                 <span className="min-w-0">
@@ -229,7 +229,7 @@ export default function CompanySettingsPage() {
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="border-b border-slate-100 pb-5">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#153E90]">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--kairo-primary)]">
                 {availableTabs.find((tab) => tab.id === activeTab)?.label}
               </p>
               <h2 className="mt-2 text-2xl font-bold text-slate-950">
@@ -279,7 +279,7 @@ export default function CompanySettingsPage() {
                 aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
                 onClick={() => void save()}
                 disabled={saving}
-                className="rounded-2xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800 disabled:opacity-50"
+                className="rounded-2xl bg-[var(--kairo-primary)] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:bg-blue-800 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -644,7 +644,7 @@ function RecurringSection(props: SectionProps) {
               event.target.checked,
             )
           }
-          className="h-4 w-4 accent-[#153E90]"
+          className="h-4 w-4 accent-[var(--kairo-primary)]"
         />
         <span className="text-sm font-semibold text-slate-700">
           Generate new recurring invoices as Draft

@@ -38,7 +38,7 @@ describe("Accounts navigation architecture", () => {
     expect(projects).toContain("<ModuleHeader");
     expect(projects).toContain('eyebrow="Delivery portfolio"');
     expect(reviews).toContain("<ModuleHeader");
-    expect(moduleHeader).toContain("from-slate-50 via-white to-blue-50");
+    expect(moduleHeader).toContain("from-[var(--kairo-accent-soft)] via-white to-[var(--kairo-card-accent)]");
     expect(moduleHeader).toContain("sm:flex-row sm:items-end");
   });
 
@@ -70,7 +70,7 @@ describe("Accounts navigation architecture", () => {
       expect(source).toContain("bg-gradient-to-br");
       expect(source).toContain("rounded-3xl");
       expect(source).toContain("hover:-translate-y");
-      expect(source).toContain("from-[#153E90] to-cyan-400");
+      expect(source).toContain("from-[var(--kairo-primary)] to-cyan-400");
     }
 
     expect(clients).toContain(

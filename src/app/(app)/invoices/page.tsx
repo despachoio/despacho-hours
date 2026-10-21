@@ -90,7 +90,7 @@ function statusStyle(status: string) {
   if (normalized === "paid")
     return "bg-emerald-50 text-emerald-700 ring-emerald-200";
   if (normalized === "overdue") return "bg-red-50 text-red-700 ring-red-200";
-  if (normalized === "sent") return "bg-blue-50 text-[#153E90] ring-blue-200";
+  if (normalized === "sent") return "bg-blue-50 text-[var(--kairo-primary)] ring-blue-200";
   if (normalized === "void" || normalized === "cancelled")
     return "bg-slate-100 text-slate-500 ring-slate-200";
   return "bg-amber-50 text-amber-700 ring-amber-200";
@@ -224,12 +224,12 @@ function InvoiceTable({
                     ? `/invoices/${invoice.id}/edit`
                     : undefined
                 }
-                className="cursor-pointer border-b border-slate-100 transition hover:bg-blue-50/30 focus-visible:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#153E90]"
+                className="cursor-pointer border-b border-slate-100 transition hover:bg-blue-50/30 focus-visible:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--kairo-primary)]"
               >
                 <td className="px-5 py-4">
                   <Link
                     href={`/invoices/${invoice.id}`}
-                    className="font-bold text-slate-950 hover:text-[#153E90] hover:underline"
+                    className="font-bold text-slate-950 hover:text-[var(--kairo-primary)] hover:underline"
                   >
                     {invoice.invoice_number ? `#${invoice.invoice_number}` : "Draft"}
                   </Link>
@@ -243,7 +243,7 @@ function InvoiceTable({
                   {invoice.clients?.name ? (
                     <Link
                       href={`/clients/${invoice.client_id}`}
-                      className="hover:text-[#153E90] hover:underline"
+                      className="hover:text-[var(--kairo-primary)] hover:underline"
                     >
                       {invoice.clients.name}
                     </Link>
@@ -294,7 +294,7 @@ function ChartTooltip({
       <div className="mt-3 space-y-2 text-sm">
         <div className="flex justify-between gap-5 text-slate-500">
           <span>Open</span>
-          <strong className="text-[#153E90]">
+          <strong className="text-[var(--kairo-primary)]">
             {money(row.currency, row.open_amount)}
           </strong>
         </div>
@@ -686,10 +686,10 @@ function InvoicesPageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
+        <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
           <div className="absolute bottom-0 right-1/3 h-36 w-36 rounded-full bg-blue-400/10 blur-2xl" />
           <div className="relative flex min-h-[170px] w-full flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div>
@@ -724,7 +724,7 @@ function InvoicesPageContent() {
             <button
               key={item}
               onClick={() => selectTab(item)}
-              className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${tab === item ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}
+              className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${tab === item ? "kairo-primary-tab-active" : "kairo-primary-tab-inactive"}`}
             >
               <TimeOffIcon name={icon} className="h-4 w-4" />
               <span>{label}</span>
@@ -758,7 +758,7 @@ function InvoicesPageContent() {
                   onClick={() => showFilteredInvoices("open")}
                   className="group relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/80 p-6 text-left shadow-lg shadow-slate-200/55 transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/70"
                 >
-                  <span aria-hidden="true" className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] to-cyan-400" />
+                  <span aria-hidden="true" className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-[var(--kairo-primary)] to-cyan-400" />
                   <p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">
                     Total Open
                   </p>
@@ -768,7 +768,7 @@ function InvoicesPageContent() {
                       .map((row) => (
                         <p
                           key={row.currency}
-                          className="text-2xl font-bold text-[#153E90]"
+                          className="text-2xl font-bold text-[var(--kairo-primary)]"
                         >
                           {money(row.currency, row.openAmount)}
                         </p>
@@ -951,7 +951,7 @@ function InvoicesPageContent() {
                         <Bar
                           dataKey="open_amount"
                           name="Open"
-                          fill="#153E90"
+                          fill="var(--kairo-primary)"
                           radius={[6, 6, 0, 0]}
                           maxBarSize={26}
                         />
@@ -978,7 +978,7 @@ function InvoicesPageContent() {
                 </div>
                 <button
                   onClick={() => showFilteredInvoices("open")}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#153E90]"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[var(--kairo-primary)]"
                 >
                   View All Invoices
                 </button>
@@ -988,7 +988,7 @@ function InvoicesPageContent() {
                   <p className="font-bold">No open invoices right now.</p>
                   <button
                     onClick={() => setChooserOpen(true)}
-                    className="mt-3 text-sm font-bold text-[#153E90]"
+                    className="mt-3 text-sm font-bold text-[var(--kairo-primary)]"
                   >
                     Create Invoice
                   </button>
@@ -1100,7 +1100,7 @@ function InvoicesPageContent() {
                   <p className="font-bold">No invoices match your filters.</p>
                   <button
                     onClick={resetFilters}
-                    className="mt-3 text-sm font-bold text-[#153E90]"
+                    className="mt-3 text-sm font-bold text-[var(--kairo-primary)]"
                   >
                     Clear Filters
                   </button>
@@ -1209,7 +1209,7 @@ function InvoicesPageContent() {
                 href="/invoices/new"
                 className="group rounded-2xl border border-slate-200 p-5 text-left hover:border-blue-300 hover:bg-blue-50/30"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#153E90]">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--kairo-primary)]">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -1224,7 +1224,7 @@ function InvoicesPageContent() {
                 <p className="mt-2 min-h-10 text-sm text-slate-500">
                   Create a single invoice for a client.
                 </p>
-                <span className="mt-5 inline-flex text-sm font-bold text-[#153E90]">
+                <span className="mt-5 inline-flex text-sm font-bold text-[var(--kairo-primary)]">
                   Create One-Time Invoice →
                 </span>
               </Link>

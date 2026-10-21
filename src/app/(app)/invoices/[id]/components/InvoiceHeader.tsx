@@ -41,7 +41,7 @@ export default function InvoiceHeader({
           {invoice.clients?.id ? (
             <Link
               href={`/clients/${invoice.clients.id}`}
-              className="mt-2 block text-lg text-slate-600 hover:text-[#153E90] hover:underline"
+              className="mt-2 block text-lg text-slate-600 hover:text-[var(--kairo-primary)] hover:underline"
             >
               {invoice.clients.name}
             </Link>

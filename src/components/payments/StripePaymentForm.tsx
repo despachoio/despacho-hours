@@ -91,7 +91,7 @@ export default function StripePaymentForm({
             type="checkbox"
             checked={autopayConsent}
             onChange={(event) => setAutopayConsent(event.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#153E90] focus-visible:ring-2 focus-visible:ring-[#153E90]/25"
+            className="mt-1 h-4 w-4 rounded border-slate-300 accent-[var(--kairo-primary)] focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/25"
           />
           <span>
             <strong className="block text-sm text-slate-900">Enable Autopay for future recurring invoices</strong>
@@ -106,7 +106,7 @@ export default function StripePaymentForm({
       <button
         type="submit"
         disabled={!stripe || submitting}
-        className="mt-6 w-full rounded-xl bg-[#153E90] px-5 py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-6 w-full rounded-xl bg-[var(--kairo-primary)] px-5 py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? "Processing payment…" : "Make Payment"}
       </button>

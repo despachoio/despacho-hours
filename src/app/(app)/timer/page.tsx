@@ -1968,10 +1968,10 @@ useShortcutCommand({
 });
 return (
 
-<main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+<main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
   <div className="mx-auto max-w-[1500px]">
-    <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
-      <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
+    <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+      <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
       <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
       <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
         <div>
@@ -2083,7 +2083,7 @@ return (
 
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {([
-        { label: "Today’s Hours", value: formatDecimalHours(summary.today), note: "Recorded today", icon: "clock", accent: "from-[#153E90] to-cyan-400", surface: "from-white via-white to-blue-50/80", badge: "border-blue-100 bg-blue-50 text-[#153E90]", valueTone: "text-[#153E90]" },
+        { label: "Today’s Hours", value: formatDecimalHours(summary.today), note: "Recorded today", icon: "clock", accent: "from-[var(--kairo-primary)] to-cyan-400", surface: "from-white via-white to-blue-50/80", badge: "border-blue-100 bg-blue-50 text-[var(--kairo-primary)]", valueTone: "text-[var(--kairo-primary)]" },
         { label: "This Week’s Hours", value: formatDecimalHours(summary.week), note: "Recorded this week", icon: "calendar", accent: "from-emerald-600 to-teal-300", surface: "from-white via-white to-emerald-50/80", badge: "border-emerald-100 bg-emerald-50 text-emerald-700", valueTone: "text-emerald-700" },
         { label: "Running Timers", value: String(summary.running), note: "Live right now", icon: "monitor", accent: "from-cyan-600 to-sky-300", surface: "from-white via-white to-cyan-50/80", badge: "border-cyan-100 bg-cyan-50 text-cyan-700", valueTone: "text-cyan-700" },
         { label: "Projects Worked", value: String(summary.projects), note: "Worked this week", icon: "folder", accent: "from-violet-600 to-fuchsia-300", surface: "from-white via-white to-violet-50/75", badge: "border-violet-100 bg-violet-50 text-violet-700", valueTone: "text-violet-700" },
@@ -2105,7 +2105,7 @@ return (
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           &nbsp;
-          <h2 className="text-xl font-bold text-[#153E90]">Live Operations</h2>
+          <h2 className="text-xl font-bold text-[var(--kairo-primary)]">Live Operations</h2>
           &nbsp;
         </div>
         <div className="flex items-center gap-3 text-sm font-bold text-slate-700">
@@ -2131,7 +2131,7 @@ return (
                   <div><p className="font-semibold text-slate-900">{timer.projects?.clients?.name || "—"}</p></div>
                   <div className="flex items-center gap-2 min-w-0">
 
-  <span className="shrink-0 text-sm font-bold text-[#153E90]">
+  <span className="shrink-0 text-sm font-bold text-[var(--kairo-primary)]">
 
     [{timer.projects?.project_code || "—"}]
 
@@ -2327,7 +2327,7 @@ return (
                                   <button
                                     data-shortcut-edit
                                     onClick={() => beginEdit(entry)}
-                                    className="rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-[#153E90] shadow-sm transition hover:border-blue-300 hover:bg-blue-100"
+                                    className="rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-[var(--kairo-primary)] shadow-sm transition hover:border-blue-300 hover:bg-blue-100"
                                   >
                                     Edit
                                   </button>
@@ -2361,7 +2361,7 @@ return (
               type="button"
               aria-current={page === entryPage ? "page" : undefined}
               onClick={() => setEntryPage(page)}
-              className={`min-w-10 rounded-xl px-3 py-2 text-sm font-bold ${page === entryPage ? "bg-[#153E90] text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+              className={`min-w-10 rounded-xl px-3 py-2 text-sm font-bold ${page === entryPage ? "bg-[var(--kairo-primary)] text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
             >
               {page + 1}
             </button>

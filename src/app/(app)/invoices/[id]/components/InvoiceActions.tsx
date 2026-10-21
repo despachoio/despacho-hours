@@ -82,11 +82,11 @@ function RecipientField({
       >
         {label}
       </label>
-      <div className="mt-2 flex min-h-12 flex-wrap items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 transition focus-within:border-[#153E90] focus-within:ring-4 focus-within:ring-blue-100">
+      <div className="mt-2 flex min-h-12 flex-wrap items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 transition focus-within:border-[var(--kairo-primary)] focus-within:ring-4 focus-within:ring-blue-100">
         {emails.map((email) => (
           <span
             key={email.toLowerCase()}
-            className="inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 py-1.5 pl-3 pr-1.5 text-sm font-semibold text-[#153E90] ring-1 ring-blue-200"
+            className="inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 py-1.5 pl-3 pr-1.5 text-sm font-semibold text-[var(--kairo-primary)] ring-1 ring-blue-200"
           >
             <span className="truncate">{email}</span>
             <button
@@ -962,7 +962,7 @@ export default function InvoiceActions({
               repairState ? setIsModalOpen(true) : openSendModal()
             }
             disabled={isSending || (!repairState && !canSendInvoice)}
-            className="w-full rounded-xl bg-[#153E90] px-4 py-3 text-left font-semibold text-white transition hover:bg-[#123578] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-[var(--kairo-primary)] px-4 py-3 text-left font-semibold text-white transition hover:bg-[var(--kairo-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {repairState
               ? "Repair Status"
@@ -1054,7 +1054,7 @@ export default function InvoiceActions({
                 type="button"
                 onClick={resumeReminders}
                 disabled={isUpdatingReminders}
-                className="w-full rounded-xl border border-blue-200 px-4 py-3 text-left font-semibold text-[#153E90] transition hover:bg-blue-50 disabled:opacity-60"
+                className="w-full rounded-xl border border-blue-200 px-4 py-3 text-left font-semibold text-[var(--kairo-primary)] transition hover:bg-blue-50 disabled:opacity-60"
               >
                 {isUpdatingReminders ? "Resuming..." : "Resume Reminders"}
               </button>
@@ -1157,7 +1157,7 @@ export default function InvoiceActions({
               >
                 ×
               </button>
-              <p className="text-sm font-semibold text-[#153E90]">
+              <p className="text-sm font-semibold text-[var(--kairo-primary)]">
                 Email invoice
               </p>
               <h2
@@ -1234,7 +1234,7 @@ export default function InvoiceActions({
                   required
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
 
@@ -1247,7 +1247,7 @@ export default function InvoiceActions({
                   rows={10}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 text-slate-950 outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 text-slate-950 outline-none transition focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
             </div>
@@ -1276,7 +1276,7 @@ export default function InvoiceActions({
                   data-shortcut-primary
                   aria-keyshortcuts="Control+Enter Meta+Enter"
                   disabled={isSending}
-                  className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#123578] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-[var(--kairo-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--kairo-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSending ? "Sending..." : "Send Invoice"}
                 </button>
@@ -1329,7 +1329,7 @@ export default function InvoiceActions({
                   onChange={(event) =>
                     setReminderStopReason(event.target.value)
                   }
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
             </div>
@@ -1615,7 +1615,7 @@ export default function InvoiceActions({
               >
                 ×
               </button>
-              <p className="text-sm font-semibold text-[#153E90]">
+              <p className="text-sm font-semibold text-[var(--kairo-primary)]">
                 Create draft copy
               </p>
               <h2
@@ -1655,7 +1655,7 @@ export default function InvoiceActions({
                     if (value)
                       setDuplicateDueDate(addDays(value, duplicateTerms));
                   }}
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
 
@@ -1699,7 +1699,7 @@ export default function InvoiceActions({
                   value={duplicateDueDate}
                   min={duplicateIssueDate}
                   onChange={(event) => setDuplicateDueDate(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
             </div>
@@ -1718,7 +1718,7 @@ export default function InvoiceActions({
                 data-shortcut-primary
                 aria-keyshortcuts="Control+Enter Meta+Enter"
                 disabled={isDuplicating}
-                className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123578] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-[var(--kairo-primary)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--kairo-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDuplicating ? "Duplicating..." : "Duplicate Invoice"}
               </button>
@@ -1800,7 +1800,7 @@ export default function InvoiceActions({
                   required
                   value={paymentDate}
                   onChange={(event) => setPaymentDate(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
 
@@ -1811,7 +1811,7 @@ export default function InvoiceActions({
                 <select
                   value={paymentMethod}
                   onChange={(event) => setPaymentMethod(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 >
                   <option value="bank_transfer">Bank Transfer</option>
                   <option value="credit_card">Credit Card</option>
@@ -1832,7 +1832,7 @@ export default function InvoiceActions({
                   value={paymentReference}
                   onChange={(event) => setPaymentReference(event.target.value)}
                   placeholder="RBC-12345"
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
 
@@ -1846,7 +1846,7 @@ export default function InvoiceActions({
                   value={paymentNotes}
                   onChange={(event) => setPaymentNotes(event.target.value)}
                   placeholder="Received by wire transfer"
-                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
                 />
               </label>
             </div>

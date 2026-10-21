@@ -6,7 +6,7 @@ const invoices = readFileSync("src/app/(app)/invoices/page.tsx", "utf8");
 describe("invoice overview premium cards", () => {
   it("uses distinct premium tones while retaining the existing filters", () => {
     for (const tone of [
-      "from-[#153E90] to-cyan-400",
+      "from-[var(--kairo-primary)] to-cyan-400",
       "from-emerald-600 to-teal-300",
       "from-violet-600 to-fuchsia-300",
       "from-rose-600 to-orange-300",

@@ -15,7 +15,7 @@ export default function LiveOperationsSnapshot({
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">
             Live now
           </p>
           <h2 className="mt-1 text-xl font-bold text-slate-950">
@@ -27,7 +27,7 @@ export default function LiveOperationsSnapshot({
         </div>
         <Link
           href="/timer"
-          className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-bold text-[#153E90] hover:bg-blue-50"
+          className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-bold text-[var(--kairo-primary)] hover:bg-blue-50"
         >
           View all in Time Tracking →
         </Link>
@@ -60,7 +60,7 @@ export default function LiveOperationsSnapshot({
                       {timer.projects?.clients?.name || "—"}
                     </td>
                     <td className="px-3 py-4">
-                      <p className="text-xs font-bold text-[#153E90]">
+                      <p className="text-xs font-bold text-[var(--kairo-primary)]">
                         {timer.projects?.project_code || "—"}
                       </p>
                       <p className="font-semibold">

@@ -163,10 +163,10 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
 
   const Root = embedded ? "div" : "main";
   return (
-    <Root className={embedded ? "" : "min-h-screen bg-[#f8fafc] px-6 py-7 lg:px-8"}>
+    <Root className={embedded ? "" : "min-h-screen bg-[var(--kairo-page-background)] px-6 py-7 lg:px-8"}>
       <div className={embedded ? "" : "mx-auto max-w-7xl"}>
-        {!embedded ? <section className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+        {!embedded ? <section className="kairo-hero relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/60 blur-3xl" />
           <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
           <div className="relative flex items-center justify-between gap-6">
             <div>
@@ -186,7 +186,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
                 onClick={() => setShowNewClient(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0F172A] shadow-lg transition hover:-translate-y-0.5 hover:bg-blue-50"
               >
-                <span className="text-lg leading-none text-[#153E90]">+</span>
+                <span className="text-lg leading-none text-[var(--kairo-primary)]">+</span>
                 New Client
               </button>
             ) : null}
@@ -196,7 +196,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
           eyebrow="Client portfolio"
           title="Clients"
           description="Manage client relationships, contacts, and active projects."
-          actions={isAdmin ? <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#123578]"><span className="text-base leading-none">+</span>New Client</button> : null}
+          actions={isAdmin ? <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--kairo-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--kairo-primary-hover)]"><span className="text-base leading-none">+</span>New Client</button> : null}
         />}
 
         <section className="relative z-10 -mt-3 grid grid-cols-1 gap-4 px-3 sm:grid-cols-3 lg:px-6">
@@ -204,7 +204,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
             {
               label: "Total Clients",
               value: metrics.total,
-              accent: "from-[#153E90] to-cyan-400",
+              accent: "from-[var(--kairo-primary)] to-cyan-400",
               surface: "from-white via-white to-blue-50/80",
             },
             {
@@ -231,7 +231,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">
                 {metric.label}
               </p>
-              <p className="mt-3 text-2xl font-bold text-[#153E90] sm:text-3xl">
+              <p className="mt-3 text-2xl font-bold text-[var(--kairo-primary)] sm:text-3xl">
                 {metric.value}
               </p>
             </article>
@@ -242,7 +242,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
           <section className="mt-7 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg shadow-blue-100/40">
             <div className="flex items-start justify-between gap-6">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#153E90]">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--kairo-primary)]">
                   New relationship
                 </p>
                 <h2 className="mt-2 text-xl font-bold text-slate-950">
@@ -264,14 +264,14 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
                 placeholder="Company name"
                 value={clientName}
                 onChange={(event) => setClientName(event.target.value)}
-                className="min-w-0 flex-1 rounded-2xl border border-slate-300 px-5 py-3.5 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                className="min-w-0 flex-1 rounded-2xl border border-slate-300 px-5 py-3.5 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
               />
               <button
                 type="button"
                 data-shortcut-primary
                 aria-keyshortcuts="Control+Enter Meta+Enter"
                 onClick={() => void addClient()}
-                className="rounded-2xl bg-[#153E90] px-6 py-3.5 font-bold text-white hover:bg-[#123578]"
+                className="rounded-2xl bg-[var(--kairo-primary)] px-6 py-3.5 font-bold text-white hover:bg-[var(--kairo-primary-hover)]"
               >
                 Create Client
               </button>
@@ -307,7 +307,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
                 placeholder="Search clients..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
               />
             </label>
             <KairoSegmentedControl
@@ -331,7 +331,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
                 href={`/clients/${client.id}`}
                 data-shortcut-row
                 data-shortcut-href={`/clients/${client.id}`}
-                className={`group relative flex min-h-[104px] cursor-pointer items-center gap-4 overflow-hidden rounded-3xl border px-5 py-4 shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 sm:px-6 ${
+                className={`group relative flex min-h-[104px] cursor-pointer items-center gap-4 overflow-hidden rounded-3xl border px-5 py-4 shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30 sm:px-6 ${
                   isArchived
                     ? "border-slate-200 bg-gradient-to-r from-white via-white to-slate-50 hover:border-slate-300 hover:shadow-slate-200/70"
                     : "border-blue-100 bg-gradient-to-r from-white via-white to-blue-50/75 hover:border-blue-300 hover:shadow-blue-100/80"
@@ -342,20 +342,20 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
                   className={`absolute inset-y-5 left-0 w-1 rounded-r-full ${
                     isArchived
                       ? "bg-slate-300"
-                      : "bg-gradient-to-b from-[#153E90] to-cyan-400"
+                      : "bg-gradient-to-b from-[var(--kairo-primary)] to-cyan-400"
                   }`}
                 />
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-md ${
                     isArchived
                       ? "bg-slate-500 shadow-slate-200"
-                      : "bg-gradient-to-br from-[#153E90] to-blue-600 shadow-blue-200"
+                      : "bg-gradient-to-br from-[var(--kairo-primary)] to-blue-600 shadow-blue-200"
                   }`}
                 >
                   {clientInitials(client.name)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-lg font-bold text-slate-950 transition group-hover:text-[#153E90]">
+                  <h3 className="truncate text-lg font-bold text-slate-950 transition group-hover:text-[var(--kairo-primary)]">
                     {client.name}
                   </h3>
                   <p className="mt-1 text-xs font-semibold text-slate-500">
@@ -374,7 +374,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
                 </span>
                 <span
                   aria-hidden="true"
-                  className="text-xl text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#153E90]"
+                  className="text-xl text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[var(--kairo-primary)]"
                 >
                   ›
                 </span>
@@ -391,7 +391,7 @@ export function ClientsWorkspace({ embedded = false }: { embedded?: boolean }) {
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-4 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-[#153E90] hover:bg-blue-50"
+              className="mt-4 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-[var(--kairo-primary)] hover:bg-blue-50"
             >
               Clear Filters
             </button>

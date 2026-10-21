@@ -136,7 +136,7 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
       paymentStatus === "requires_action");
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-8 lg:py-12">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-8 lg:py-12">
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex items-center justify-between">
           <Image src="/despacho-logo-full.png" alt="Despacho" width={190} height={60} className="h-auto w-40 sm:w-48" priority />
@@ -150,7 +150,7 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
             {showPaymentForm ? (
               <Elements
                 stripe={stripePromise}
-                options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "#153E90", borderRadius: "12px" } } }}
+                options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "var(--kairo-primary)", borderRadius: "12px" } } }}
               >
                 <StripePaymentForm token={token} autopayEligible={invoice.autopayEligible} />
               </Elements>
@@ -164,13 +164,13 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
                     type="button"
                     disabled={preparing}
                     onClick={() => void preparePayment(true)}
-                    className="mt-6 rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-6 rounded-xl bg-[var(--kairo-primary)] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {preparing ? "Preparing…" : "Try payment again"}
                   </button>
                 ) : null}
                 {paymentStatus === "processing" || paymentStatus === "succeeded" ? (
-                  <a href={`/pay/invoice/${token}/result`} className="mt-6 inline-flex rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20">
+                  <a href={`/pay/invoice/${token}/result`} className="mt-6 inline-flex rounded-xl bg-[var(--kairo-primary)] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/20">
                     Check payment status
                   </a>
                 ) : null}
@@ -183,7 +183,7 @@ export default function InvoicePaymentPage({ token }: { token: string }) {
                   type="button"
                   disabled={preparing}
                   onClick={() => void preparePayment(false)}
-                  className="mt-6 rounded-xl bg-[#153E90] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-6 rounded-xl bg-[var(--kairo-primary)] px-5 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {preparing ? "Preparing…" : "Try again"}
                 </button>

@@ -61,12 +61,12 @@ export default function TimeOffBalanceExportButtons({ rows, year }: { rows: Bala
   }
 
   const secondary = "h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
-  return <div className="flex flex-wrap gap-2"><button type="button" disabled={disabled} onClick={exportCsv} className={secondary}>CSV</button><button type="button" disabled={disabled} onClick={exportExcel} className={secondary}>Excel</button><button type="button" disabled={disabled} onClick={() => void exportPdf()} className="h-11 rounded-xl bg-[#0F172A] px-4 text-sm font-bold text-white transition hover:bg-[#153E90] disabled:cursor-not-allowed disabled:opacity-40">PDF</button></div>;
+  return <div className="flex flex-wrap gap-2"><button type="button" disabled={disabled} onClick={exportCsv} className={secondary}>CSV</button><button type="button" disabled={disabled} onClick={exportExcel} className={secondary}>Excel</button><button type="button" disabled={disabled} onClick={() => void exportPdf()} className="h-11 rounded-xl bg-[#0F172A] px-4 text-sm font-bold text-white transition hover:bg-[var(--kairo-primary)] disabled:cursor-not-allowed disabled:opacity-40">PDF</button></div>;
 }
 
 const styles = StyleSheet.create({
   page: { padding: 28, fontFamily: "Helvetica", fontSize: 7, color: "#0F172A" },
-  title: { fontSize: 18, fontWeight: "bold", color: "#153E90", marginBottom: 4 },
+  title: { fontSize: 18, fontWeight: "bold", color: "var(--kairo-primary)", marginBottom: 4 },
   subtitle: { color: "#64748B", marginBottom: 14 },
   row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#CBD5E1", paddingVertical: 5 },
   header: { backgroundColor: "#0F172A", color: "#FFFFFF", fontWeight: "bold" },

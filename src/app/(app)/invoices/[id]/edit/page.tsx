@@ -415,7 +415,7 @@ export default function EditInvoicePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] flex items-center justify-center">
         Loading invoice...
       </main>
     );
@@ -423,7 +423,7 @@ export default function EditInvoicePage() {
 
   if (!invoice) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] flex items-center justify-center">
         Invoice not found.
       </main>
     );
@@ -431,7 +431,7 @@ export default function EditInvoicePage() {
 
   if (invoice.status !== "draft") {
     return (
-      <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
+      <main className="min-h-screen bg-[var(--kairo-page-background)] px-8 py-7">
         <div className="mx-auto max-w-3xl">
           <KairoCard className="p-8 text-center">
             <h1 className="text-2xl font-bold text-slate-950">
@@ -443,7 +443,7 @@ export default function EditInvoicePage() {
             <div className="mt-6 flex justify-center">
               <Link
                 href={`/invoices/${invoiceId}`}
-                className="rounded-xl bg-[#0F172A] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#153E90] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 focus-visible:ring-offset-2"
+                className="rounded-xl bg-[#0F172A] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[var(--kairo-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30 focus-visible:ring-offset-2"
               >
                 View Invoice
               </Link>
@@ -455,7 +455,7 @@ export default function EditInvoicePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-8 py-7">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-8 py-7">
       <div className="mx-auto max-w-6xl">
         <Link
           href={`/invoices/${invoiceId}`}

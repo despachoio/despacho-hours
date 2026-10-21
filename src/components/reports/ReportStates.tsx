@@ -28,7 +28,7 @@ export function ReportEmptyState({ onClear }: { onClear: () => void }) {
       <button
         type="button"
         onClick={onClear}
-        className="mt-5 rounded-xl bg-[#153E90] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#153E90]/20"
+        className="mt-5 rounded-xl bg-[var(--kairo-primary)] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0F172A] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--kairo-primary)]/20"
       >
         Clear Filters
       </button>

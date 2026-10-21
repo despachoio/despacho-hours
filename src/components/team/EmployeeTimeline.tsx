@@ -26,7 +26,7 @@ export default function EmployeeTimeline({
         {groups.length ? (
           groups.map(([date, dateEntries]) => (
             <div key={date}>
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#153E90]">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--kairo-primary)]">
                 {formatDate(date)}
               </p>
               <div className="space-y-2">
@@ -54,7 +54,7 @@ export default function EmployeeTimeline({
                           {entry.description || "No description"}
                         </p>
                       </div>
-                      <p className="font-bold text-[#153E90]">
+                      <p className="font-bold text-[var(--kairo-primary)]">
                         {formatDecimalHours(entry.hours)}h
                       </p>
                     </div>

@@ -894,13 +894,13 @@ if (profileError) {
 
   if (loading)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] text-sm font-semibold text-slate-500">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] text-sm font-semibold text-slate-500">
         Loading employee analytics...
       </main>
     );
   if (accessDenied)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-6">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] p-6">
         <div className="rounded-3xl border border-red-100 bg-white p-8 text-center shadow-xl">
           <h1 className="text-2xl font-bold">Access Denied</h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -911,7 +911,7 @@ if (profileError) {
     );
   if (!analytics || !member)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] text-red-600">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--kairo-page-background)] text-red-600">
         Employee not found.
       </main>
     );
@@ -979,11 +979,11 @@ if (profileError) {
   ) : null;
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1450px]">
         <Link
           href="/team"
-          className="mb-5 text-sm font-bold text-slate-500 hover:text-[#153E90]"
+          className="mb-5 text-sm font-bold text-slate-500 hover:text-[var(--kairo-primary)]"
         >
           ← Back to Workforce
         </Link>
@@ -1036,7 +1036,7 @@ if (profileError) {
                   aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
                   onClick={() => void saveMember()}
                   disabled={saving}
-                  className="rounded-2xl bg-[#153E90] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-2xl bg-[var(--kairo-primary)] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>

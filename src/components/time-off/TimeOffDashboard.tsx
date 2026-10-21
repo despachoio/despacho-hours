@@ -87,7 +87,7 @@ export default function TimeOffDashboard({
         <section aria-label="Time Off notifications" className="grid gap-3 lg:grid-cols-2">
           {notifications.filter((notification) => !notification.read_at).slice(0, 4).map((notification) => (
             <button key={notification.id} type="button" onClick={async () => { await markNotificationRead(notification.id); onChanged(); }} className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-left transition hover:border-blue-300">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#153E90]">Notification</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--kairo-primary)]">Notification</span>
               <span className="mt-1 block font-bold text-slate-950">{notification.subject}</span>
               <span className="mt-1 block text-sm text-slate-600">{notification.body}</span>
             </button>
@@ -98,7 +98,7 @@ export default function TimeOffDashboard({
         {stats.map((stat) => (
           <KairoCard key={stat.label} className="group relative overflow-hidden border-slate-200/80 bg-gradient-to-br from-white via-slate-50/90 to-blue-50/90 p-5 shadow-[0_20px_46px_-32px_rgba(15,23,42,.65)] ring-1 ring-inset ring-white transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_26px_54px_-30px_rgba(21,62,144,.42)]">
             <span className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-blue-300/20 blur-3xl transition duration-500 group-hover:scale-125 group-hover:bg-cyan-300/25" />
-            <span className="absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r from-[#153E90] via-blue-500 to-cyan-400 shadow-sm" />
+            <span className="absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r from-[var(--kairo-primary)] via-blue-500 to-cyan-400 shadow-sm" />
             <span className="pointer-events-none absolute bottom-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent" />
             <p className="relative text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{stat.label}</p>
             <div className={`relative mt-4 text-[1.35rem] font-bold tracking-tight ${stat.tone}`}>{stat.value}</div>
@@ -111,7 +111,7 @@ export default function TimeOffDashboard({
           <span className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-blue-200/35 blur-3xl" />
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="relative">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">
                 Paid leave balance
               </p>
               <h2 className="mt-2 text-2xl font-bold text-slate-950">
@@ -124,7 +124,7 @@ export default function TimeOffDashboard({
             <button
               type="button"
               onClick={onRequestLeave}
-              className="rounded-xl bg-[#153E90] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+              className="rounded-xl bg-[var(--kairo-primary)] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30"
             >
               Request Leave
             </button>
@@ -132,7 +132,7 @@ export default function TimeOffDashboard({
           <div className="relative mt-7 flex h-3 overflow-hidden rounded-full bg-white shadow-inner ring-1 ring-blue-100" aria-label="Leave balance utilisation">
             <span className="bg-emerald-500" style={{ width: `${(used / denominator) * 100}%` }} />
             <span className="bg-amber-400" style={{ width: `${(pending / denominator) * 100}%` }} />
-            <span className="bg-[#153E90]" style={{ width: `${(available / denominator) * 100}%` }} />
+            <span className="bg-[var(--kairo-primary)]" style={{ width: `${(available / denominator) * 100}%` }} />
           </div>
           <dl className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {[
@@ -153,7 +153,7 @@ export default function TimeOffDashboard({
 
         <KairoCard className="relative overflow-hidden border-indigo-100 bg-gradient-to-br from-indigo-50/90 via-white to-violet-50/70 p-6 shadow-[0_22px_55px_-36px_rgba(79,70,229,.55)]">
           <span className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-violet-200/40 blur-3xl" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Policy status</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Policy status</p>
           <h2 className="mt-2 text-xl font-bold text-slate-950">
             {dashboard.policy_tier === "first_year" ? "First-year accrual" : "Annual entitlement"}
           </h2>
@@ -179,9 +179,9 @@ export default function TimeOffDashboard({
           <div className="space-y-3 p-5">
             {upcoming.length ? upcoming.map((request) => (
               <article key={request.id} className="flex items-center gap-3 rounded-xl border border-emerald-100/80 bg-gradient-to-r from-emerald-50/70 to-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <span className="h-10 w-1 rounded-full" style={{ backgroundColor: request.leave_types?.colour || "#153E90" }} />
+                <span className="h-10 w-1 rounded-full" style={{ backgroundColor: request.leave_types?.colour || "var(--kairo-primary)" }} />
                 <div className="min-w-0 flex-1"><p className="font-bold text-slate-900">{request.leave_types?.name}</p><p className="text-xs text-slate-500">{formatDate(request.start_date)} – {formatDate(request.end_date)}</p></div>
-                <span className="text-sm font-bold text-[#153E90]">{dayValue(request.working_days)}</span>
+                <span className="text-sm font-bold text-[var(--kairo-primary)]">{dayValue(request.working_days)}</span>
               </article>
             )) : <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">No upcoming approved leave.</p>}
           </div>

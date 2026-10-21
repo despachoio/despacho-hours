@@ -89,26 +89,26 @@ export default function ApprovalCentre({ requests, managedEmployees, managedRequ
   const upcoming = calendar.filter((leave) => ["approved", "cancellation_rejected"].includes(leave.status) && leave.start_date >= today).slice(0, 8);
   return <div className="grid gap-6 xl:grid-cols-[1fr_.85fr]">
     <KairoCard className="overflow-hidden border-blue-100 bg-gradient-to-br from-slate-50 via-blue-50/70 to-violet-50/65 shadow-[0_26px_68px_-42px_rgba(59,130,246,.55)] before:from-blue-600 before:via-cyan-400 before:to-violet-500">
-<div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-r from-[#153E90]/5 via-white to-slate-50 px-6 py-5">
+<div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-r from-[var(--kairo-primary)]/5 via-white to-slate-50 px-6 py-5">
 
-<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#153E90]/10 bg-white text-[#153E90] shadow-sm"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold tracking-tight text-slate-900">Requires My Action</h2>
+<div className="relative flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--kairo-primary)]/10 bg-white text-[var(--kairo-primary)] shadow-sm"><TimeOffIcon name="inbox" className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold tracking-tight text-slate-900">Requires My Action</h2>
 <p className="mt-1 text-sm leading-6 text-slate-500">Pending direct-report requests and cancellation approvals.</p></div></div>
 </div>
-<div className="space-y-4 rounded-b-3xl bg-[#F8FAFC] p-6">{requests.length ? requests.map((request) => {
+<div className="space-y-4 rounded-b-3xl bg-[var(--kairo-page-background)] p-6">{requests.length ? requests.map((request) => {
 const isSelected = selected?.id === request.id;
 return <button key={request.id} type="button" aria-pressed={isSelected} onClick={() => { setSelected(request); setError(""); }} className={`group relative w-full overflow-hidden rounded-3xl border p-5 text-left transition-all duration-300
 focus-visible:outline-none
 focus-visible:ring-2
-focus-visible:ring-[#153E90]/25
+focus-visible:ring-[var(--kairo-primary)]/25
 
 ${
 isSelected
 ? `
-border-[#153E90]
+border-[var(--kairo-primary)]
 bg-white
 shadow-[0_20px_55px_-25px_rgba(21,62,144,.18)]
 ring-2
-ring-[#153E90]/10
+ring-[var(--kairo-primary)]/10
 `
 : request.administrative_override_required
 ? `
@@ -123,7 +123,7 @@ hover:-translate-y-0.5
 border-slate-200
 bg-white
 shadow-[0_10px_28px_-18px_rgba(15,23,42,.12)]
-hover:border-[#153E90]/20
+hover:border-[var(--kairo-primary)]/20
 hover:shadow-[0_18px_45px_-20px_rgba(21,62,144,.14)]
 hover:-translate-y-0.5
 `
@@ -134,10 +134,10 @@ className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-r-full transition-color
 
 ${
 isSelected
-? "bg-[#153E90]"
+? "bg-[var(--kairo-primary)]"
 : request.administrative_override_required
 ? "bg-rose-500"
-: "bg-slate-300 group-hover:bg-[#153E90]"
+: "bg-slate-300 group-hover:bg-[var(--kairo-primary)]"
 }`}
 />
 <div className="flex items-start justify-between gap-4 pl-1">
@@ -145,10 +145,10 @@ isSelected
 <span
   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 ${
     isSelected
-      ? "border-[#153E90]/20 bg-[#153E90] text-white shadow-md"
+      ? "border-[var(--kairo-primary)]/20 bg-[var(--kairo-primary)] text-white shadow-md"
       : request.administrative_override_required
         ? "border-rose-200 bg-rose-50 text-rose-700"
-        : "border-slate-200 bg-slate-50 text-slate-600 group-hover:border-[#153E90]/20 group-hover:bg-blue-50 group-hover:text-[#153E90]"
+        : "border-slate-200 bg-slate-50 text-slate-600 group-hover:border-[var(--kairo-primary)]/20 group-hover:bg-blue-50 group-hover:text-[var(--kairo-primary)]"
   }`}
 >
   <TimeOffIcon
@@ -166,15 +166,15 @@ isSelected
 <span className="sm:text-right"><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Duration</span><span className="mt-1 block whitespace-nowrap font-bold text-slate-950">{leaveDayLabel(request.working_days)}</span></span>
 </div>
 {request.administrative_override_required ? <p className="mt-3 flex items-center gap-1.5 pl-1 text-xs font-bold text-rose-700"><TimeOffIcon name="alert" className="h-3.5 w-3.5" />Administrative override required</p> : null}
-{isSelected ? <p className="mt-3 pl-1 text-xs font-bold text-[#153E90]">Selected · Review the approval details</p> : null}
+{isSelected ? <p className="mt-3 pl-1 text-xs font-bold text-[var(--kairo-primary)]">Selected · Review the approval details</p> : null}
 </button>;
 }) : <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/70 px-6 py-16 text-center text-sm text-slate-400">No requests currently require your action.</div>}</div>
 </KairoCard>
     <KairoCard className="border-white/80 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-[0_20px_55px_-38px_rgba(5,150,105,.55)]">{selected ? <div>
 <div className="flex items-start justify-between gap-4">
-<div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#153E90]">Approval detail</p>
+<div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--kairo-primary)]">Approval detail</p>
 <h2 className="mt-2 text-xl font-bold text-slate-950">{selected.employees?.title} {selected.employees?.name}</h2></div>
-<button type="button" aria-label="Close approval detail" title="Close" disabled={processing} onClick={closeApprovalDetail} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-semibold leading-none text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#153E90] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">×</span></button>
+<button type="button" aria-label="Close approval detail" title="Close" disabled={processing} onClick={closeApprovalDetail} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-semibold leading-none text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[var(--kairo-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">×</span></button>
 </div>
 <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
 <div>
@@ -208,8 +208,8 @@ isSelected
 </div>{conflicts.length ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
 <p className="font-bold">Team availability conflict</p>{conflicts.slice(0, 4).map((leave) => <p key={leave.id} className="mt-1">{leave.employee_name} · {leave.start_date} – {leave.end_date}</p>)}</div> : null}{selected.policy_snapshot?.warnings?.length ? <ul className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{selected.policy_snapshot.warnings.map((warning) => <li key={warning} className="ml-4 list-disc">{warning}</li>)}</ul> : null}{selected.leave_request_comments?.length ? <div className="mt-4 rounded-xl bg-slate-50 p-4">
 <p className="text-xs font-bold uppercase text-slate-400">Comments</p>{selected.leave_request_comments.map((item) => <p key={item.id} className="mt-2 text-sm">
-<span className="font-bold capitalize">{item.author_role}:</span> {item.comment}</p>)}</div> : null}{selected.leave_attachments?.length ? <div className="mt-4 flex flex-wrap gap-2">{selected.leave_attachments.map((file) => <button key={file.id} type="button" onClick={() => void openLeaveAttachment(file.storage_path)} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-[#153E90]">View {file.file_name}</button>)}</div> : null}<label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="approval-comment">Comment</label>
-<textarea id="approval-comment" value={comment} onChange={(event) => setComment(event.target.value)} className="mt-2 min-h-24 w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-[#153E90]" />{selected.administrative_override_required && isAdmin ? <>
+<span className="font-bold capitalize">{item.author_role}:</span> {item.comment}</p>)}</div> : null}{selected.leave_attachments?.length ? <div className="mt-4 flex flex-wrap gap-2">{selected.leave_attachments.map((file) => <button key={file.id} type="button" onClick={() => void openLeaveAttachment(file.storage_path)} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-[var(--kairo-primary)]">View {file.file_name}</button>)}</div> : null}<label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="approval-comment">Comment</label>
+<textarea id="approval-comment" value={comment} onChange={(event) => setComment(event.target.value)} className="mt-2 min-h-24 w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-[var(--kairo-primary)]" />{selected.administrative_override_required && isAdmin ? <>
 <label className="mt-4 block text-sm font-semibold text-slate-700" htmlFor="approval-override">Administrative override reason</label>
 <textarea id="approval-override" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} className="mt-2 min-h-20 w-full rounded-xl border border-red-200 p-3 outline-none focus:border-red-500" />
 </> : null}{error ? <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p> : null}<div className="mt-5 flex flex-wrap gap-3">
@@ -222,7 +222,7 @@ isSelected
 </>}</div>
 </div> : <div className="flex min-h-80 items-center justify-center text-center">
 <div>
-<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl text-[#153E90]">✓</div>
+<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl text-[var(--kairo-primary)]">✓</div>
 <p className="mt-4 font-bold text-slate-700">Select a request</p>
 <p className="mt-1 text-sm text-slate-400">Policy checks and approval actions will appear here.</p>
 </div>
@@ -231,7 +231,7 @@ isSelected
     <KairoCard className="overflow-hidden border-white/80 shadow-[0_20px_55px_-38px_rgba(21,62,144,.7)] xl:col-span-2">
 <div className="border-b px-6 py-5">
 <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Direct-Report Balances</h2>
-<p className="mt-1 text-sm text-slate-500">Search and filter employees visible through your reporting hierarchy.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#153E90]">{balanceSearchApplied ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
+<p className="mt-1 text-sm text-slate-500">Search and filter employees visible through your reporting hierarchy.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kairo-primary)]">{balanceSearchApplied ? `${filteredBalances.length} records` : "Awaiting search"}</span></div>
 <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_auto_auto]"><KairoSelect id="balance-employee" label="Employee" value={balanceEmployee} onChange={(event) => setBalanceEmployee(event.target.value)}><option value="">All reporting employees</option>{balanceEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee.code, employee.name)}</option>)}</KairoSelect><KairoSelect id="balance-type" label="Leave type" value={balanceType} onChange={(event) => setBalanceType(event.target.value)}><option value="">All leave types</option>{balanceTypes.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</KairoSelect><div className="flex items-end"><KairoButton type="button" onClick={searchBalances}>Search</KairoButton></div><div className="flex items-end"><KairoButton type="button" variant="secondary" onClick={resetBalanceSearch}>Reset</KairoButton></div></div>
 </div>
 <div className="overflow-x-auto">
@@ -248,13 +248,13 @@ isSelected
 </tr>
 </thead>
 <tbody className="divide-y">{filteredBalances.map((balance) => <tr key={balance.id}>
-<td className="px-5 py-4 font-bold text-[#153E90]">{balance.employee_code || "—"}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{balance.employee_code || "—"}</td>
 <td className="px-5 py-4 font-bold">{balance.employee_title} {balance.employee_name}</td>
 <td className="px-5 py-4">{balance.leave_type_name}</td>
 <td className="px-5 py-4">{balance.entitled_days}</td>
 <td className="px-5 py-4">{balance.used_days}</td>
 <td className="px-5 py-4">{balance.pending_days}</td>
-<td className="px-5 py-4 font-bold text-[#153E90]">{balance.available_days}</td>
+<td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{balance.available_days}</td>
 </tr>)}{!balanceSearchApplied ? <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400">Select an employee and leave type, then click Search to view balances.</td></tr> : !filteredBalances.length ? <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400">No leave balances match the selected filters.</td></tr> : null}</tbody>
 </table>
 </div>
@@ -344,6 +344,6 @@ function ManagedRequestSearch({ requests, employees: managedEmployees }: { reque
       <input aria-label="Reporting requests to date" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 shadow-sm" />
       <KairoButton type="button" onClick={search}>Search</KairoButton><KairoButton type="button" variant="secondary" onClick={reset}>Reset</KairoButton>
     </div>{error ? <p role="alert" className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}</div>
-    <div className="max-h-[520px] overflow-auto"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-[#0F172A] text-xs uppercase tracking-wide text-slate-300"><tr><th className="px-5 py-4">Employee Code</th><th className="px-5 py-4">Employee Name</th><th className="px-5 py-4">Leave Type</th><th className="px-5 py-4">Dates</th><th className="px-5 py-4">Days</th><th className="px-5 py-4">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{filtered.map((request) => <tr key={request.id} className="bg-white/80 transition hover:bg-blue-50/60"><td className="px-5 py-4 font-bold text-[#153E90]">{request.employees?.employee_code || "—"}</td><td className="px-5 py-4 font-bold text-slate-900">{request.employees?.title} {request.employees?.name}</td><td className="px-5 py-4">{request.leave_types?.name}</td><td className="whitespace-nowrap px-5 py-4">{request.start_date} – {request.end_date}</td><td className="px-5 py-4 font-bold">{request.working_days}</td><td className="px-5 py-4"><TimeOffStatusBadge status={request.status} /></td></tr>)}{!searched ? <tr><td colSpan={6} className="bg-white px-6 py-14 text-center text-sm text-slate-400">Choose filters and click Search to view reporting employee requests.</td></tr> : !filtered.length ? <tr><td colSpan={6} className="bg-white px-6 py-14 text-center text-sm text-slate-400">No requests match the selected filters.</td></tr> : null}</tbody></table></div>
+    <div className="max-h-[520px] overflow-auto"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-[#0F172A] text-xs uppercase tracking-wide text-slate-300"><tr><th className="px-5 py-4">Employee Code</th><th className="px-5 py-4">Employee Name</th><th className="px-5 py-4">Leave Type</th><th className="px-5 py-4">Dates</th><th className="px-5 py-4">Days</th><th className="px-5 py-4">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{filtered.map((request) => <tr key={request.id} className="bg-white/80 transition hover:bg-blue-50/60"><td className="px-5 py-4 font-bold text-[var(--kairo-primary)]">{request.employees?.employee_code || "—"}</td><td className="px-5 py-4 font-bold text-slate-900">{request.employees?.title} {request.employees?.name}</td><td className="px-5 py-4">{request.leave_types?.name}</td><td className="whitespace-nowrap px-5 py-4">{request.start_date} – {request.end_date}</td><td className="px-5 py-4 font-bold">{request.working_days}</td><td className="px-5 py-4"><TimeOffStatusBadge status={request.status} /></td></tr>)}{!searched ? <tr><td colSpan={6} className="bg-white px-6 py-14 text-center text-sm text-slate-400">Choose filters and click Search to view reporting employee requests.</td></tr> : !filtered.length ? <tr><td colSpan={6} className="bg-white px-6 py-14 text-center text-sm text-slate-400">No requests match the selected filters.</td></tr> : null}</tbody></table></div>
   </KairoCard>;
 }

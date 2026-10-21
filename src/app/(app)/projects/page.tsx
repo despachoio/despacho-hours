@@ -200,10 +200,10 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
 
   const Root = embedded ? "div" : "main";
   return (
-    <Root className={embedded ? "" : "min-h-screen bg-[#f8fafc] px-8 py-7"}>
+    <Root className={embedded ? "" : "min-h-screen bg-[var(--kairo-page-background)] px-8 py-7"}>
       <div className={embedded ? "" : "mx-auto max-w-7xl"}>
-        {!embedded ? <div className="relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/60 blur-3xl" />
+        {!embedded ? <div className="kairo-hero relative overflow-hidden rounded-[2rem] bg-[#0F172A] p-8 text-white shadow-xl shadow-slate-300/50 lg:p-10">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/60 blur-3xl" />
           <div className="absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-2xl" />
           <div className="relative flex items-center justify-between gap-6">
             <div>
@@ -233,7 +233,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
           eyebrow="Delivery portfolio"
           title="Projects"
           description="Manage projects and hour banks."
-          actions={canAdministerProjects ? <Link href="/projects/new" className="inline-flex items-center justify-center rounded-xl bg-[#153E90] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#123578]">+ New Project</Link> : null}
+          actions={canAdministerProjects ? <Link href="/projects/new" className="inline-flex items-center justify-center rounded-xl bg-[var(--kairo-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--kairo-primary-hover)]">+ New Project</Link> : null}
         />}
 
         <section className="relative z-10 -mt-3 grid grid-cols-1 gap-4 px-3 sm:grid-cols-3 lg:px-6">
@@ -241,7 +241,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
             {
               label: "Total Projects",
               value: metrics.total,
-              accent: "from-[#153E90] to-cyan-400",
+              accent: "from-[var(--kairo-primary)] to-cyan-400",
               surface: "from-white via-white to-blue-50/80",
             },
             {
@@ -268,7 +268,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">
                 {metric.label}
               </p>
-              <p className="mt-3 text-2xl font-bold text-[#153E90] sm:text-3xl">
+              <p className="mt-3 text-2xl font-bold text-[var(--kairo-primary)] sm:text-3xl">
                 {metric.value}
               </p>
             </article>
@@ -293,7 +293,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                 placeholder="Search projects..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
               />
             </label>
             <KairoSegmentedControl
@@ -370,7 +370,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                     >
                       <span
                         aria-hidden="true"
-                        className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-gradient-to-b from-[#153E90] to-cyan-400"
+                        className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-gradient-to-b from-[var(--kairo-primary)] to-cyan-400"
                       />
                       <div
                         className={
@@ -380,25 +380,25 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                         }
                       >
                         <div className="flex min-w-0 items-center gap-4">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#153E90] to-blue-600 text-sm font-bold text-white shadow-md shadow-blue-200">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--kairo-primary)] to-blue-600 text-sm font-bold text-white shadow-md shadow-blue-200">
                             {projectInitials(project.name)}
                           </div>
                           <div className="min-w-0">
                             {canOpenProject ? (
                               <Link
                                 href={`/projects/${project.id}/wallet`}
-                                className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+                                className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30"
                               >
-                                <span className="shrink-0 text-[#153E90]">
+                                <span className="shrink-0 text-[var(--kairo-primary)]">
                                   [{project.project_code}]
                                 </span>
-                                <span className="truncate text-slate-950 transition group-hover:text-[#153E90]">
+                                <span className="truncate text-slate-950 transition group-hover:text-[var(--kairo-primary)]">
                                   {project.name}
                                 </span>
                               </Link>
                             ) : (
                               <div className="flex min-w-0 items-center gap-2 whitespace-nowrap text-lg font-bold">
-                              <span className="shrink-0 text-[#153E90]">
+                              <span className="shrink-0 text-[var(--kairo-primary)]">
                                 [{project.project_code}]
                               </span>
                               <span className="truncate text-slate-950">
@@ -414,7 +414,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                                 : "Active"}
                             </span>
                             <span
-                              className={`ml-2 mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${project.is_billable ? "bg-blue-50 text-[#153E90]" : "bg-violet-50 text-violet-700"}`}
+                              className={`ml-2 mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${project.is_billable ? "bg-blue-50 text-[var(--kairo-primary)]" : "bg-violet-50 text-violet-700"}`}
                             >
                               {project.is_billable ? "Billable" : "Non-billable"}
                             </span>
@@ -476,7 +476,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                             }}
                             defaultValue=""
                             aria-label={`Actions for ${project.name}`}
-                            className="h-11 min-w-36 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none hover:border-blue-200 focus:border-[#153E90]"
+                            className="h-11 min-w-36 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none hover:border-blue-200 focus:border-[var(--kairo-primary)]"
                           >
                             <option value="">Actions</option>
 
@@ -512,7 +512,7 @@ export function ProjectsWorkspace({ embedded = false }: { embedded?: boolean }) 
                   setSearch("");
                   setStatusFilter("active");
                 }}
-                className="mt-4 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-[#153E90] hover:bg-blue-50"
+                className="mt-4 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-[var(--kairo-primary)] hover:bg-blue-50"
               >
                 Clear Filters
               </button>

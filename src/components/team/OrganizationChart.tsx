@@ -8,7 +8,7 @@ import styles from "./OrganizationChart.module.css";
 type ChartNode = TeamEmployee & { children: ChartNode[] };
 
 const rootTone =
-  "border-[#0B1F3A] from-[#0B1F3A] via-[#153E90] to-[#2563A6]";
+  "border-[#0B1F3A] from-[#0B1F3A] via-[var(--kairo-primary)] to-[#2563A6]";
 
 const levelTones = [
   "border-[#173B70] from-[#173B70] to-[#2F66B3]",
@@ -250,7 +250,7 @@ export default function OrganizationChart({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Name, code, role or department"
-              className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none focus:border-[#153E90] focus:ring-4 focus:ring-blue-100"
+              className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none focus:border-[var(--kairo-primary)] focus:ring-4 focus:ring-blue-100"
             />
             {matches.length ? (
               <span className="absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
@@ -290,7 +290,7 @@ export default function OrganizationChart({
             <button
               type="button"
               onClick={fit}
-              className="h-12 rounded-xl bg-[#153E90] px-4 text-sm font-bold text-white shadow-sm"
+              className="h-12 rounded-xl bg-[var(--kairo-primary)] px-4 text-sm font-bold text-white shadow-sm"
             >
               Fit to screen
             </button>

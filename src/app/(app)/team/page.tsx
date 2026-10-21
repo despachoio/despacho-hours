@@ -366,10 +366,10 @@ export default function WorkforcePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-[var(--kairo-page-background)] px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[#153E90] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
-          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#153E90]/70 blur-3xl" />
+        <header className="kairo-hero relative min-h-[250px] overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0F172A] via-[#172554] to-[var(--kairo-primary)] px-8 py-10 text-white shadow-xl shadow-slate-300/50 lg:px-12">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--kairo-primary)]/70 blur-3xl" />
           <div className="relative flex min-h-[170px] flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[.24em] text-cyan-200">
@@ -386,7 +386,7 @@ export default function WorkforcePage() {
           </div>
         </header>
         <nav aria-label="Workforce sections" className="relative z-10 mx-3 -mt-4 flex min-h-[64px] items-center gap-2 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-2 shadow-[0_18px_45px_-28px_rgba(15,23,42,.7)] backdrop-blur sm:mx-6">
-          {([...[{ value: "overview", label: "Overview", icon: "chart" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals", icon: "check" }] : []), { value: "organization", label: "Organization Chart", icon: "hierarchy" }, { value: "reviews", label: "Reviews", icon: "star" }, { value: "assets", label: "Assets", icon: "monitor" }, { value: "exit", label: "Exit Process", icon: "exit" }, { value: "policies", label: "Policies", icon: "shield" }] as Array<{ value: WorkforceTab; label: string; icon: TimeOffIconName }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${tab === item.value ? "bg-gradient-to-r from-[#153E90] to-blue-700 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:bg-blue-50 hover:text-[#153E90]"}`}><TimeOffIcon name={item.icon} className="h-4 w-4"/><span>{item.label}</span></Link>)}
+          {([...[{ value: "overview", label: "Overview", icon: "chart" }], ...(isAdmin ? [{ value: "approvals", label: "Profile Approvals", icon: "check" }] : []), { value: "organization", label: "Organization Chart", icon: "hierarchy" }, { value: "reviews", label: "Reviews", icon: "star" }, { value: "assets", label: "Assets", icon: "monitor" }, { value: "exit", label: "Exit Process", icon: "exit" }, { value: "policies", label: "Policies", icon: "shield" }] as Array<{ value: WorkforceTab; label: string; icon: TimeOffIconName }>).map((item) => <Link key={item.value} href={tabHref(item.value)} scroll={false} aria-current={tab === item.value ? "page" : undefined} className={`flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition duration-200 ${tab === item.value ? "kairo-primary-tab-active" : "kairo-primary-tab-inactive"}`}><TimeOffIcon name={item.icon} className="h-4 w-4"/><span>{item.label}</span></Link>)}
         </nav>
         {error ? (
           <div
@@ -410,7 +410,7 @@ export default function WorkforcePage() {
                 type="button"
                 onClick={closeNewMemberForm}
                 aria-label="Close new workforce member form"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#153E90]/30"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kairo-primary)]/30"
               >
                 ×
               </button>
@@ -465,7 +465,7 @@ export default function WorkforcePage() {
                 data-shortcut-primary
                 aria-keyshortcuts="Control+Enter Meta+Enter"
                 onClick={() => void addTeamMember()}
-                className="rounded-2xl bg-[#153E90] px-6 py-3 font-bold text-white"
+                className="rounded-2xl bg-[var(--kairo-primary)] px-6 py-3 font-bold text-white"
               >
                 Send Invitation
               </button>
@@ -510,13 +510,13 @@ export default function WorkforcePage() {
                       Manage active and inactive workforce accounts.
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => showNewMember ? closeNewMemberForm() : setShowNewMember(true)} className="rounded-xl bg-[#153E90] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Workforce Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+                  <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => showNewMember ? closeNewMemberForm() : setShowNewMember(true)} className="rounded-xl bg-[var(--kairo-primary)] px-4 py-2.5 text-xs font-bold text-white shadow-sm">{showNewMember ? "Close" : "+ New Workforce Member"}</button><div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
                     {(["active", "inactive", "all"] as const).map((view) => (
                       <button
                         key={view}
                         type="button"
                         onClick={() => setEmploymentView(view)}
-                        className={`rounded-lg px-4 py-2 text-xs font-bold capitalize transition ${employmentView === view ? "bg-white text-[#153E90] shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                        className={`rounded-lg px-4 py-2 text-xs font-bold capitalize transition ${employmentView === view ? "bg-white text-[var(--kairo-primary)] shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
                       >
                         {view}
                       </button>
