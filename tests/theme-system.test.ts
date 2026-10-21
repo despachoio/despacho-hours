@@ -10,13 +10,13 @@ describe("personalized Kairo themes", () => {
     expect(DEFAULT_KAIRO_THEME).toBe("despacho-blue");
     expect(KAIRO_THEMES.map((theme) => theme.id)).toEqual([
       "despacho-blue", "emerald", "royal-purple", "ocean-teal",
-      "rose-gold", "graphite", "pink-sand", "magic-mint",
+      "rose-gold", "graphite", "pink-sand", "citrus",
     ]);
     expect(KAIRO_THEME_MAP["despacho-blue"].palette.primary).toBe("#153E90");
     expect(KAIRO_THEME_MAP.emerald.palette.primary).toBe("#087F68");
     expect(KAIRO_THEME_MAP["royal-purple"].palette.primary).toBe("#6941A5");
     expect(KAIRO_THEME_MAP["pink-sand"].palette.heroEnd).toBe("#FFA8B6");
-    expect(KAIRO_THEME_MAP["magic-mint"].palette.pastel).toBe("#C2EDCE");
+    expect(KAIRO_THEME_MAP.citrus.palette.signatureHighlight).toBe("#F7C331");
   });
 
   it("falls back safely for missing or invalid stored preferences", () => {
@@ -24,7 +24,8 @@ describe("personalized Kairo themes", () => {
     expect(normalizeKairoTheme("unknown-theme")).toBe(DEFAULT_KAIRO_THEME);
     expect(normalizeKairoTheme("rose-gold")).toBe("rose-gold");
     expect(normalizeKairoTheme("slate-grey")).toBe("pink-sand");
-    expect(normalizeKairoTheme("charcoal-grey")).toBe("magic-mint");
+    expect(normalizeKairoTheme("charcoal-grey")).toBe("citrus");
+    expect(normalizeKairoTheme("magic-mint")).toBe("citrus");
   });
 
   it("offers Change Theme from the profile menu and mounts the provider", () => {
@@ -64,9 +65,18 @@ describe("personalized Kairo themes", () => {
     expect(migration).toContain("where preferred_theme in ('slate-grey', 'charcoal-grey')");
     expect(migration).toContain("'pink-sand', 'magic-mint'");
     expect(styles).toContain('data-kairo-theme="pink-sand"');
-    expect(styles).toContain('data-kairo-theme="magic-mint"');
+    expect(styles).toContain('data-kairo-theme="citrus"');
     expect(styles).not.toContain('data-kairo-theme="slate-grey"');
     expect(styles).not.toContain('data-kairo-theme="charcoal-grey"');
+    expect(styles).not.toContain('data-kairo-theme="magic-mint"');
+  });
+
+  it("migrates Magic Mint preferences to Citrus and updates the database whitelist", () => {
+    const migration = source("supabase/migrations/202610210003_replace_magic_mint_with_citrus.sql");
+    expect(migration).toContain("set preferred_theme = 'citrus'");
+    expect(migration).toContain("where preferred_theme = 'magic-mint'");
+    expect(migration).toContain("'pink-sand', 'citrus'");
+    expect(migration).toContain("where user_id = auth.uid()");
   });
 
   it("keeps official payroll PDFs on fixed Despacho branding", () => {

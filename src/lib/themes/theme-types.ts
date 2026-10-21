@@ -6,7 +6,7 @@ export const KAIRO_THEME_IDS = [
   "rose-gold",
   "graphite",
   "pink-sand",
-  "magic-mint",
+  "citrus",
 ] as const;
 
 export type KairoThemeId = (typeof KAIRO_THEME_IDS)[number];
@@ -22,6 +22,7 @@ export type KairoThemePalette = {
   activeTabText: string;
   pastel: string;
   pageBackground: string;
+  signatureHighlight?: string;
 };
 
 export type KairoThemeDefinition = {
