@@ -1,9 +1,9 @@
 export const KAIRO_THEME_IDS = [
   "despacho-blue",
-  "emerald",
+  "columbia-blue",
   "royal-purple",
   "ocean-teal",
-  "rose-gold",
+  "jet-black",
   "graphite",
   "pink-sand",
   "citrus",

@@ -9,20 +9,22 @@ describe("personalized Kairo themes", () => {
   it("registers the eight approved themes with Despacho Blue as the default", () => {
     expect(DEFAULT_KAIRO_THEME).toBe("despacho-blue");
     expect(KAIRO_THEMES.map((theme) => theme.id)).toEqual([
-      "despacho-blue", "emerald", "royal-purple", "ocean-teal",
-      "rose-gold", "graphite", "pink-sand", "citrus",
+      "despacho-blue", "columbia-blue", "royal-purple", "ocean-teal",
+      "jet-black", "graphite", "pink-sand", "citrus",
     ]);
     expect(KAIRO_THEME_MAP["despacho-blue"].palette.primary).toBe("#153E90");
-    expect(KAIRO_THEME_MAP.emerald.palette.primary).toBe("#087F68");
+    expect(KAIRO_THEME_MAP["columbia-blue"].palette.signatureHighlight).toBe("#CFE7E5");
     expect(KAIRO_THEME_MAP["royal-purple"].palette.primary).toBe("#6941A5");
     expect(KAIRO_THEME_MAP["pink-sand"].palette.heroEnd).toBe("#FFA8B6");
     expect(KAIRO_THEME_MAP.citrus.palette.signatureHighlight).toBe("#F7C331");
+    expect(KAIRO_THEME_MAP["jet-black"].palette.heroEnd).toBe("#2D3032");
   });
 
   it("falls back safely for missing or invalid stored preferences", () => {
     expect(normalizeKairoTheme(null)).toBe(DEFAULT_KAIRO_THEME);
     expect(normalizeKairoTheme("unknown-theme")).toBe(DEFAULT_KAIRO_THEME);
-    expect(normalizeKairoTheme("rose-gold")).toBe("rose-gold");
+    expect(normalizeKairoTheme("emerald")).toBe("columbia-blue");
+    expect(normalizeKairoTheme("rose-gold")).toBe("jet-black");
     expect(normalizeKairoTheme("slate-grey")).toBe("pink-sand");
     expect(normalizeKairoTheme("charcoal-grey")).toBe("citrus");
     expect(normalizeKairoTheme("magic-mint")).toBe("citrus");
@@ -77,6 +79,19 @@ describe("personalized Kairo themes", () => {
     expect(migration).toContain("where preferred_theme = 'magic-mint'");
     expect(migration).toContain("'pink-sand', 'citrus'");
     expect(migration).toContain("where user_id = auth.uid()");
+  });
+
+  it("migrates Emerald and Rose Gold preferences to their replacements", () => {
+    const migration = source("supabase/migrations/202610210004_replace_emerald_rose_gold_themes.sql");
+    const styles = source("src/app/globals.css");
+    expect(migration).toContain("when 'emerald' then 'columbia-blue'");
+    expect(migration).toContain("when 'rose-gold' then 'jet-black'");
+    expect(migration).toContain("where preferred_theme in ('emerald', 'rose-gold')");
+    expect(migration).toContain("'jet-black', 'graphite', 'pink-sand', 'citrus'");
+    expect(styles).toContain('data-kairo-theme="columbia-blue"');
+    expect(styles).toContain('data-kairo-theme="jet-black"');
+    expect(styles).not.toContain('data-kairo-theme="emerald"');
+    expect(styles).not.toContain('data-kairo-theme="rose-gold"');
   });
 
   it("keeps official payroll PDFs on fixed Despacho branding", () => {
